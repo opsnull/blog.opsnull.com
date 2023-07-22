@@ -1,0 +1,28 @@
+# 与 blowfish/i18n 目录下的文件名前缀一致.
+# 官方自带的 i18n/zh-CN.yaml 中的部分配置被注释了, 导致不能正确显示文件更新时间等内容,需要修正.
+languageCode = "zh-CN" 
+languageName = "cn"
+weight = 1
+title = "Opsnull"
+
+[params]
+displayName = "🇨🇳"
+isoCode = "zh-cn"
+rtl = false
+dateFormat = "2006-01-02" # 显示到日期即可，显示时间太长
+#logo = "img/opsnull_head.png" # blog 首页左上角显示的照片
+#secondaryLogo = "img/secondary-logo.png"
+description = "欢迎访问 opsnull 的博客"
+#copyright = "Copy, _right?_ :thinking_face:"
+
+[author]
+  name = "opsnull"
+  image = "img/opsnull.jpeg" # 放到 assets/ 目录下，个人介绍部分显示。
+  headline = "Yet Another Hacker." # 首页显示的个人信息。
+  bio = "Yet Another Hacker."  # 每篇文档显示的作者信息
+  links = [
+    { email = "mailto:geekard@gmail.com" },
+    { github = "https://github.com/opsnull" },
+    { weibo = "https://weibo.com/u/13333" },
+    { twitter = "https://twitter.com/geekard_zj" },
+  ]

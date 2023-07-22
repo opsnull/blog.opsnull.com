@@ -1,0 +1,14 @@
+# -- Markup --
+# These settings are required for the theme to function.
+
+[goldmark]
+[goldmark.renderer]
+  unsafe = true
+
+[highlight]
+  guessSyntax = true # 部分不支持的 code language 使用猜测。
+  noClasses = false
+
+[tableOfContents]
+  startLevel = 1
+  endLevel = 3 # 不包含 endLevel，所以只显示 1-2 级别。
