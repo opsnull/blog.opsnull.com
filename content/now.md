@@ -12,18 +12,7 @@ menu:
 {{< /typeit >}}
 
 {{< timeline >}}
-
-{{< timelineItem icon="github" header="header" badge="badge test" subheader="subheader" >}}
-学习 eBPF。 
-{{</ timelineItem >}}
-
-
-{{< timelineItem icon="code" header="Another Awesome Header" badge="date - present" subheader="Awesome Subheader">}}
-支持 html 代码。
-<ul>
-  <li>Coffee</li>
-  <li>Tea</li>
-  <li>Milk</li>
-</ul>
+{{< timelineItem icon="github" header="2023-07-22" badge="blog" subheader="" >}}
+重新部署博客中。
 {{</ timelineItem >}}
 {{</ timeline >}}
