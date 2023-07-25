@@ -2,14 +2,10 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2023-07-23T21:35:42+08:00
-tags: ["hugo", "org"]
+lastmod: 2023-07-25T09:27:23+08:00
+tags: ["hugo", "org-mode"]
 categories: ["emacs"]
 draft: false
-menu:
-  main:
-    identifier: "使用-hugo-和-ox-hugo-写博客"
-    parent: "Emacs"
 ---
 
 这篇文章总结下我使用 hugo 和 blowfish 主题搭建博客的配置参数，同时也记录了使用 org-mode 和 ox-hugo 来写博客的过程。
@@ -668,47 +664,30 @@ HUGO_BASE_DIR:
     etc.
 
 
-### <span class="section-num">2.2</span> Post Bundle 和 Thumbnail {#post-bundle-和-thumbnail}
+### <span class="section-num">2.2</span> hugo front-matter {#hugo-front-matter}
 
-使用post bundle可以将一篇文档发布为一个目录，这样后续可以在目录中添加thumbnail&amp;hero图片（feature\* 开头）或
-background 图片（background\* 开头）。
-
--   EXPORT_HUGO_BUNDLE: 指定 post bundle的目录名称；
--   EXPORT_FILE_NAME: 一般是固定的 index；
+hugo 支持两种front matter格式: yaml 或 toml:
 
 <div class="verse">
 
-,\*  DONE shell 历史 :<bash:lang:@lang:blog>:<br />
-CLOSED: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 16:10]</span></span><br />
+# file based<br />
+,#+hugo_front_matter_format: yaml<br />
+<br />
+\# subtree based<br />
 :PROPERTIES:<br />
-:EXPORT_DATE: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 15:00]</span></span><br />
-:EXPORT_HUGO_BUNDLE: 2023-05-07-shell-history<br />
-:EXPORT_FILE_NAME: index<br />
-:EXPORT_HUGO_CUSTOM_FRONT_MATTER+: :series '("shell") :series_order 1<br />
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml<br />
 :END:<br />
-<br />
-这篇博客分享下 UNIX/Linux shell 的历史。<br />
-<br />
-\#+hugo: more<br />
 
 </div>
 
-导出结果：
+设置输出文件名:
 
-```shell
-$ ls  2023-05-07-shell-history/
-featured.png  images/  index.md
-$ ls  2023-05-07-shell-history/images/shell_兼容和历史/
-2023-05-07_18-23-36_screenshot.png
-$
-```
+-   file-base-exported: 需要设置  `#+title` ;
+-   subtree-base-exported: 需要设置 `EXPORT_FILE_NAME`;
+-   如果配置了`#+hugo_bundle`或者:EXPORT_HUGO_BUNDLE:,则使用它作为文章目录名, EXPORT_FILE_NAME 可以设置为 index
+    或 \_index;
 
-
-### <span class="section-num">2.3</span> subtree 示例 {#subtree-示例}
-
-<https://ox-hugo.scripter.co/doc/org-meta-data-to-hugo-front-matter/>
-
-有效的hugo-post subtree的标识：设置了 `EXPORT_FILE_NAME` property。
+subtree-based:
 
 | Hugo front-matter (TOML)           | Org                                     | Org description                                                            |
 |------------------------------------|-----------------------------------------|----------------------------------------------------------------------------|
@@ -730,10 +709,62 @@ $
 | `tags_weight = 123` (auto-calc)    | `:EXPORT_HUGO_WEIGHT: :tags auto`       | When set to `:FOO auto`, _FOO_ taxonomy weight is auto-calculated          |
 | `weight = 123` (in `[menu.foo]`)   | `:EXPORT_HUGO_MENU: :menu foo`          | Menu weight is auto-calculated unless specified                            |
 
-EXPORT_HUGO_CUSTOM_FRONT_MATTER 是来自定义front matter的:
+file-based-export:
 
--   <https://ox-hugo.scripter.co/doc/custom-front-matter/>
--   <https://blowfish.page/docs/front-matter/>
+| Hugo front-matter (TOML)         | Org                                  |
+|----------------------------------|--------------------------------------|
+| `title = "foo"`                  | `#+title: foo`                       |
+| `date = 2017-07-24`              | `#+date: 2017-07-24`                 |
+| `publishDate = 2018-01-26`       | `#+hugo_publishdate: 2018-01-26`     |
+| `expiryDate = 2999-01-01`        | `#+hugo_expirydate: 2999-01-01`      |
+| `lastmod = <current date>`       | `#+hugo_auto_set_lastmod: t`         |
+| `tags = ["toto", "zulu"]`        | `#+hugo_tags: toto zulu`             |
+| `categories = ["x", "y"]`        | `#+hugo_categories: x y`             |
+| `draft = true`                   | `#+hugo_draft: true`                 |
+| `draft = false`                  | `#+hugo_draft: false`                |
+| `weight = 123`                   | `#+hugo_weight: 123`                 |
+| `tags_weight = 123`              | `#+hugo_weight: :tags 123`           |
+| `categories_weight = 123`        | `#+hugo_weight: :categories 123`     |
+| `weight = 123` (in `[menu.foo]`) | `#+hugo_menu: :menu foo :weight 123` |
+
+参考：
+
+1.  <https://ox-hugo.scripter.co/doc/org-meta-data-to-hugo-front-matter/>
+
+
+### <span class="section-num">2.3</span> Post Bundle 和 Thumbnail {#post-bundle-和-thumbnail}
+
+使用post bundle可以将一篇文档发布为一个目录，这样后续可以在目录中添加thumbnail&amp;hero图片（feature\* 开头）或
+background 图片（background\* 开头）。
+
+-   EXPORT_HUGO_BUNDLE: 指定 post bundle的目录名称；
+-   EXPORT_FILE_NAME: 一般是固定的 index；
+
+<div class="verse">
+
+,\*  DONE shell 历史 :<bash:lang:@lang:blog>:<br />
+CLOSED: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 16:10]</span></span><br />
+:PROPERTIES:<br />
+:EXPORT_DATE: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 15:00]</span></span><br />
+:EXPORT_HUGO_BUNDLE: 2023-05-07-shell-history<br />
+:EXPORT_FILE_NAME: index<br />
+:END:<br />
+<br />
+这篇博客分享下 UNIX/Linux shell 的历史。<br />
+<br />
+\#+hugo: more<br />
+
+</div>
+
+导出结果：
+
+```shell
+$ ls  2023-05-07-shell-history/
+featured.png  images/  index.md
+$ ls  2023-05-07-shell-history/images/shell_兼容和历史/
+2023-05-07_18-23-36_screenshot.png
+$
+```
 
 
 ## <span class="section-num">3</span> 写 blog {#写-blog}
@@ -962,7 +993,7 @@ M-x org-hugo-auto-export-mode
 
 Custom Front-matter Parameters 是对 hugo 没特殊意义，但是对 theme 有意义的配置：
 
--   subttee： `:EXPORT_HUGO_CUSTOM_FRONT_MATTER:` property
+-   subttee: `:EXPORT_HUGO_CUSTOM_FRONT_MATTER:` property
 -   file： `#+hugo_custom_front_matter:`
 
 subtree：
@@ -1068,6 +1099,16 @@ foo:<br />
 ,#+end_src<br />
 
 </div>
+
+blowfish theme 自定义的 front-matter 参数列表: <https://blowfish.page/docs/front-matter/>
+
+示例:
+
+```text
+:EXPORT_HUGO_CUSTOM_FRONT_MATTER: :summary "这篇博客分享下 UNIX/Linux shell 的历史。这篇博客分享下 UNIX/Linux shell 的历史。这篇博客分享下 UNIX/Linux shell 的历史。"
+:EXPORT_HUGO_CUSTOM_FRONT_MATTER+: :showSummary true
+:EXPORT_HUGO_CUSTOM_FRONT_MATTER+: :series '("shell") :series_order 1
+```
 
 参考：<https://ox-hugo.scripter.co/doc/custom-front-matter/>
 
@@ -1183,6 +1224,12 @@ The `:menu key is mandatory` because that’s used to specify the current Page�
     identifier = "post-2"
     parent = "posts"
     weight = 1
+```
+
+file-based 的带parent ment的例子：
+
+```text
+#+hugo_menu: :menu main :parent Emacs
 ```
 
 参考：<https://ox-hugo.scripter.co/doc/menu-front-matter/>
