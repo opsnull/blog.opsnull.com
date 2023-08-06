@@ -2,7 +2,7 @@
 title: "Linux elf 调试符号表（.debug_XX)"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-06T21:24:41+08:00
+lastmod: 2023-08-06T22:24:33+08:00
 tags: ["linux", "elf", "debug"]
 categories: ["debug"]
 draft: false

@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2023-08-06T15:21:04+08:00
+lastmod: 2023-08-06T22:27:48+08:00
 tags: ["hugo", "org-mode"]
 categories: ["emacs"]
 draft: false
@@ -617,7 +617,8 @@ HUGO_BASE_DIR:
 注意：如果使用 POST Bundle，则文档输出为一个目录：
 
 -   目录名称由EXPORT_HUGO_BUNDLE指定；
--   文档名称由:EXPORT_FILE_NAME:指定，但一般为 index 或 \_index;
+-   文档名称由:EXPORT_FILE_NAME:指定，但一般为 index 或 \_index（建议）;
+    -   如果未EXPORT_FILE_NAME（不建议），则文件名称和源文件名称一致。
 
 对于 subtree property :EXPORT_FILE_NAME:：
 

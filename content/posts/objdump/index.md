@@ -2,7 +2,7 @@
 title: "objdump"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-06T21:48:56+08:00
+lastmod: 2023-08-06T22:24:42+08:00
 tags: ["linux", "elf", "debug", "tools"]
 categories: ["debug", "tools"]
 draft: false
@@ -18,6 +18,11 @@ readelf 和 objdump 相比：
 
 1.  objdump 可以对二进制文件根据调试符号表进行反汇编，但是 readelf 不行；
 2.  两者都会使用 build-id 和 gnu debuglink 机制从`/usr/lib/debug`查找当前二进制的 debuginfo 文件，然后显示其内容；
+
+通用选项：
+
+1.  `-w/--wide` ：可以使输出宽度超过 80 字符。
+2.  `-j, --section=NAME` ：只显示执行 SECTION 的内容。
 
 
 ## <span class="section-num">1</span> 显示文件格式 {#显示文件格式}
@@ -629,6 +634,19 @@ Contents of section .comment:
  0020 30342e31 29203131 2e332e30 00        04.1) 11.3.0.
 Contents of section .gnu_debuglink:
  0000 68656c6c 6f2e6465 62756700 a3c55b6a  hello.debug...[j
+```
+
+通过添加-j SECTION来只显示指定 SECTION 的内容：
+
+```shell
+root@lima-ebpf-dev:~# objdump -s hello -j .comment
+
+hello:     file format elf64-x86-64
+
+Contents of section .comment:
+ 0000 4743433a 20285562 756e7475 2031312e  GCC: (Ubuntu 11.
+ 0010 342e302d 31756275 6e747531 7e32322e  4.0-1ubuntu1~22.
+ 0020 30342920 31312e34 2e3000             04) 11.4.0.
 ```
 
 

@@ -2,7 +2,7 @@
 title: "readelf"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-06T21:43:36+08:00
+lastmod: 2023-08-06T22:24:38+08:00
 tags: ["linux", "elf", "debug", "tools"]
 categories: ["debug", "tools"]
 draft: false
@@ -19,7 +19,9 @@ readelf 和 objdump 相比：
 1.  objdump 可以对二进制文件根据调试符号表进行反汇编，但是 readelf 不行；
 2.  两者都会使用 build-id 和 gnu debuglink 机制从`/usr/lib/debug`查找当前二进制的 debuginfo 文件，然后显示其内容；
 
-添加`-W/--wide`选项，可以使输出宽度超过 80 字符。
+通用选项：
+
+1.  `-W/--wide` ：可以使输出宽度超过 80 字符。
 
 
 ## <span class="section-num">1</span> 显示 ELF header {#显示-elf-header}
