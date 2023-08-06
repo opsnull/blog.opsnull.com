@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2023-07-25T09:27:23+08:00
+lastmod: 2023-08-06T15:21:04+08:00
 tags: ["hugo", "org-mode"]
 categories: ["emacs"]
 draft: false
@@ -239,7 +239,7 @@ config/_default/menus.zh-cn.toml 里添加：
 
 <!--listend-->
 
-```markdown
+```toml
 ---
 showAuthor: false
 showDate: false
@@ -256,16 +256,6 @@ showTableOfContents: false
 
 {{< timelineItem icon="github" header="header" badge="badge test" subheader="subheader" >}}
 学习 eBPF。
-{{</ timelineItem >}}
-
-
-{{< timelineItem icon="code" header="Another Awesome Header" badge="date - present" subheader="Awesome Subheader">}}
-支持 html 代码。
-<ul>
-  <li>Coffee</li>
-  <li>Tea</li>
-  <li>Milk</li>
-</ul>
 {{</ timelineItem >}}
 {{</ timeline >}}
 ```
