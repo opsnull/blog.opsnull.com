@@ -2,7 +2,7 @@
 title: "Linux elf 调试符号表（.debug_XX)"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-06T21:12:32+08:00
+lastmod: 2023-08-06T21:24:41+08:00
 tags: ["linux", "elf", "debug"]
 categories: ["debug"]
 draft: false
@@ -25,10 +25,9 @@ gdb 依赖调试符号表来进行 stack unwinding/单步调试/内存地址和�
 
 ## <span class="section-num">1</span> 生成调试符号表 {#生成调试符号表}
 
-由于 debuginfo 通常比较大，而且一般只在 debug 时使用。所以编译器默认不生成它们。在编译二进制时，通过指定 -g 选项，可以在生成的二进制中包含.debug_XX开头的调试符号表：
+由于 debuginfo 通常比较大，而且一般只在 debug 时使用。所以编译器默认不生成它们。在编译二进制时，通过指定 -g 选项，可以在生成的二进制中包含.debug_XX开头的调试符号表，如 .debug_info, .debug_abbrev, .debug_line,
+.debug_frame, .debug_str, .debug_loc 等，它们符合`DWARF`格式标准；
 
--   例如： .debug_info, .debug_abbrev, .debug_line, .debug_frame, .debug_str,
-    .debug_loc 等，它们符合 DWARF 格式标准；
 -   可以使用`readelf -w file或 objdump -g` 命令来查看.
 -   使用 -g3 可以包含 macro definitions（默认 -g2）；
 
@@ -380,44 +379,7 @@ Idx Name          Size      VMA               LMA               File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   5 .dynstr       00008423  00000000004104e0  00000000004104e0  000104e0  2**0
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  6 .gnu.version  000010f4  0000000000418904  0000000000418904  00018904  2**1
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
-  7 .gnu.version_r 000000b0  00000000004199f8  00000000004199f8  000199f8  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
-  8 .rela.dyn     000000c0  0000000000419aa8  0000000000419aa8  00019aa8  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
-  9 .rela.plt     00001398  0000000000419b68  0000000000419b68  00019b68  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 10 .init         0000001a  000000000041af00  000000000041af00  0001af00  2**2
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 11 .plt          00000d20  000000000041af20  000000000041af20  0001af20  2**4
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 12 .text         0008b5d2  000000000041bc40  000000000041bc40  0001bc40  2**4
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 13 .fini         00000009  00000000004a7214  00000000004a7214  000a7214  2**2
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 14 .rodata       0001cd0e  00000000004a7220  00000000004a7220  000a7220  2**5
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 15 .eh_frame_hdr 00003c74  00000000004c3f30  00000000004c3f30  000c3f30  2**2
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 16 .eh_frame     0001597c  00000000004c7ba8  00000000004c7ba8  000c7ba8  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 17 .init_array   00000008  00000000006dddf0  00000000006dddf0  000dddf0  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 18 .fini_array   00000008  00000000006dddf8  00000000006dddf8  000dddf8  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 19 .jcr          00000008  00000000006dde00  00000000006dde00  000dde00  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 20 .dynamic      000001f0  00000000006dde08  00000000006dde08  000dde08  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 21 .got          00000008  00000000006ddff8  00000000006ddff8  000ddff8  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 22 .got.plt      000006a0  00000000006de000  00000000006de000  000de000  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 23 .data         000083f0  00000000006de6a0  00000000006de6a0  000de6a0  2**5
-                  CONTENTS, ALLOC, LOAD, DATA
- 24 .bss          00005988  00000000006e6aa0  00000000006e6aa0  000e6a90  2**5
-                  ALLOC
+...
  25 .gnu_debuglink 00000010  0000000000000000  0000000000000000  000e6a90  2**2  # 记录了 debug 文件的名称和 CRC 校验值
                   CONTENTS, READONLY
  26 .gnu_debugdata 000044c8  0000000000000000  0000000000000000  000e6aa0  2**0
@@ -474,46 +436,7 @@ Idx Name          Size      VMA               LMA               File off  Algn
                   ALLOC, READONLY
   5 .dynstr       00008423  00000000004104e0  00000000004104e0  00000280  2**0
                   ALLOC, READONLY
-  6 .gnu.version  000010f4  0000000000418904  0000000000418904  00000280  2**1
-                  ALLOC, READONLY
-  7 .gnu.version_r 000000b0  00000000004199f8  00000000004199f8  00000280  2**3
-                  ALLOC, READONLY
-  8 .rela.dyn     000000c0  0000000000419aa8  0000000000419aa8  00000280  2**3
-                  ALLOC, READONLY
-  9 .rela.plt     00001398  0000000000419b68  0000000000419b68  00000280  2**3
-                  ALLOC, READONLY
- 10 .init         0000001a  000000000041af00  000000000041af00  00000280  2**2
-                  ALLOC, READONLY, CODE
- 11 .plt          00000d20  000000000041af20  000000000041af20  00000280  2**4
-                  ALLOC, READONLY, CODE
- 12 .text         0008b5d2  000000000041bc40  000000000041bc40  00000280  2**4
-                  ALLOC, READONLY, CODE
- 13 .fini         00000009  00000000004a7214  00000000004a7214  00000280  2**2
-                  ALLOC, READONLY, CODE
- 14 .rodata       0001cd0e  00000000004a7220  00000000004a7220  00000280  2**5
-                  ALLOC, READONLY
- 15 .eh_frame_hdr 00003c74  00000000004c3f30  00000000004c3f30  00000280  2**2
-                  ALLOC, READONLY
- 16 .eh_frame     0001597c  00000000004c7ba8  00000000004c7ba8  00000280  2**3
-                  ALLOC, READONLY
- 17 .init_array   00000008  00000000006dddf0  00000000006dddf0  00000280  2**3
-                  ALLOC
- 18 .fini_array   00000008  00000000006dddf8  00000000006dddf8  00000280  2**3
-                  ALLOC
- 19 .jcr          00000008  00000000006dde00  00000000006dde00  00000280  2**3
-                  ALLOC
- 20 .dynamic      000001f0  00000000006dde08  00000000006dde08  00000280  2**3
-                  ALLOC
- 21 .got          00000008  00000000006ddff8  00000000006ddff8  00000280  2**3
-                  ALLOC
- 22 .got.plt      000006a0  00000000006de000  00000000006de000  00000280  2**3
-                  ALLOC
- 23 .data         000083f0  00000000006de6a0  00000000006de6a0  00000280  2**5
-                  ALLOC
- 24 .bss          00005988  00000000006e6aa0  00000000006e6aa0  00000280  2**5
-                  ALLOC
- 25 .comment      0000002d  0000000000000000  0000000000000000  00000280  2**0
-                  CONTENTS, READONLY
+...
  26 .debug_aranges 00001e30  0000000000000000  0000000000000000  000002ad  2**0
                   CONTENTS, READONLY, DEBUGGING
  27 .debug_info   000acd9c  0000000000000000  0000000000000000  000020dd  2**0
@@ -627,23 +550,12 @@ String dump of section '.gnu_debuglink':
   [     e]  [j
 
 root@lima-ebpf-dev:~# readelf -n hello
-
-Displaying notes found in: .note.gnu.property
-  Owner                Data size        Description
-  GNU                  0x00000020       NT_GNU_PROPERTY_TYPE_0
-      Properties: x86 feature: IBT, SHSTK
-        x86 ISA needed: x86-64-baseline
-
+...
 Displaying notes found in: .note.gnu.build-id
   Owner                Data size        Description
   GNU                  0x00000014       NT_GNU_BUILD_ID (unique build ID bitstring)
     Build ID: ced7aad9174d074c704867b703c014fec94527df
-
-Displaying notes found in: .note.ABI-tag
-  Owner                Data size        Description
-  GNU                  0x00000010       NT_GNU_ABI_TAG (ABI version tag)
-    OS: Linux, ABI: 3.2.0
-root@lima-ebpf-dev:~#
+...
 ```
 
 
@@ -668,52 +580,7 @@ Idx Name          Size      VMA               LMA               File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   3 .note.ABI-tag 00000020  000000000000038c  000000000000038c  0000038c  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  4 .gnu.hash     00000024  00000000000003b0  00000000000003b0  000003b0  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
-  5 .dynsym       000000a8  00000000000003d8  00000000000003d8  000003d8  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
-  6 .dynstr       0000008d  0000000000000480  0000000000000480  00000480  2**0
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
-  7 .gnu.version  0000000e  000000000000050e  000000000000050e  0000050e  2**1
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
-  8 .gnu.version_r 00000030  0000000000000520  0000000000000520  00000520  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
-  9 .rela.dyn     000000c0  0000000000000550  0000000000000550  00000550  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 10 .rela.plt     00000018  0000000000000610  0000000000000610  00000610  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 11 .init         0000001b  0000000000001000  0000000000001000  00001000  2**2
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 12 .plt          00000020  0000000000001020  0000000000001020  00001020  2**4
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 13 .plt.got      00000010  0000000000001040  0000000000001040  00001040  2**4
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 14 .plt.sec      00000010  0000000000001050  0000000000001050  00001050  2**4
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 15 .text         00000117  0000000000001060  0000000000001060  00001060  2**4
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 16 .fini         0000000d  0000000000001178  0000000000001178  00001178  2**2
-                  CONTENTS, ALLOC, LOAD, READONLY, CODE
- 17 .rodata       0000000b  0000000000002000  0000000000002000  00002000  2**2
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 18 .eh_frame_hdr 0000003c  000000000000200c  000000000000200c  0000200c  2**2
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 19 .eh_frame     000000cc  0000000000002048  0000000000002048  00002048  2**3
-                  CONTENTS, ALLOC, LOAD, READONLY, DATA
- 20 .init_array   00000008  0000000000003db8  0000000000003db8  00002db8  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 21 .fini_array   00000008  0000000000003dc0  0000000000003dc0  00002dc0  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 22 .dynamic      000001f0  0000000000003dc8  0000000000003dc8  00002dc8  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 23 .got          00000048  0000000000003fb8  0000000000003fb8  00002fb8  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 24 .data         00000010  0000000000004000  0000000000004000  00003000  2**3
-                  CONTENTS, ALLOC, LOAD, DATA
- 25 .bss          00000008  0000000000004010  0000000000004010  00003010  2**0
-                  ALLOC
- 26 .comment      0000002b  0000000000000000  0000000000000000  00003010  2**0
-                  CONTENTS, READONLY
+...
  27 .debug_aranges 00000030  0000000000000000  0000000000000000  0000303b  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  28 .debug_info   000000a6  0000000000000000  0000000000000000  0000306b  2**0
@@ -732,7 +599,7 @@ root@lima-ebpf-dev:~#
 
 ### <span class="section-num">5.3</span> objdump -g/-W 显示 .debug_XX 详情 {#objdump-g-w-显示-dot-debug-xx-详情}
 
--   直接从文件中读，或者根据debug-link/build-id从系统`/usr/lib/debug`读取 debug 文件。
+-   直接从文件中读或者根据debug-link/build-id从系统`/usr/lib/debug`读取 debug 文件。
 
 <!--listend-->
 
@@ -770,50 +637,7 @@ Contents of the .debug_info section (loaded from /usr/lib/debug/hello.debug):
     <2f>   DW_AT_byte_size   : (data1) 8
     <30>   DW_AT_encoding    : (data1) 7        (unsigned)
     <31>   DW_AT_name        : (strp) (offset: 0x0): long unsigned int
- <1><35>: Abbrev Number: 1 (DW_TAG_base_type)
-    <36>   DW_AT_byte_size   : (data1) 4
-    <37>   DW_AT_encoding    : (data1) 7        (unsigned)
-    <38>   DW_AT_name        : (strp) (offset: 0x5): unsigned int
- <1><3c>: Abbrev Number: 1 (DW_TAG_base_type)
-    <3d>   DW_AT_byte_size   : (data1) 1
-    <3e>   DW_AT_encoding    : (data1) 8        (unsigned char)
-    <3f>   DW_AT_name        : (strp) (offset: 0xc3): unsigned char
- <1><43>: Abbrev Number: 1 (DW_TAG_base_type)
-    <44>   DW_AT_byte_size   : (data1) 2
-    <45>   DW_AT_encoding    : (data1) 7        (unsigned)
-    <46>   DW_AT_name        : (strp) (offset: 0x12): short unsigned int
- <1><4a>: Abbrev Number: 1 (DW_TAG_base_type)
-    <4b>   DW_AT_byte_size   : (data1) 1
-    <4c>   DW_AT_encoding    : (data1) 6        (signed char)
-    <4d>   DW_AT_name        : (strp) (offset: 0xc5): signed char
- <1><51>: Abbrev Number: 1 (DW_TAG_base_type)
-    <52>   DW_AT_byte_size   : (data1) 2
-    <53>   DW_AT_encoding    : (data1) 5        (signed)
-    <54>   DW_AT_name        : (strp) (offset: 0x25): short int
- <1><58>: Abbrev Number: 3 (DW_TAG_base_type)
-    <59>   DW_AT_byte_size   : (data1) 4
-    <5a>   DW_AT_encoding    : (data1) 5        (signed)
-    <5b>   DW_AT_name        : (string) int
- <1><5f>: Abbrev Number: 1 (DW_TAG_base_type)
-    <60>   DW_AT_byte_size   : (data1) 8
-    <61>   DW_AT_encoding    : (data1) 5        (signed)
-    <62>   DW_AT_name        : (strp) (offset: 0xd1): long int
- <1><66>: Abbrev Number: 1 (DW_TAG_base_type)
-    <67>   DW_AT_byte_size   : (data1) 1
-    <68>   DW_AT_encoding    : (data1) 6        (signed char)
-    <69>   DW_AT_name        : (strp) (offset: 0xcc): char
- <1><6d>: Abbrev Number: 4 (DW_TAG_subprogram)
-    <6e>   DW_AT_external    : (flag_present) 1
-    <6e>   DW_AT_name        : (strp) (offset: 0xda): main
-    <72>   DW_AT_decl_file   : (data1) 1
-    <73>   DW_AT_decl_line   : (data1) 6
-    <74>   DW_AT_decl_column : (data1) 5
-    <75>   DW_AT_prototyped  : (flag_present) 1
-    <75>   DW_AT_type        : (ref4) <0x58>, int
-    <79>   DW_AT_low_pc      : (addr) 0x1163
-    <81>   DW_AT_high_pc     : (data8) 0x14
-    <89>   DW_AT_frame_base  : (exprloc) 1 byte block: 9c       (DW_OP_call_frame_cfa)
-    <8b>   DW_AT_call_all_tail_calls: (flag_present) 1
+...
  <1><8b>: Abbrev Number: 5 (DW_TAG_subprogram)
     <8c>   DW_AT_external    : (flag_present) 1
     <8c>   DW_AT_name        : (strp) (offset: 0x2f): hello
@@ -836,44 +660,7 @@ Contents of the .debug_abbrev section (loaded from /usr/lib/debug/hello.debug):
     DW_AT_name         DW_FORM_strp
     DW_AT value: 0     DW_FORM value: 0
    2      DW_TAG_compile_unit    [has children]
-    DW_AT_producer     DW_FORM_strp
-    DW_AT_language     DW_FORM_data1
-    DW_AT_name         DW_FORM_line_strp
-    DW_AT_comp_dir     DW_FORM_line_strp
-    DW_AT_low_pc       DW_FORM_addr
-    DW_AT_high_pc      DW_FORM_data8
-    DW_AT_stmt_list    DW_FORM_sec_offset
-    DW_AT value: 0     DW_FORM value: 0
-   3      DW_TAG_base_type    [no children]
-    DW_AT_byte_size    DW_FORM_data1
-    DW_AT_encoding     DW_FORM_data1
-    DW_AT_name         DW_FORM_string
-    DW_AT value: 0     DW_FORM value: 0
-   4      DW_TAG_subprogram    [no children]
-    DW_AT_external     DW_FORM_flag_present
-    DW_AT_name         DW_FORM_strp
-    DW_AT_decl_file    DW_FORM_data1
-    DW_AT_decl_line    DW_FORM_data1
-    DW_AT_decl_column  DW_FORM_data1
-    DW_AT_prototyped   DW_FORM_flag_present
-    DW_AT_type         DW_FORM_ref4
-    DW_AT_low_pc       DW_FORM_addr
-    DW_AT_high_pc      DW_FORM_data8
-    DW_AT_frame_base   DW_FORM_exprloc
-    DW_AT_call_all_tail_calls DW_FORM_flag_present
-    DW_AT value: 0     DW_FORM value: 0
-   5      DW_TAG_subprogram    [no children]
-    DW_AT_external     DW_FORM_flag_present
-    DW_AT_name         DW_FORM_strp
-    DW_AT_decl_file    DW_FORM_data1
-    DW_AT_decl_line    DW_FORM_data1
-    DW_AT_decl_column  DW_FORM_data1
-    DW_AT_prototyped   DW_FORM_flag_present
-    DW_AT_low_pc       DW_FORM_addr
-    DW_AT_high_pc      DW_FORM_data8
-    DW_AT_frame_base   DW_FORM_exprloc
-    DW_AT_call_all_tail_calls DW_FORM_flag_present
-    DW_AT value: 0     DW_FORM value: 0
+...
 
 Raw dump of debug contents of section .debug_line (loaded from /usr/lib/debug/hello.debug):
 
@@ -915,23 +702,7 @@ Raw dump of debug contents of section .debug_line (loaded from /usr/lib/debug/he
 
  Line Number Statements:
   [0x00000036]  Set column to 17
-  [0x00000038]  Extended opcode 2: set Address to 0x1149
-  [0x00000043]  Special opcode 7: advance Address by 0 to 0x1149 and Line by 2 to 3
-  [0x00000044]  Set column to 2
-  [0x00000046]  Special opcode 118: advance Address by 8 to 0x1151 and Line by 1 to 4
-  [0x00000047]  Set column to 1
-  [0x00000049]  Special opcode 216: advance Address by 15 to 0x1160 and Line by 1 to 5
-  [0x0000004a]  Set column to 16
-  [0x0000004c]  Special opcode 48: advance Address by 3 to 0x1163 and Line by 1 to 6
-  [0x0000004d]  Set column to 2
-  [0x0000004f]  Special opcode 118: advance Address by 8 to 0x116b and Line by 1 to 7
-  [0x00000050]  Set column to 9
-  [0x00000052]  Special opcode 76: advance Address by 5 to 0x1170 and Line by 1 to 8
-  [0x00000053]  Set column to 1
-  [0x00000055]  Special opcode 76: advance Address by 5 to 0x1175 and Line by 1 to 9
-  [0x00000056]  Advance PC by 2 to 0x1177
-  [0x00000058]  Extended opcode 1: End of Sequence
-
+...
 
 Contents of the .debug_str section (loaded from /usr/lib/debug/hello.debug):
 
@@ -940,16 +711,7 @@ Contents of the .debug_str section (loaded from /usr/lib/debug/hello.debug):
   0x00000020 20696e74 0073686f 72742069 6e740068  int.short int.h
   0x00000030 656c6c6f 00474e55 20433137 2031312e ello.GNU C17 11.
   0x00000040 332e3020 2d6d7475 6e653d67 656e6572 3.0 -mtune=gener
-  0x00000050 6963202d 6d617263 683d7838 362d3634 ic -march=x86-64
-  0x00000060 202d6720 2d666173 796e6368 726f6e6f  -g -fasynchrono
-  0x00000070 75732d75 6e77696e 642d7461 626c6573 us-unwind-tables
-  0x00000080 202d6673 7461636b 2d70726f 74656374  -fstack-protect
-  0x00000090 6f722d73 74726f6e 67202d66 73746163 or-strong -fstac
-  0x000000a0 6b2d636c 6173682d 70726f74 65637469 k-clash-protecti
-  0x000000b0 6f6e202d 6663662d 70726f74 65637469 on -fcf-protecti
-  0x000000c0 6f6e0075 6e736967 6e656420 63686172 on.unsigned char
-  0x000000d0 006c6f6e 6720696e 74006d61 696e00   .long int.main.
-
+...
 Contents of the .debug_line_str section (loaded from /usr/lib/debug/hello.debug):
 
   0x00000000 74657374 2e63002f 726f6f74 00       test.c./root.
@@ -959,82 +721,7 @@ hello:     file format elf64-x86-64
 
 Contents of the .eh_frame section (loaded from hello):
 
-
-00000000 0000000000000014 00000000 CIE
-  Version:               1
-  Augmentation:          "zR"
-  Code alignment factor: 1
-  Data alignment factor: -8
-  Return address column: 16
-  Augmentation data:     1b
-  DW_CFA_def_cfa: r7 (rsp) ofs 8
-  DW_CFA_offset: r16 (rip) at cfa-8
-  DW_CFA_nop
-  DW_CFA_nop
-
-00000018 0000000000000014 0000001c FDE cie=00000000 pc=0000000000001060..0000000000001086
-  DW_CFA_advance_loc: 4 to 0000000000001064
-  DW_CFA_undefined: r16 (rip)
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-
-00000030 0000000000000024 00000034 FDE cie=00000000 pc=0000000000001020..0000000000001040
-  DW_CFA_def_cfa_offset: 16
-  DW_CFA_advance_loc: 6 to 0000000000001026
-  DW_CFA_def_cfa_offset: 24
-  DW_CFA_advance_loc: 10 to 0000000000001030
-  DW_CFA_def_cfa_expression (DW_OP_breg7 (rsp): 8; DW_OP_breg16 (rip): 0; DW_OP_lit15; DW_OP_and; DW_OP_lit10; DW_OP_ge; DW_OP_lit3; DW_OP_shl; DW_OP_plus)
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-
-00000058 0000000000000014 0000005c FDE cie=00000000 pc=0000000000001040..0000000000001050
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-
-00000070 0000000000000014 00000074 FDE cie=00000000 pc=0000000000001050..0000000000001060
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-
-00000088 000000000000001c 0000008c FDE cie=00000000 pc=0000000000001149..0000000000001163
-  DW_CFA_advance_loc: 5 to 000000000000114e
-  DW_CFA_def_cfa_offset: 16
-  DW_CFA_offset: r6 (rbp) at cfa-16
-  DW_CFA_advance_loc: 3 to 0000000000001151
-  DW_CFA_def_cfa_register: r6 (rbp)
-  DW_CFA_advance_loc: 17 to 0000000000001162
-  DW_CFA_def_cfa: r7 (rsp) ofs 8
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-
-000000a8 000000000000001c 000000ac FDE cie=00000000 pc=0000000000001163..0000000000001177
-  DW_CFA_advance_loc: 5 to 0000000000001168
-  DW_CFA_def_cfa_offset: 16
-  DW_CFA_offset: r6 (rbp) at cfa-16
-  DW_CFA_advance_loc: 3 to 000000000000116b
-  DW_CFA_def_cfa_register: r6 (rbp)
-  DW_CFA_advance_loc: 11 to 0000000000001176
-  DW_CFA_def_cfa: r7 (rsp) ofs 8
-  DW_CFA_nop
-  DW_CFA_nop
-  DW_CFA_nop
-
-000000c8 ZERO terminator
-
+...
 
 Contents of the .gnu_debuglink section (loaded from hello):
 
@@ -1066,8 +753,6 @@ test.c                                         8              0x1170            
 test.c                                         9              0x1175               x
 test.c                                         -              0x1177
 
-
-
 hello:     file format elf64-x86-64
 
 root@lima-ebpf-dev:~#
@@ -1083,8 +768,7 @@ root@lima-ebpf-dev:~#
 <!--listend-->
 
 ```shell
-[root@h33o09169.sqa.nu8 /etc/yum.repos.d]
-#rpm -ql kernel-debuginfo-4.19.91-013.ali4000.alios7.x86_64|head
+# rpm -ql kernel-debuginfo-4.19.91-013.ali4000.os7.x86_64|head
 /usr/lib/debug
 /usr/lib/debug/.build-id
 /usr/lib/debug/.build-id/00
@@ -1098,44 +782,44 @@ root@lima-ebpf-dev:~#
 。。。
 /usr/lib/debug/lib
 /usr/lib/debug/lib/modules
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/arch
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/arch/x86
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/arch/x86/crypto
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/arch/x86/crypto/aesni-intel.ko.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/arch/x86/crypto/blowfish-x86_64.ko.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/arch/x86/crypto/camellia-aesni-avx-x86_64.ko.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/arch/x86/crypto/camellia-aesni-avx2.ko.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/arch
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/arch/x86
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/arch/x86/crypto
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/arch/x86/crypto/aesni-intel.ko.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/arch/x86/crypto/blowfish-x86_64.ko.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/arch/x86/crypto/camellia-aesni-avx-x86_64.ko.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/arch/x86/crypto/camellia-aesni-avx2.ko.debug
 。。。
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/net/wireless/lib80211.ko.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/net/xfrm
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/net/xfrm/xfrm_ipcomp.ko.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/virt
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/virt/lib
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/kernel/virt/lib/irqbypass.ko.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vdso
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vdso/.build-id
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vdso/.build-id/81
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vdso/.build-id/81/2688c147f9806c2f13de03a3d7593deccd4c91.debug.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vdso/.build-id/9c
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vdso/.build-id/9c/855176d6cfba59c6ae81c0b5d7bf01cc34c385.debug.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vdso/vdso32.so.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vdso/vdso64.so.debug
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vmlinux
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/net/wireless/lib80211.ko.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/net/xfrm
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/net/xfrm/xfrm_ipcomp.ko.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/virt
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/virt/lib
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/kernel/virt/lib/irqbypass.ko.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vdso
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vdso/.build-id
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vdso/.build-id/81
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vdso/.build-id/81/2688c147f9806c2f13de03a3d7593deccd4c91.debug.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vdso/.build-id/9c
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vdso/.build-id/9c/855176d6cfba59c6ae81c0b5d7bf01cc34c385.debug.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vdso/vdso32.so.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vdso/vdso64.so.debug
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vmlinux
 /usr/lib/debug/usr
 /usr/lib/debug/usr/src
 /usr/lib/debug/usr/src/kernels
-/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.alios7.x86_64
-/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.alios7.x86_64/scripts
-/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.alios7.x86_64/scripts/asn1_compiler.debug
-/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.alios7.x86_64/scripts/basic
-/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.alios7.x86_64/scripts/basic/fixdep.debug
-/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.alios7.x86_64/scripts/bin2c.debug
-/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.alios7.x86_64/scripts/conmakehash.debug
+/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.os7.x86_64
+/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.os7.x86_64/scripts
+/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.os7.x86_64/scripts/asn1_compiler.debug
+/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.os7.x86_64/scripts/basic
+/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.os7.x86_64/scripts/basic/fixdep.debug
+/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.os7.x86_64/scripts/bin2c.debug
+/usr/lib/debug/usr/src/kernels/4.19.91-013.ali4000.os7.x86_64/scripts/conmakehash.debug
 ```
 
-`/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vmlinux` 对应完整的内核 elf 文件：
+`/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vmlinux` 对应完整的内核 elf 文件：
 
 -   包含各种.debug_XX调试符号表；
 -   也包含未 strip 的 .symtab 符号表；
@@ -1143,12 +827,12 @@ root@lima-ebpf-dev:~#
 <!--listend-->
 
 ```shell
-# file /usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vmlinux
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vmlinux: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, BuildID[sha1]=854b5a499ad2fe963e37462d882866a60cf5b35a, not stripped
+# file /usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vmlinux
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vmlinux: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, BuildID[sha1]=854b5a499ad2fe963e37462d882866a60cf5b35a, not stripped
 
-# objdump -h /usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vmlinux
+# objdump -h /usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vmlinux
 
-/usr/lib/debug/lib/modules/4.19.91-013.ali4000.alios7.x86_64/vmlinux:     file format elf64-x86-64
+/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vmlinux:     file format elf64-x86-64
 
 Sections:
 Idx Name          Size      VMA               LMA               File off  Algn
@@ -1180,48 +864,7 @@ Idx Name          Size      VMA               LMA               File off  Algn
                   CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
  13 __ksymtab_strings 0002d743  ffffffff8253e220  000000000253e220  0173e220  2**0
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
- 14 __param       00002ee0  ffffffff8256b968  000000000256b968  0176b968  2**3
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
- 15 __modver      000007b8  ffffffff8256e848  000000000256e848  0176e848  2**3
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
- 16 .data         001a43c0  ffffffff82600000  0000000002600000  01800000  2**13
-                  CONTENTS, ALLOC, LOAD, RELOC, DATA
- 17 __bug_table   00012ea0  ffffffff827a43c0  00000000027a43c0  019a43c0  2**0
-                  CONTENTS, ALLOC, LOAD, RELOC, DATA
- 18 .vvar         00001000  ffffffff827b8000  00000000027b8000  019b8000  2**4
-                  CONTENTS, ALLOC, LOAD, DATA
- 19 .data..percpu 00026000  0000000000000000  00000000027b9000  01a00000  2**12
-                  CONTENTS, ALLOC, LOAD, RELOC, DATA
- 20 .init.text    000776a5  ffffffff827df000  00000000027df000  01bdf000  2**4
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
- 21 .altinstr_aux 00000aed  ffffffff828566a5  00000000028566a5  01c566a5  2**0
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
- 22 .init.data    000eab98  ffffffff82858000  0000000002858000  01c58000  2**13
-                  CONTENTS, ALLOC, LOAD, RELOC, DATA
- 23 .x86_cpu_dev.init 00000028  ffffffff82942b98  0000000002942b98  01d42b98  2**3
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
- 24 .parainstructions 000202ec  ffffffff82942bc0  0000000002942bc0  01d42bc0  2**3
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
- 25 .altinstructions 00004877  ffffffff82962eb0  0000000002962eb0  01d62eb0  2**0
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
- 26 .altinstr_replacement 00001281  ffffffff82967727  0000000002967727  01d67727  2**0
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
- 27 .iommu_table  000000f0  ffffffff829689a8  00000000029689a8  01d689a8  2**3
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
- 28 .apicdrivers  00000028  ffffffff82968a98  0000000002968a98  01d68a98  2**3
-                  CONTENTS, ALLOC, LOAD, RELOC, DATA
- 29 .exit.text    000017d0  ffffffff82968ac0  0000000002968ac0  01d68ac0  2**0
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
- 30 .smp_locks    00009000  ffffffff8296b000  000000000296b000  01d6b000  2**2
-                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
- 31 .data_nosave  00001000  ffffffff82974000  0000000002974000  01d74000  2**2
-                  CONTENTS, ALLOC, LOAD, DATA
- 32 .bss          0248b000  ffffffff82975000  0000000002975000  01d75000  2**12
-                  ALLOC
- 33 .brk          0002c000  ffffffff84e00000  0000000004e00000  01d75000  2**0
-                  ALLOC
- 34 .comment      0000002c  0000000000000000  0000000000000000  01d75000  2**0
-                  CONTENTS, READONLY
+...
  35 .debug_aranges 00027cb0  0000000000000000  0000000000000000  01d75030  2**4
                   CONTENTS, RELOC, READONLY, DEBUGGING
  36 .debug_info   0b5eb3dd  0000000000000000  0000000000000000  01d9cce0  2**0
