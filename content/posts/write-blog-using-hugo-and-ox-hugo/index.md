@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2023-08-06T22:27:48+08:00
+lastmod: 2023-08-07T22:36:50+08:00
 tags: ["hugo", "org-mode"]
 categories: ["emacs"]
 draft: false
@@ -135,7 +135,7 @@ through either the `icon partial` or `icon shortcode`.
 var _hmt = _hmt || [];
 (function() {
   var hm = document.createElement("script");
-  hm.src = "https://hm.baidu.com/hm.js?21e17925c3466ad1aadca6d1ae78750e";
+  hm.src = "https://hm.baidu.com/hm.js?XX";
   var s = document.getElementsByTagName("script")[0];
   s.parentNode.insertBefore(hm, s);
 })();
@@ -155,7 +155,7 @@ var _hmt = _hmt || [];
 ```html
 <div id="cusdis_thread"
   data-host="https://cusdis.com"
-  data-app-id="c9bddf6e-a0f5-49e4-9e00-89b5ffd3a6d3"
+  data-app-id="XXX"
   data-page-id="{{ .File.UniqueID  }}"
   data-page-url="{{ .Permalink }}"
   data-page-title="{{ .Title  }}"
@@ -204,7 +204,7 @@ var _hmt = _hmt || [];
 
 ### <span class="section-num">1.11</span> rss {#rss}
 
-访问地址：<http://localhost:1313/index.xml>
+访问地址：<http://blog.opsnull.com/index.xml>
 
 
 ### <span class="section-num">1.12</span> TOC {#toc}
@@ -222,46 +222,7 @@ var _hmt = _hmt || [];
 -   showTableOfContents: true
 
 
-### <span class="section-num">1.13</span> Now {#now}
-
-config/_default/menus.zh-cn.toml 里添加：
-
-```toml
-[[main]]
-  name = "当前"
-  pageRef = "now"
-  weight = 50
-```
-
-在 content 下创建一个now.md页面：
-
--   必须要有一个 markdown 标题，否则渲染出错。
-
-<!--listend-->
-
-```toml
----
-showAuthor: false
-showDate: false
-showDateUpdated: false
-showReadingTime: false
-showTableOfContents: false
----
-
-# 我在干啥？
-
-这里显示我最近在干啥的 `timeline`。
-
-{{< timeline >}}
-
-{{< timelineItem icon="github" header="header" badge="badge test" subheader="subheader" >}}
-学习 eBPF。
-{{</ timelineItem >}}
-{{</ timeline >}}
-```
-
-
-### <span class="section-num">1.14</span> Branch Pages {#branch-pages}
+### <span class="section-num">1.13</span> Branch Pages {#branch-pages}
 
 List pages 和Taxonomy Pages是有差别的：
 
@@ -271,13 +232,13 @@ List pages 和Taxonomy Pages是有差别的：
 -   terms list 页面显示归属到该 term 的文档列表。
 
 
-### <span class="section-num">1.15</span> Homepage # {#homepage}
+### <span class="section-num">1.14</span> Homepage # {#homepage}
 
 Layout:	layouts/index.html
 Content:	content/_index.md
 
 
-### <span class="section-num">1.16</span> List pages # {#list-pages}
+### <span class="section-num">1.15</span> List pages # {#list-pages}
 
 Layout:	layouts/_default/list.html
 Content:	content/../_index.md
@@ -311,7 +272,7 @@ to override default theme parameters for an entire section without having to inc
 page.
 
 
-### <span class="section-num">1.17</span> Taxonomy pages {#taxonomy-pages}
+### <span class="section-num">1.16</span> Taxonomy pages {#taxonomy-pages}
 
 是比较特殊的 branch pages，因为他们需要预定义：
 
@@ -404,10 +365,10 @@ Emacs 分类下的页面
 ```
 
 
-### <span class="section-num">1.18</span> Leaf Pages {#leaf-pages}
+### <span class="section-num">1.17</span> Leaf Pages {#leaf-pages}
 
 
-### <span class="section-num">1.19</span> single {#single}
+### <span class="section-num">1.18</span> single {#single}
 
 Layout:	layouts/_default/single.html
 Content (standalone):	content/../page-name.md
@@ -437,7 +398,7 @@ Leaf pages have a wide variety of front matter parameters that can be used to cu
 displayed.
 
 
-### <span class="section-num">1.20</span> External links {#external-links}
+### <span class="section-num">1.19</span> External links {#external-links}
 
 -   点击时跳转到外部页面
 
@@ -457,7 +418,7 @@ _build:
 ```
 
 
-### <span class="section-num">1.21</span> simple  pages {#simple-pages}
+### <span class="section-num">1.20</span> simple  pages {#simple-pages}
 
 Layout:	layouts/_default/simple.html
 Front Matter:	layout: "simple"
@@ -476,7 +437,7 @@ This page content is now full-width.
 ```
 
 
-### <span class="section-num">1.22</span> 导航菜单 {#导航菜单}
+### <span class="section-num">1.21</span> 导航菜单 {#导航菜单}
 
 <https://gohugo.io/content-management/menus/>
 
@@ -617,7 +578,7 @@ HUGO_BASE_DIR:
 注意：如果使用 POST Bundle，则文档输出为一个目录：
 
 -   目录名称由EXPORT_HUGO_BUNDLE指定；
--   文档名称由:EXPORT_FILE_NAME:指定，但一般为 index 或 \_index（建议）;
+-   文档名称由:EXPORT_FILE_NAME:指定，但一般为 index 或 \_index（建议, 可以使输出文件名唯一）;
     -   如果未EXPORT_FILE_NAME（不建议），则文件名称和源文件名称一致。
 
 对于 subtree property :EXPORT_FILE_NAME:：
@@ -729,7 +690,7 @@ file-based-export:
 background 图片（background\* 开头）。
 
 -   EXPORT_HUGO_BUNDLE: 指定 post bundle的目录名称；
--   EXPORT_FILE_NAME: 一般是固定的 index；
+-   EXPORT_FILE_NAME: 建议设置，这样放置源文件重命名后，输出多份，一般是固定的 index，；
 
 <div class="verse">
 
@@ -882,13 +843,14 @@ File-base-exports:
     -   \#+filetags: tag1 tag2
     -   \#+filetags: @cat1 @cat2
 
-不输出:
+
+### <span class="section-num">3.6</span> 不输出 header 内容 {#不输出-header-内容}
 
 1.  默认由变量`org-export-exclude-tags`指定的 tags 来控制;
 2.  可以在文件级别或者特定header section级别打上 `noexport` tag.
 
 
-### <span class="section-num">3.6</span> Author {#author}
+### <span class="section-num">3.7</span> Author {#author}
 
 指定多个#+author来指定多个作者：
 
@@ -921,7 +883,7 @@ blowfish 不显示 Author：
 -   Article 设置：showAuthor: false
 
 
-### <span class="section-num">3.7</span> series {#series}
+### <span class="section-num">3.8</span> series {#series}
 
 先定义一个 series taxonomies
 
@@ -956,7 +918,7 @@ variable in params.toml or the front-matter parameter seriesOpened to specify an
 level.
 
 
-### <span class="section-num">3.8</span> org tree properties {#org-tree-properties}
+### <span class="section-num">3.9</span> org tree properties {#org-tree-properties}
 
 <div class="verse">
 
@@ -975,12 +937,12 @@ CLOSED: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 
 </div>
 
 
-### <span class="section-num">3.9</span> 保存时自动导出 {#保存时自动导出}
+### <span class="section-num">3.10</span> 保存时自动导出 {#保存时自动导出}
 
 M-x org-hugo-auto-export-mode
 
 
-### <span class="section-num">3.10</span> Custom Front-matter Parameters {#custom-front-matter-parameters}
+### <span class="section-num">3.11</span> Custom Front-matter Parameters {#custom-front-matter-parameters}
 
 Custom Front-matter Parameters 是对 hugo 没特殊意义，但是对 theme 有意义的配置：
 
@@ -1104,7 +1066,7 @@ blowfish theme 自定义的 front-matter 参数列表: <https://blowfish.page/do
 参考：<https://ox-hugo.scripter.co/doc/custom-front-matter/>
 
 
-### <span class="section-num">3.11</span> 中文支持 {#中文支持}
+### <span class="section-num">3.12</span> 中文支持 {#中文支持}
 
 导出时去掉文档中间的空格。
 
@@ -1112,7 +1074,7 @@ The locale is manually set to Chinese or Japanese by setting it to `zh or ja` us
 `EXPORT_HUGO_LOCALE` property).
 
 
-### <span class="section-num">3.12</span> menu front-matter {#menu-front-matter}
+### <span class="section-num">3.13</span> menu front-matter {#menu-front-matter}
 
 So on each Page, the user can specify the keys of the associated `Menu Entry` using the menu front-matter.
 

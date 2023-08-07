@@ -1,14 +1,19 @@
 ---
-title: "二进制 package meta"
+title: "add package meta to elf file"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-07T22:21:39+08:00
+lastmod: 2023-08-07T22:38:46+08:00
 tags: ["linux", "elf", "tools"]
 categories: ["elf", "tools"]
 draft: false
 series: ["elf-debug"]
 series_order: 5
 ---
+
+介绍向 elf 二进制文件中添加自定义package meta信息的方法。
+
+<!--more-->
+
 
 ## <span class="section-num">1</span> 二进制文件添加自定义 note {#二进制文件添加自定义-note}
 
