@@ -2,7 +2,7 @@
 title: "Linux elf 符号表（symtab）"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-06T22:24:27+08:00
+lastmod: 2023-08-07T22:22:12+08:00
 tags: ["linux", "elf", "debug"]
 categories: ["debug"]
 draft: false

@@ -2,7 +2,7 @@
 title: "Linux elf 调试符号表（.debug_XX)"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-06T22:24:33+08:00
+lastmod: 2023-08-07T22:22:05+08:00
 tags: ["linux", "elf", "debug"]
 categories: ["debug"]
 draft: false
@@ -16,11 +16,7 @@ series_order: 2
 
 Linux 使用 ELF 格式类保存可执行二进制文件、共享库文件和 debuginfo文件。
 
-gdb 依赖调试符号表来进行 stack unwinding/单步调试/内存地址和源文件对应关系。
-
-使用`bpftrace -lv 'uprobe:/bin/bash:readline'`来显示 readline 函数参数时，也是从调试符号表中解析函数名称和参数信息。
-
--   如果 bpftrace 查不到调试符号表，则会报错： `No DWARF found for XX，cannot show parameter info`
+debuginfo 信息在stack unwinding，perf ftrace， gdb 单步调试，bpftrace 显示 uprobe 函数参数列表 等场景得到广泛应用。
 
 
 ## <span class="section-num">1</span> 生成调试符号表 {#生成调试符号表}
@@ -478,6 +474,32 @@ debuginfo、debugsource 和binary package三者的名称、版本、架构等必
 -   Binary package: packagename-version-release.architecture.rpm
 -   Debuginfo package: packagename-debuginfo-version-release.architecture.rpm
 -   Debugsource package: packagename-debugsource-version-release.architecture.rpm
+
+配置 debuginfo repo:
+
+```shell
+[debug]
+name=CentOS-$releasever-debug
+enabled=1
+failovermethod=priority
+baseurl=http://mirrors.cloud.aliyuncs.com/centos-debuginfo/$releasever/$basearch/
+gpgcheck=0
+
+[epel-debug]
+name=epel-debug
+enabled=1
+failovermethod=priority
+baseurl=http://mirrors.cloud.aliyuncs.com/epel/7/$basearch/debug
+gpgcheck=0
+```
+
+安装 kernel 和系统常用工具的 debuginfo 包, 将进程的函数/参数地址以转换为 Symbol 名称:
+
+```shell
+yum install glibc-debuginfo -y
+yum install coreutils-debuginfo  -y
+yum install kernel-debuginfo -y
+```
 
 gdb 会自动提示有没有找打 debug symbol，同时会提示安装命令：
 

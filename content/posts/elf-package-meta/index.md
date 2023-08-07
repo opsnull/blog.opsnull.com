@@ -2,7 +2,7 @@
 title: "二进制 package meta"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-06T22:54:14+08:00
+lastmod: 2023-08-07T22:21:39+08:00
 tags: ["linux", "elf", "tools"]
 categories: ["elf", "tools"]
 draft: false
