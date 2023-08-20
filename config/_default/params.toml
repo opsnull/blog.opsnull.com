@@ -142,3 +142,6 @@ smartTOCHideUnfocusedChildren = true # 是否展开 TOC
   # bing = ""
   # pinterest = ""
   # yandex = ""
+
+[busuanzi]  
+ enable = true
