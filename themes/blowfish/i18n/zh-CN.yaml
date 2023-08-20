@@ -3,28 +3,28 @@ global:
 
 article:
   anchor_label: "锚点"
-  date: "创建: {{ .Date }}"
-  date_updated: "更新: {{ .Date }}"
+  date: "{{ .Date }}"
+  # date_updated: "Updated: {{ .Date }}"
   draft: "草稿"
   edit_title: "编辑内容"
   reading_time:
     other: "{{ .Count }} 分钟"
   reading_time_title: "预计阅读"
-  table_of_contents: "目录"
+  # table_of_contents: "Table of Contents"
   word_count:
     one: "{{ .Count }} 字"
     other: "{{ .Count }} 字"
-  part_of_series: "系列文章"
+  part_of_series: "This article is part of a series."
   part: "Part"
-  this_article: "这篇文章"
-  related_articles: "相关文章"
+  this_article: "This Article"
+  related_articles: "Related"
 
 author:
   byline_title: "作者"
 
-code:
-  copy: "Copy"
-  copied: "Copied"
+# code:
+#   copy: "Copy"
+#   copied: "Copied"
 
 error:
   404_title: "找不到网页 :confused:"
@@ -34,20 +34,20 @@ error:
 footer:
   dark_appearance: "切换为深色模式"
   light_appearance: "切换为浅色模式"
-  powered_by: "Powered By Emacs Org-Mode"
+  powered_by: "由 {{ .Hugo }} &amp; {{ .Theme }} 强力驱动"
 
 list:
   externalurl_title: "链接到外部网站"
   no_articles: "这里还没有任何文章可以列出。"
 
-nav:
-   scroll_to_top_title: "滑到顶部"
-   skip_to_main: "Skip to main content"
+# nav:
+#   scroll_to_top_title: "Scroll to top"
+#   skip_to_main: "Skip to main content"
 
-search:
-   open_button_title: "Search (/)"
-   close_button_title: "Close (Esc)"
-   input_placeholder: "搜索"
+# search:
+#   open_button_title: "Search (/)"
+#   close_button_title: "Close (Esc)"
+#   input_placeholder: "Search"
 
 sharing:
   email: "通过电子邮件发送"
@@ -58,7 +58,7 @@ sharing:
   twitter: "分享到 Twitter"
 
 shortcode:
-  recent_articles: "最近更新"
+  recent_articles: "最近的文章"
 
 recent:
-  show_more: "更多"
+  show_more: "显示更多"
