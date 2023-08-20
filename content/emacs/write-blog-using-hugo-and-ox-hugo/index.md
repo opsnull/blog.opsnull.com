@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2023-08-20T17:51:25+08:00
+lastmod: 2023-08-20T18:03:34+08:00
 tags: ["hugo", "org-mode", "blog"]
 categories: ["emacs"]
 draft: false
@@ -52,14 +52,15 @@ $ tree ~/blog/blog.opsnull.com/themes/blowfish/config
 $
 ```
 
-配置 config.toml: languageCode = "zh-CN"：与 blowfish/i18n 目录下的文件名前缀一致。
+配置 `config.toml: languageCode = "zh-CN"` ：与 `blowfish/i18n` 目录下的文件名前缀一致。
 
-官方自带的 i18n/zh-CN.yaml 中的部分配置被注释了, 导致不能正确显示文件更新时间等内容, 需要修正。
+官方自带的 `i18n/zh-CN.yaml` 中的部分配置被注释了, 导致不能正确显示文件更新时间等内容, 需要修正。
 
 
 ### <span class="section-num">1.3</span> browser icon {#browser-icon}
 
-自定义浏览器角标：在 favicon.io 将自己的图片生成为各种尺寸的 icon，直接解压在favicon.io下载好的icon压缩包，并放在/static目录下即可。
+自定义浏览器角标：在 favicon.io 将自己的图片生成为各种尺寸的 icon，直接解压在 favicon.io 下载好的
+icon 压缩包，并放在 /static 目录下即可。
 
 ```shell
 $ ls -l ~/blog/blog.opsnull.com/static/
@@ -80,7 +81,7 @@ $
 
 ### <span class="section-num">1.4</span> custom icon {#custom-icon}
 
-自定义 icon： 将自定义的 svg 文件放在 /asserts/icons 目录下，为了使 icon 和主题自适应，需要在 svg 文件中添加属性fill=“currentColor” 如下：
+自定义 icon：将自定义的 svg 文件放在 `/asserts/icons` 目录下，为了使 icon 和主题自适应，需要在 svg 文件中添加属性 `fill="currentColor"` 如下：
 
 ```yaml
 <svg>
@@ -93,7 +94,6 @@ $ mkdir assets/icons
 $ ls ~/Downloads/*.svg
 /Users/zhangjun/Downloads/wechat.svg  /Users/zhangjun/Downloads/weibo.svg
 $ mv ~/Downloads/*.svg  assets/icons/
-$
 ```
 
 
@@ -101,13 +101,13 @@ $
 
 <https://blowfish.page/samples/icons/>
 
-Blowfish has built-in support for a number of FontAwesome 6 icons. These can be included in your website
-through either the `icon partial` or `icon shortcode`.
+Blowfish has built-in support for a number of FontAwesome 6 icons. These can be included in your
+website through either the `icon partial` or `icon shortcode`.
 
 
 ### <span class="section-num">1.6</span> 调大文档内容宽度 {#调大文档内容宽度}
 
-创建 assets/css/custom.css 文件，内容如下：
+创建 `assets/css/custom.css` 文件，内容如下：
 
 ```css
 .max-w-prose {
@@ -125,7 +125,7 @@ through either the `icon partial` or `icon shortcode`.
 
 ### <span class="section-num">1.8</span> baidu analytics {#baidu-analytics}
 
-创建目录和文件：~/blog/blog.opsnull.com/layouts/partials/analytics/main.html
+创建目录和文件： `~/blog/blog.opsnull.com/layouts/partials/analytics/main.html`
 
 -   官方文档不对： layouts/partials/analytics.html，没有效果。
 
@@ -147,8 +147,8 @@ var _hmt = _hmt || [];
 ### <span class="section-num">1.9</span> comment {#comment}
 
 1.  utterances： <https://utteranc.es/>
-2.  gisscus： 在 layouts/partials/comments.html 创建一个页面。在 <https://giscus.app/> 配置基于 github repo 的
-    comment 评论系统，然后将自动生成的代码贴入上面的 comments.html页面。
+2.  gisscus： 在 `layouts/partials/comments.html` 创建一个页面。在 <https://giscus.app/> 配置基于 github
+    repo 的 comment 评论系统，然后将自动生成的代码贴入上面的 comments.html 页面。
 3.  cusdis：
 
 <!--listend-->
@@ -167,7 +167,7 @@ var _hmt = _hmt || [];
 
 ### <span class="section-num">1.10</span> 相关文章 {#相关文章}
 
-在 config/_default/config.toml 文件中设置，主要是根据文件的 tags、categories、series 等标准来判断：
+在 `config/_default/config.toml` 文件中设置，主要是根据文件的 tags、categories、series 等标准来判断：
 
 ```toml
 # 相关文档
@@ -235,14 +235,16 @@ List pages 和 Taxonomy Pages 是有差别的：
 
 ### <span class="section-num">1.14</span> Homepage # {#homepage}
 
-Layout:	layouts/index.html
-Content:	content/_index.md
+-   Layout:	layouts/index.html
+-   Content: content/_index.md
 
 
 ### <span class="section-num">1.15</span> List pages # {#list-pages}
 
-Layout:	layouts/_default/list.html
-Content:	content/../_index.md
+-   Layout:	layouts/_default/list.html
+-   Content: content/&lt;XX&gt;/_index.md
+
+<!--listend-->
 
 ```text
 .
@@ -257,7 +259,20 @@ Content:	content/../_index.md
 
 可以在 \_index.md  中设置适合该 branch 下的所有文档的通用参数：
 
+-   例如添加目录项：
+
+<!--listend-->
+
 ```text
+---
+title: CloudNative
+menu:
+  main:
+    name: CloudNative # 菜单项名称
+    weight: 100
+    identifier: "cloudnative" # 必须配置该字段才显示
+---
+
 ---
 title: "Projects"
 description: "Learn about some of my projects."
@@ -267,10 +282,10 @@ cascade:
 This section contains all my current projects.
 ```
 
-In this example, the special cascade parameter is being used to hide the reading time on any sub-pages within
-this section. By doing this, any project pages will not have their reading time showing. This is a great way
-to override default theme parameters for an entire section without having to include them in every individual
-page.
+In this example, the special `cascade` parameter is being used to hide the reading time on any
+sub-pages within this section. By doing this, any project pages will not have their reading time
+showing. This is a great way to override default theme parameters for an entire section without
+having to include them in every individual page.
 
 
 ### <span class="section-num">1.16</span> Taxonomy pages {#taxonomy-pages}
@@ -290,9 +305,10 @@ page.
   series = "series"
 ```
 
-然后就可以在 font mattter 中指定复数的 taxonomies，例如：
+然后就可以在 font mattter 中指定复数的 taxonomies，例如：在 animals taxonomy 下创建了两个 term：lion
+和 cat：
 
-```markdown
+```text
 ---
 title: "Into the Lion's Den"
 description: "This week we're learning about lions."
@@ -300,20 +316,19 @@ animals: ["lion", "cat"]
 ---
 ```
 
--   这在 animals taxonomy 下创建了两个 term：lion 和 cat
+Although it’s not obvious at this point, Hugo will now be `generating list and term pages` for this
+new taxonomy. By default the listing can be accessed at `/animals/` and the term pages can be found at
+`/animals/lion/` and `/animals/cat/`.
 
-Although it’s not obvious at this point, Hugo will now be `generating list and term pages` for this new
-taxonomy. By default the listing can be accessed at `/animals/` and the term pages can be found at `/animals/lion/`
-and `/animals/cat/`.
+The list page will `list all the terms` contained within the taxonomy. In this example, navigating to
+`/animals/` will show a page that has links for “lion” and “cat” which take visitors to `the individual
+term pages`.
 
-The list page will `list all the terms` contained within the taxonomy. In this example, navigating to `/animals/`
-will show a page that has links for “lion” and “cat” which take visitors to `the individual term pages`.
+The term pages will `list all the pages contained within that term`. These term lists are essentially
+the same as normal list pages and behave in much the same way.
 
-The term pages will `list all the pages contained within that term`. These term lists are essentially the same
-as normal list pages and behave in much the same way.
-
-In order to add custom content to taxonomy pages, simply create `_index.md` files in the content folder using
-the taxonomy name as the sub-directory name.
+In order to add custom content to taxonomy pages, simply create `_index.md` files in the content
+folder using the taxonomy name as the sub-directory name.
 
 ```text
 .
@@ -325,11 +340,9 @@ the taxonomy name as the sub-directory name.
 
 ```
 
-Anything in these content files will now be placed onto the generated taxonomy pages. As with other content,
-the front matter variables can be used to override defaults. In this way you could have a tag named lion but
-override the title to be “Lion”.
-
-To see how this looks in reality, check out the tags taxonomy listing on this site.
+Anything in these content files will now be placed onto the generated taxonomy pages. As with other
+content, the front matter variables can be used to override defaults. In this way you could have a
+tag named lion but override the title to be “Lion”.
 
 tags 和 categories 都是预定义的 taxonomies。
 
@@ -340,7 +353,7 @@ tags 和 categories 都是预定义的 taxonomies。
 
 title：可以设置页面标题。
 
-```markdown
+```text
 ---
 title: 分类列表
 ---
@@ -351,8 +364,7 @@ Blowfish has full support for Hugo taxonomies and will adapt to any taxonomy set
 ---
 ```
 
-分类页面定制：
-content/categories/emacs/_index.md
+分类页面定制：content/categories/emacs/_index.md
 
 ```markdown
 ---
@@ -371,17 +383,17 @@ Emacs 分类下的页面
 
 ### <span class="section-num">1.18</span> single {#single}
 
-Layout:	layouts/_default/single.html
-Content (standalone):	content/../page-name.md
-Content (bundled):	content/../page-name/index.md
+-   Layout:	layouts/_default/single.html
+-   Content (standalone):	content/&lt;XX&gt;/page-name.md
+-   Content (bundled):	content/&lt;XX&gt;/page-name/index.md
 
-Leaf pages in Hugo are basically `standard content pages`. They are defined as pages that `don’t contain any
-sub-pages`. These could be things like `an about page`, or an `individual blog post` that lives in the blog section
-of the website.
+Leaf pages in Hugo are basically `standard content pages`. They are defined as pages that `don’t
+contain any sub-pages`. These could be things like `an about page`, or an `individual blog post` that
+lives in the blog section of the website.
 
-The most important thing to remember about leaf pages is that unlike branch pages, `leaf pages should be named
-index.md without an underscore`. Leaf pages are also special in that they can be `grouped together at the top
-level` of the section and named with a unique name.
+The most important thing to remember about leaf pages is that unlike branch pages, `leaf pages should
+be named index.md without an underscore`. Leaf pages are also special in that they can be `grouped
+together at the top level` of the section and named with a unique name.
 
 ```text
 .
@@ -405,7 +417,7 @@ displayed.
 
 <!--listend-->
 
-```markdown
+```text
 ---
 title: "My Medium post"
 date: 2022-01-25
@@ -421,12 +433,10 @@ _build:
 
 ### <span class="section-num">1.20</span> simple  pages {#simple-pages}
 
-Layout:	layouts/_default/simple.html
-Front Matter:	layout: "simple"
+-   Layout:	layouts/_default/simple.html
+-   Front Matter: layout: "simple"
 
-通过在 front matter 中添加配置 layout: "simple" 可以对当前页面启用 simple layout。
-
-simple layout 默认会以 full-width template 来显示当前页面内容。
+通过在 front matter 中添加配置 layout: "simple" 可以对当前页面启用 simple layout。simple layout 默认会以 full-width template 来显示当前页面内容。
 
 ```text
 ---
@@ -691,27 +701,26 @@ file-based-export:
 
 ### <span class="section-num">2.3</span> Post Bundle 和 Thumbnail {#post-bundle-和-thumbnail}
 
-使用 post bundle 可以将一篇文档发布为一个目录，这样后续可以在目录中添加 thumbnail&amp;hero 图片（feature\* 开头）或
-background 图片（background\* 开头）。
+使用 post bundle 可以将一篇文档发布为一个目录，这样后续可以在目录中添加 thumbnail&amp;hero 图片（feature\* 开头）或background 图片（background\* 开头）。
 
--   EXPORT_HUGO_BUNDLE: 指定  post bundle 的目录名称；
--   EXPORT_FILE_NAME: 建议设置，这样放置源文件重命名后，输出多份，一般是固定的 index，；
+-   EXPORT_HUGO_BUNDLE: 指定  post bundle 的目录名称, 位于 content 目录下的子目录名称。
+-   EXPORT_FILE_NAME: 建议设置，这样放置源文件重命名后，输出多份，一般是固定的 index；
 
-<div class="verse">
+<!--listend-->
 
-,\*  DONE shell 历史 :<bash:lang:@lang:blog>:<br />
-CLOSED: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 16:10]</span></span><br />
-:PROPERTIES:<br />
-:EXPORT_DATE: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 15:00]</span></span><br />
-:EXPORT_HUGO_BUNDLE: 2023-05-07-shell-history<br />
-:EXPORT_FILE_NAME: index<br />
-:END:<br />
-<br />
-这篇博客分享下 UNIX/Linux shell 的历史。<br />
-<br />
-\#+hugo: more<br />
+```text
+*  DONE shell 历史 :shell:bash:lang:@lang:blog:
+CLOSED: [2023-05-07 Tue 16:10]
+:PROPERTIES:
+:EXPORT_DATE: [2023-05-07 Thu 15:00]
+:EXPORT_HUGO_BUNDLE: 2023-05-07-shell-history
+:EXPORT_FILE_NAME: index
+:END:
 
-</div>
+这篇博客分享下 UNIX/Linux shell 的历史。
+
+#+hugo: more
+```
 
 导出结果：
 
@@ -764,7 +773,8 @@ Inline Image（直接显示图片）：
 1.  Unhyperlinked（不可点击）： `[[/images/org-mode-unicorn-logo-200px.png]]`
 2.  hyperlinked to an image（可以点击）：=[![](/images/org-mode-unicorn-logo-50px.png)](/images/org-mode-unicorn-logo-200px.png)=
 
-显示图片链接：=[[/images/org-mode-unicorn-logo-200px.png][Click here to see org-mode-unicorn-logo-200px.png]=
+显示图片链接： `[[/images/org-mode-unicorn-logo-200px.png][Click here to see
+org-mode-unicorn-logo-200px.png]`
 
 引用 static 目录外的图片：
 
@@ -783,8 +793,8 @@ Inline Image（直接显示图片）：
 
 {{< figure src="images/写_blog/2023-07-23_14-56-28_screenshot.png" width="400" >}}
 
-如果文件 source path 不包含 `/static/` 则会拷贝到 org-hugo-default-static-subdirectory-for-externals 子目录
-(ox-hugo):
+如果文件 source path 不包含 `/static/` 则会拷贝到 org-hugo-default-static-subdirectory-for-externals
+子目录(ox-hugo):
 
 {{< figure src="/images/写_blog/2023-07-23_14-58-21_screenshot.png" width="400" >}}
 
@@ -849,7 +859,7 @@ File-base-exports:
     -   \#+filetags: @cat1 @cat2
 
 
-### <span class="section-num">3.6</span> 不输出 header 内容 {#不输出-header-内容}
+### <span class="section-num">3.6</span> 不输出指定 header 下的内容 {#不输出指定-header-下的内容}
 
 1.  默认由变量 `org-export-exclude-tags` 指定的 tags 来控制;
 2.  可以在文件级别或者特定 header section 级别打上 `noexport` tag.
