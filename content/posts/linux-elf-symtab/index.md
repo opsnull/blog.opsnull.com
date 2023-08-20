@@ -2,7 +2,7 @@
 title: "Linux elf 符号表（symtab）"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-07T22:22:12+08:00
+lastmod: 2023-08-20T16:50:37+08:00
 tags: ["linux", "elf", "debug"]
 categories: ["debug"]
 draft: false
@@ -10,25 +10,27 @@ series: ["elf-debug"]
 series_order: 1
 ---
 
-介绍Linux elf二进制文件的符号表（ symtab ）生成和管理机制。
+介绍 Linux elf 二进制文件的符号表（symtab）生成和管理机制。
 
 <!--more-->
 
-Linux 使用 ELF 格式类保存可执行二进制文件、共享库文件和 debuginfo文件。
+Linux 使用 ELF 格式保存可执行二进制文件、共享库文件和 debuginfo 文件。
 
 ELF 使用两个 Sections 来表示 symbol table：
 
--   .dynsym：dynamic symbols, which can be used by another program;
--   .symtab：local symbols used by the binary itself only;
+-   .dynsym：动态符号, dynamic symbols, which can be used by another program;
+-   .symtab：局部符号, local symbols used by the binary itself only;
 
-.symtab 保存了程序中`标识符和内存地址的对应关系`，在进行`uprobe/stack unwinding/debug`时使用。
+.symtab 保存了程序中 `标识符和内存地址的对应关系` ，对于 `uprobe/kprobe/stack unwinding` 等至关重要，因为只有知道函数名才能追踪（tracing）。
+
+注：symbol table 和 gcc -g 生成的调试符号表不是一回事。
 
 
 ## <span class="section-num">1</span> 生成符号表 {#生成符号表}
 
-gcc 编译时默认会生成这两个符号表，`file`命令显示 `not stripped`
+gcc 编译时默认会生成这两个符号表， `file` 命令显示 `not stripped`
 
--   `-g` 表示同时生成调试符号表（以`.debug`开头的 Sections ， `DWARF`格式），file 会显示 `with debug_info`;
+-   `-g` 表示同时生成调试符号表（以 `.debug` 开头的 Sections， `DWARF` 格式），file 会显示 `with debug_info`;
 
 <!--listend-->
 
@@ -41,7 +43,11 @@ hello: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically link
 
 ## <span class="section-num">2</span> 查看符号表 {#查看符号表}
 
-使用`readelf -s/objdump -t`命令显示符号表内容：
+查看可执行程序/共享库/debuginfo 文件中的符号表：
+
+-   使用 `readelf -s/objdump -t` 命令。
+
+<!--listend-->
 
 ```shell
 root@lima-ebpf-dev:~# readelf -S hello |grep sym
@@ -135,10 +141,41 @@ Symbol table '.symtab' contains 65 entries:
     64: 0000000000400418     0 FUNC    GLOBAL DEFAULT   11 _init
 ```
 
+查看内核符号表：
 
-## <span class="section-num">3</span> 删除符号表 {#删除符号表}
+```shell
+#grep -E ' (t|T) ' /proc/kallsyms  |head
+ffffffffa0000000 T startup_64
+ffffffffa0000000 T _stext
+ffffffffa0000000 T _text
+ffffffffa0000030 T secondary_startup_64
+ffffffffa00000e0 T verify_cpu
+ffffffffa00001e0 T start_cpu0
+ffffffffa00001f0 T __startup_64
+ffffffffa0001000 T hypercall_page
+ffffffffa0001000 t xen_hypercall_set_trap_table
+ffffffffa0001020 t xen_hypercall_mmu_update
+```
 
-使用`strip -s/--strip-all`命令同时删除二进制文件中的`.symtab`和 `.debug_XX` 调试符号表内容，file 命令显示
+
+## <span class="section-num">3</span> 保存和删除符号表 {#保存和删除符号表}
+
+一般情况下, 在生成可执行文件后，会将局部符号表（.symtab) 和调试符号表（.debug_XX) 保存到单独的 debuginfo 文件中，按需安装，从而减少二进制文件大小。
+
+可以使用 `objcopy --only-keep-debug hello hello.debug` 来创建单独的 debuginfo 文件 hello.debug，该文件 `同时包含`
+`.symtab` 和各种 `.debug_XX` Sections：
+
+```shell
+# du -sh hello
+12K     hello
+
+# objcopy --only-keep-debug hello hello.debug
+
+# du -sh hello.debug
+8.0K    hello.debug
+```
+
+使用 `strip -s/--strip-all` 命令同时删除二进制文件中的 `.symtab` 和 `.debug_XX` 调试符号表内容，file 命令显示
 `stripped` ；
 
 -   `.dynsym` 是二进制给外界的符号表，不能删除；
@@ -157,9 +194,9 @@ Symbol table '.dynsym' contains 5 entries:
 # readelf -s hello|grep hello
 ```
 
-删除`.symtab`符号表后，`uprobe`将失败：
+删除 `.symtab` 符号表后， `uprobe` 将失败：
 
--   kprobe/uprobe 使用.symtab来查找符号名称（变量、函数、类型）和内存地址的关系，不依赖 debug symbol table；
+-   kprobe/uprobe 使用 .symtab 来查找符号名称（变量、函数、类型）和内存地址的关系，不依赖 debug symbol table；
 
 <!--listend-->
 
@@ -178,21 +215,9 @@ No probes to attach
 ```
 
 
-## <span class="section-num">4</span> 生成 debuginfo 文件 {#生成-debuginfo-文件}
+## <span class="section-num">4</span> 从 debuginfo 文件合并符号表 {#从-debuginfo-文件合并符号表}
 
-使用`objcopy --only-keep-debug hello hello.debug`生成的 debuginfo 文件中包含.symtab和各种.debug_XX调试符号表：
-
-```shell
-root@lima-ebpf-dev:~# readelf -S hello.debug  |grep -E 'dynsym|symta'
-readelf: Error: Unable to find program interpreter name
-  [ 6] .dynsym           NOBITS           00000000000003d8  000003ac
-  [34] .symtab           SYMTAB           0000000000000000  00000658
-```
-
-
-## <span class="section-num">5</span> 从 debuginfo 文件合并符号表 {#从-debuginfo-文件合并符号表}
-
-和 strip 相反的工具是 elfutils 包提供的`eu-unstrip`工具，它可以将exec binary和 debuginfo 文件合并到一起，形成一个包含符号表和调试符号表的exec binary文件：
+和 strip 相反的工具是 elfutils 包提供的 `eu-unstrip` 工具，它可以将 exec binary 和 debuginfo 文件合并到一起，形成一个包含符号表和调试符号表的 exec binary 文件：
 
 ```shell
 root@lima-ebpf-dev:~# eu-unstrip -f /usr/bin/bash /usr/lib/debug/.build-id/33/a5554034feb2af38e8c75872058883b2988bc5.debug -o /tmp/bash

@@ -2,7 +2,7 @@
 title: "objdump"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-07T22:21:48+08:00
+lastmod: 2023-08-20T16:50:57+08:00
 tags: ["linux", "elf", "debug", "tools"]
 categories: ["debug", "tools"]
 draft: false
@@ -17,7 +17,7 @@ series_order: 4
 readelf 和 objdump 相比：
 
 1.  objdump 可以对二进制文件根据调试符号表进行反汇编，但是 readelf 不行；
-2.  两者都会使用 build-id 和 gnu debuglink 机制从`/usr/lib/debug`查找当前二进制的 debuginfo 文件，然后显示其内容；
+2.  两者都会使用 build-id 和 gnu debuglink 机制从 `/usr/lib/debug` 查找当前二进制的 debuginfo 文件，然后显示其内容；
 
 通用选项：
 
@@ -39,7 +39,7 @@ hello
 
 ## <span class="section-num">2</span> 显示 ELF header {#显示-elf-header}
 
-objdump -f 显示elf header的简略概要：
+objdump -f 显示 elf header 的简略概要：
 
 ```shell
 root@lima-ebpf-dev:~# objdump -w -f hello
@@ -129,7 +129,7 @@ Version References:
 
 ## <span class="section-num">4</span> 显示 Section headers {#显示-section-headers}
 
-objdump -h 显示Section Header列表：
+objdump -h 显示 Section Header 列表：
 
 ```shell
 root@lima-ebpf-dev:~# objdump -h hello
@@ -354,7 +354,7 @@ SYMBOL TABLE:
 
 ## <span class="section-num">6</span> 反汇编可执行 Sections {#反汇编可执行-sections}
 
-objdump -d 反汇编所有可执行executable sections的内容：
+objdump -d 反汇编所有可执行 executable sections 的内容：
 
 ```shell
 root@lima-ebpf-dev:~# objdump -w -d hello
@@ -534,7 +534,7 @@ root@lima-ebpf-dev:~#
 
 objdump -S/--source 反汇编时显示源文件的内容：
 
--   -S 使用的是 build-id 而非gnu debug link机制，必须将debug file放到`/usr/lib/debug/.build-id`目录下时，才会显示源文件内容。
+-   -S 使用的是 build-id 而非 gnu debug link 机制，必须将 debug file 放到 `/usr/lib/debug/.build-id` 目录下时，才会显示源文件内容。
 
 <!--listend-->
 
@@ -636,7 +636,7 @@ Contents of section .gnu_debuglink:
  0000 68656c6c 6f2e6465 62756700 a3c55b6a  hello.debug...[j
 ```
 
-通过添加-j SECTION来只显示指定 SECTION 的内容：
+通过添加 -j SECTION 来只显示指定 SECTION 的内容：
 
 ```shell
 root@lima-ebpf-dev:~# objdump -s hello -j .comment
@@ -654,7 +654,7 @@ Contents of section .comment:
 
 objdump -t/--syms 显示符号表：
 
--   会在/usr/lib/debug目录下查找hello.debug或者使用.build-id来查找 debug 文件，然后提取符号表。所以，即使二进制本身被 strip ，只要有 debug文件，也能显示符号表。
+-   会在 /usr/lib/debug 目录下查找 hello.debug 或者使用 .build-id 来查找 debug 文件，然后提取符号表。所以，即使二进制本身被 strip，只要有 debug 文件，也能显示符号表。
 
 <!--listend-->
 
@@ -737,7 +737,7 @@ root@lima-ebpf-dev:~#
 
 objdump -g/-W 显示文件的 DWARF 格式的 debug 信息：
 
--   直接从文件中读，或者根据debug-link/build-id从系统`/usr/lib/debug`读取 debug 文件。
+-   直接从文件中读，或者根据 debug-link/build-id 从系统 `/usr/lib/debug` 读取 debug 文件。
     ```shell
     root@lima-ebpf-dev:~# objdump -w -g  hello
     Contents of the .debug_aranges section (loaded from /usr/lib/debug/hello.debug):

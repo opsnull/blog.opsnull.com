@@ -2,7 +2,7 @@
 title: "readelf"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-07T22:21:55+08:00
+lastmod: 2023-08-20T16:50:49+08:00
 tags: ["linux", "elf", "debug", "tools"]
 categories: ["debug", "tools"]
 draft: false
@@ -17,7 +17,7 @@ series_order: 3
 readelf 和 objdump 相比：
 
 1.  objdump 可以对二进制文件根据调试符号表进行反汇编，但是 readelf 不行；
-2.  两者都会使用 build-id 和 gnu debuglink 机制从`/usr/lib/debug`查找当前二进制的 debuginfo 文件，然后显示其内容；
+2.  两者都会使用 build-id 和 gnu debuglink 机制从 `/usr/lib/debug` 查找当前二进制的 debuginfo 文件，然后显示其内容；
 
 通用选项：
 
@@ -55,7 +55,7 @@ ELF Header:
 
 ## <span class="section-num">2</span> 显示 program headers 列表（Segments）： {#显示-program-headers-列表-segments}
 
-readelf -l/--program-headers/--segments: 显示program headers的内容（也称为 Segments）：
+readelf -l/--program-headers/--segments: 显示 program headers 的内容（也称为 Segments）：
 
 -   PHDR：
 -   INTERP：/lib64/ld-linux-x86-64.so.2
@@ -63,7 +63,7 @@ readelf -l/--program-headers/--segments: 显示program headers的内容（也称
 -   DYNAMIC；
 -   NOTE
 -   GNU_PROPERTY
--   GNU_EH_FRAME: 在C++ exception resolution场景使用。
+-   GNU_EH_FRAME: 在 C++ exception resolution 场景使用。
 -   GNU_STACK
 -   GNU_RELRO
 
@@ -114,7 +114,7 @@ root@lima-ebpf-dev:~#
 
 ## <span class="section-num">3</span> 显示所有 Sections {#显示所有-sections}
 
-`readelf -S/--sections/--section-headers` ：显示所有section headers列表；
+`readelf -S/--sections/--section-headers` ：显示所有 section headers 列表；
 
 -   带有 S 标识的表示是字符串 Sections，如 .comment;
 -   使用 -W 来显示超过 80 字符的宽度；
@@ -173,12 +173,19 @@ Key to Flags:
 root@lima-ebpf-dev:~#
 ```
 
-readelf -e/--headers：等效为-h -l -S，即同时显示 ELF/Program/Section headers的内容。
+-   .text section 里装载了可执行代码；
+-   .data section 里面装载了被初始化的数据；
+-   .bss section 里面装载了未被初始化的数据；
+-   以 .rec 打头的 sections 里面装载了重定位条目；
+-   .symtab 或者 .dynsym section 里面装载了符号信息；
+-   .strtab 或者 .dynstr section 里面装载了字符串信息；
+
+readelf -e/--headers：等效为 -h -l -S，即同时显示 ELF/Program/Section headers 的内容。
 
 
 ## <span class="section-num">4</span> 显示符号表（.dynsym &amp; .symtab) {#显示符号表-dot-dynsym-and-dot-symtab}
 
-readelf -s/--syms/--symbols：显示符号表（symbol table）：'.dynsym'和 '.symtab'：
+readelf -s/--syms/--symbols： 显示符号表（symbol table）：'.dynsym' 和 '.symtab'：
 
 -   只显示当前文件，而不查找 debuginfo 文件；
 
@@ -242,10 +249,10 @@ root@lima-ebpf-dev:~#
 
 ## <span class="section-num">5</span> 显示 .note 开头的 sections {#显示-dot-note-开头的-sections}
 
-`readelf -n`: 显示core notes Section，即以 .note开头的 section，例如：
+`readelf -n`: 显示 core notes Section，即以 .note 开头的 section，例如：
 
 -   .note.gnu.property
--   .note.gnu.build-id：包含用于查找debug file的 build-id；
+-   .note.gnu.build-id：包含用于查找 debug file 的 build-id；
 -   .note.ABI-tag
 
 <!--listend-->
@@ -325,8 +332,8 @@ Version needs section '.gnu.version_r' contains 1 entry:
 ## <span class="section-num">8</span> 打印指定 Sections 内容 {#打印指定-sections-内容}
 
 -   `readelf -x/--hex-dump=<number|name>`: 使用 16 进制打印指定 Sections 的内容。
--   ~readelf -p/--string-dump=&lt;number|name&gt;~：使用文本打印指定 Sections的内容；
--   可以使用readelf -S来显示所有sections number和 name，同时有 S 标志的表示是字符串 Section：
+-   ~readelf -p/--string-dump=&lt;number|name&gt;~： 使用文本打印指定 Sections 的内容；
+-   可以使用 readelf -S 来显示所有 sections number 和 name，同时有 S 标志的表示是字符串 Section：
 
 <!--listend-->
 
@@ -342,9 +349,9 @@ String dump of section '.comment':
 
 ## <span class="section-num">9</span> 显示 DWARF 内容 {#显示-dwarf-内容}
 
-readelf -w 打印二进制的 DWARF 内容，即各种以.debug_XX开头的 Section 内容：
+readelf -w 打印二进制的 DWARF 内容，即各种以 .debug_XX 开头的 Section 内容：
 
--   .eh_frame: 在C++ exception resolution场景使用；
+-   .eh_frame: 在 C++ exception resolution 场景使用；
 -   会查找 debuginfo 文件来获得 DWARF 内容；
 
 <!--listend-->
@@ -381,7 +388,7 @@ Contents of the .debug_line_str section:
 root@lima-ebpf-dev:~#
 ```
 
-readelf -wX 或则readelf --debug-dump=YY来打印对应DWARF debug section的内容。
+readelf -wX 或则 readelf --debug-dump=YY 来打印对应 DWARF debug section 的内容。
 
 -   X/=YY，例如 -wa 等效为 --debug-dump abbrev
 -   -w --debug-dump[a/=abbrev, A/=addr, r/=aranges, c/=cu_index, L/=decodedline, f/=frames, F/=frames-interp,
@@ -410,4 +417,4 @@ Contents of the .debug_abbrev section (loaded from hello):
 root@lima-ebpf-dev:~#
 ```
 
-如果二进制被 strip ，则本身不再包含调试符号表，这时 readelf会根据.gnu_debuglink Sections中的 debug 文件名（需要单独添加该 Section ），或根据 .note.gnu.build-id在 /usr/lib/debug 下查找单独的 debug file。
+如果二进制被 strip，则本身不再包含调试符号表，这时 readelf 会根据 .gnu_debuglink Sections 中的 debug 文件名（需要单独添加该 Section），或根据 .note.gnu.build-id 在 /usr/lib/debug 下查找单独的 debug file。

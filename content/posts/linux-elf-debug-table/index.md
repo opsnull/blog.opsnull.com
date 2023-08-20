@@ -2,7 +2,7 @@
 title: "Linux elf 调试符号表（.debug_XX)"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-07T22:22:05+08:00
+lastmod: 2023-08-20T16:50:44+08:00
 tags: ["linux", "elf", "debug"]
 categories: ["debug"]
 draft: false
@@ -10,21 +10,23 @@ series: ["elf-debug"]
 series_order: 2
 ---
 
-介绍Linux elf二进制文件的调试符号表（.debug_XX）生成和管理机制。
+介绍 Linux elf 二进制文件的调试符号表（.debug_XX）生成和管理机制。
 
 <!--more-->
 
-Linux 使用 ELF 格式类保存可执行二进制文件、共享库文件和 debuginfo文件。
+Linux 使用 ELF 格式类保存可执行二进制文件、共享库文件 和 debuginfo 文件。
 
-debuginfo 信息在stack unwinding，perf ftrace， gdb 单步调试，bpftrace 显示 uprobe 函数参数列表 等场景得到广泛应用。
+debuginfo 信息在 stack unwinding，perf ftrace，gdb 单步调试，bpftrace 显示 uprobe 函数参数列表 等场景得到广泛应用。
+
+注意：编译器默认在二进制中生成 `.eh_frame` Section, 它和 debuginfo 一样，都是 DWARF 格式，但只用于 C++ 异常栈追踪和 frame pointer 缺失情况下的 function stack unwinding。
 
 
 ## <span class="section-num">1</span> 生成调试符号表 {#生成调试符号表}
 
-由于 debuginfo 通常比较大，而且一般只在 debug 时使用。所以编译器默认不生成它们。在编译二进制时，通过指定 -g 选项，可以在生成的二进制中包含.debug_XX开头的调试符号表，如 .debug_info, .debug_abbrev, .debug_line,
-.debug_frame, .debug_str, .debug_loc 等，它们符合`DWARF`格式标准；
+由于 debuginfo 通常比较大，而且一般只在 debug 时使用。所以编译器默认不生成它们。需要在编译二进制时指定 -g 选项来在结果二进制中生成调试符号表，它们都以 .debug 开头，符合 `DWARF` 格式标准，如 .debug_info, .debug_abbrev,
+.debug_line, .debug_frame, .debug_str, .debug_loc 等；
 
--   可以使用`readelf -w file或 objdump -g` 命令来查看.
+-   `readelf -w file 或 objdump -g` 命令来查看调试符号表.
 -   使用 -g3 可以包含 macro definitions（默认 -g2）；
 
 <!--listend-->
@@ -102,10 +104,50 @@ Idx Name          Size      VMA               LMA               File off  Algn
                   CONTENTS, READONLY, DEBUGGING
 ```
 
+各调试符号表 (均为 DWARF 格式）的含义：
+
+.debug_aranges
+:
+
+
+.debug_info
+: 将 souce variable 映射到寄存器或保存它的 stack 地址；
+
+.debug_abbrev
+:
+
+
+.debug_line
+: 将 code addres 映射到 source code 位置；
+
+.debug_str
+:
+
+
+.eh_frame
+: 为 unwind stack 提供更相关信息；
+
+示例的 .eh_frame 内容：
+
+<div class="verse">
+
+LOC CFA rbx rbp r12 r13 r14 r15 ra<br />
+0084950 rsp+8 u u u u u u c-8<br />
+0084952 rsp+16 u u u u u c-16 c-8<br />
+0084954 rsp+24 u u u u c-24 c-16 c-8<br />
+0084956 rsp+32 c-32 u u u c-24 c-16 c-8<br />
+0084958 rsp+40 c-32 c-40 u u c-24 c-16 c-8<br />
+0084959 rsp+144 c-32 c-40 u u c-24 c-16 c-8<br />
+0084962 rsp+40 c-32 c-40 u u c-24 c-16 c-8<br />
+0084964 rsp+32 c-32 c-40 u u c-24 c-16 c-8<br />
+0084966 rsp+24 c-32 u u u c-24 c-16 c-8<br />
+
+</div>
+
 
 ## <span class="section-num">2</span> 创建和保存 debuginfo 文件 {#创建和保存-debuginfo-文件}
 
-可以使用`objcopy --only-keep-debug hello hello.debug`来创建单独的 debug 文件 hello.debug，该文件 `同时包含`
+可以使用 `objcopy --only-keep-debug hello hello.debug` 来创建单独的 debuginfo 文件 hello.debug，该文件 `同时包含`
 `.symtab` 和各种 `.debug_XX` Sections：
 
 ```shell
@@ -118,9 +160,10 @@ Idx Name          Size      VMA               LMA               File off  Algn
 8.0K    hello.debug
 ```
 
-根据 hello 中 `.note.gnu.build-id` 值放到系统标准 debug 文件目录`/usr/lib/debug/.build-id/xx/XXX.debug`中，这样后续`gdb/objdump/readelf`等都会自动读取。
+根据 hello 中 `.note.gnu.build-id` 值，将 hello.debug 文件放到系统标准 debug 文件目录
+`/usr/lib/debug/.build-id/xx/XXX.debug` 中，这样后续 `gdb/objdump/readelf` 等都会自动读取。
 
--   使用`readelf -n XX`命令查看 build-id 的内容。
+-   使用 `readelf -n XX` 命令查看 build-id 的内容。
 
 <!--listend-->
 
@@ -150,12 +193,12 @@ root@lima-ebpf-dev:~# mkdir /usr/lib/debug/.build-id/7e
 root@lima-ebpf-dev:~# mv hello.debug  /usr/lib/debug/.build-id/7e/31292c839740f24092f371f1e85cd9ad74a79b.debug
 ```
 
-也可以在生成hello.debug文件后，使用命令`objcopy --add-gnu-debuglink=hello.debug hello`在 hello 中添加一个
-`'.gnu_debuglink'` Sections ，然后将hello.debug文件放置到`/usr/lib/debug/hello.debug`位置，这样后续
+也可以在生成 hello.debug 文件后，使用命令 `objcopy --add-gnu-debuglink=hello.debug hello` 在 hello 中添加一个
+`'.gnu_debuglink'` Section ，然后将 hello.debug 文件放置到 `/usr/lib/debug/hello.debug` 位置，这样后续
 `gdb/objdump/readelf` 也会自动查找使用。
 
 -   debuglink 包含 32 位 CRC 校验码, GDB 可以用来确认找到的 debug 文件是匹配的.
--   使用`readelf --string-dump=.gnu_debuglink hello`命令来查看 debuglink 的内容。
+-   使用 `readelf --string-dump=.gnu_debuglink hello` 命令来查看 debuglink 的内容。
 
 <!--listend-->
 
@@ -174,10 +217,10 @@ String dump of section '.gnu_debuglink':
 
 -   objdump -S 只认 build-id。
 
-最后，使用`strip -g BINARY`命令将 BINARY 中的调试符号表删除，从而减轻二进制文件体积：
+最后，使用 `strip -g hello` 命令将 hello 中的调试符号表删除，从而减轻二进制文件体积：
 
--   `strip -g` ：删除各种.debug_XX开头的调试符号表，这些表中包含源文件、行号等与内存地址的关系，用于支持单步调试。
--   `strip -s/--strip-all` ：同时删除.symtab和各种.debug_XX调试符号表；
+-   `strip -g` ：删除各种 .debug_XX 开头的调试符号表，这些表中包含源文件、行号等与内存地址的关系，用于支持单步调试。
+-   `strip -s/--strip-all` ：同时删除 .symtab 和各种 .debug_XX 调试符号表；
 
 <!--listend-->
 
@@ -249,7 +292,7 @@ Idx Name          Size      VMA               LMA               File off  Algn
                   CONTENTS, READONLY
 ```
 
-和 strip 相反的工具是`elfutils`包提供的`eu-unstrip`工具，它可以将exec binary和 debug file 合并到一起，形成一个包含 debug 信息的exec binary文件：
+和 strip 相反的工具是 `elfutils` 包提供的 `eu-unstrip` 工具，它可以将 exec binary 和 debug file 合并到一起，形成一个包含 debug 信息的 exec binary 文件：
 
 ```shell
 # 格式
@@ -264,17 +307,17 @@ root@lima-ebpf-dev:/sys/kernel/debug/tracing# eu-unstrip -f /usr/bin/bash /usr/l
 
 ## <span class="section-num">3</span> 查找 debuginfo 文件 {#查找-debuginfo-文件}
 
-`readelf/objdump/gdb/bpftrace` 等工具从系统`/usr/lib/debug/`查找二进制对应的 debuginfo 文件，一般使用两种机制：
+`readelf/objdump/gdb/bpftrace` 等工具从系统 `/usr/lib/debug/` 查找二进制对应的 debuginfo 文件，一般使用两种机制：
 
--   `.note.gnu.build-id` Section，使用命令 `readelf -n hello`查看该 Section 内容；
--   `.gnu_debuglink` Section，使用命令`readelf --string-dump=.gnu_debuglink hello`来查看内容，debug link 包含 32
-    位 CRC 校验码, gdb 可以用来确认找到的 debug 文件是匹配的；
+-   `.note.gnu.build-id` Section， 使用命令 `readelf -n hello` 查看该 Section 内容；
+-   `.gnu_debuglink` Section，使用命令 `readelf --string-dump=.gnu_debuglink hello` 来查看内容，debug link 包含 32位
+    CRC 校验码, gdb 可以用来确认找到的 debug 文件是匹配的；
 
-例如 gdb 要 debug 的`/usr/bin/ls`的 debuglink 是ls.debug,而且 build-id 是 hex abcdef1234，全局 debug 目录是
-/usr/include/debug, 则 gdb 查找debug info文件的顺序如下：
+例如 gdb 要 debug 的 `/usr/bin/ls` 的 debuglink 是 ls.debug, 而且 build-id 是 hex abcdef1234，全局 debug 目录是
+/usr/include/debug, 则 gdb 查找 debug info 文件的顺序如下：
 
 -   `/usr/lib/debug/.build-id/ab/cdef1234.debug`
-    -   注意：.build-id 下的目录是build ID hex值的`前两位`，目录下的文件名是去掉前两位后的内容+.debug;
+    -   注意：.build-id 下的目录是 build ID hex 值的 `前两位` ，目录下的文件名是去掉前两位后的内容+.debug;
 -   `/usr/bin/ls.debug`
 -   `/usr/bin/.debug/ls.debug`
 -   `/usr/lib/debug/usr/bin/ls.debug`
@@ -287,9 +330,9 @@ The directory where separate debug symbols are searched for is "/usr/lib/debug".
 (gdb)
 ```
 
-readelf 查找hello.debug文件的路径：
+readelf 查找 hello.debug 文件的路径：
 
--   它不会查找/usr/lib/debug目录下的各种 bin 目录。
+-   它不会查找 /usr/lib/debug 目录下的各种 bin 目录。
 
 <!--listend-->
 
@@ -320,10 +363,10 @@ readelf: Warning: tried: /usr/lib/debug/hello.debug
 openat(AT_FDCWD, "/usr/lib/debug/.build-id/7e/31292c839740f24092f371f1e85cd9ad74a79b.debug", O_RDONLY) = 4
 ```
 
-bpftrace 使用 bcc 的 libclang 来[编译和查找二进制的debug file](https://github.com/iovisor/bcc/blob/master/src/cc/bcc_elf.c#L652C25-L652C25)，也会查找系统缺省 debug目录 `/usr/lib/debug`
+bpftrace 使用 bcc 的 libclang 来[编译和查找二进制的 debug file](https://github.com/iovisor/bcc/blob/master/src/cc/bcc_elf.c#L652C25-L652C25)，也会查找系统缺省 debug 目录 `/usr/lib/debug`
 
 -   支持 find_debug_via_debuglink/find_debug_via_buildid。
--   也可以通过BCC_DEBUGINFO_ROOT设置 debug 目录。
+-   也可以通过 BCC_DEBUGINFO_ROOT 设置 debug 目录。
 -   bpftrace 查找 debuginfo 示例：
 
 <!--listend-->
@@ -338,15 +381,15 @@ openat(AT_FDCWD, "/usr/lib/debug/.build-id/33/a5554034feb2af38e8c75872058883b298
 root@lima-ebpf-dev:~#
 ```
 
-如果未找到，但是 debuginfod 被开启，则gdb/bpftrace尝试从 debuginfod 服务器下载 debuginfo 文件。
+如果未找到，但是 debuginfod 被开启，则 gdb/bpftrace 尝试从 debuginfod 服务器下载 debuginfo 文件。
 
-以CentsOS7 /bin/bash为例：
+以 CentsOS7 /bin/bash 为例：
 
--   二进制的被 strip 过，所以只有.dynsym符号表，而没有.symtab 符号表。
+-   二进制的被 strip 过，所以只有 .dynsym 符号表，而没有 .symtab  符号表。
     -   .dynsym ( dynamic symbols, which can be used by another program）；
-    -   .symtab ( “ local ” symbols used by the binary itself only )；
--   二进制缺少.symtab表，且也没有.debug表时，不能使用 uprobe 来插桩函数。
-    -   uprobe 插桩只依赖.symtab表，.debug表不是必须的，前者是记录程序中符号（如变量名、函数名）和二进制地址间的关系，而后者是记录源码行号和二进制地址间的关系（用于单步调试）。
+    -   .symtab ( “local” symbols used by the binary itself only )；
+-   二进制缺少 .symtab 表，且也没有 .debug 表时，不能使用 uprobe 来插桩函数。
+    -   uprobe 插桩只依赖 .symtab 表， .debug 表不是必须的，前者是记录程序中符号（如变量名、函数名）和二进制地址间的关系，而后者是记录源码行号和二进制地址间的关系（用于单步调试）。
 
 <!--listend-->
 
@@ -384,9 +427,9 @@ Idx Name          Size      VMA               LMA               File off  Algn
 
 安装 bash 的 debuginfo 包，提供 debug 文件：
 
--   安装到系统缺省`/usr/lib/debug`目录下；
+-   安装到系统缺省 `/usr/lib/debug` 目录下；
 -   `/usr/lib/debug/.build-id` 下根据 build-id 来匹配；
--   `/usr/lib/debug/usr/bin/bash.debug` 对应.gnu_debuglink中的文件名；
+-   `/usr/lib/debug/usr/bin/bash.debug` 对应 .gnu_debuglink 中的文件名；
 
 <!--listend-->
 
@@ -406,7 +449,7 @@ Idx Name          Size      VMA               LMA               File off  Algn
 
 bash.debug 文件的 build-id 和 bash 文件一致：
 
--   bash.debug 文件中包含各种以.debug_XX开头的调试符号表。
+-   bash.debug 文件中包含各种以 .debug_XX 开头的调试符号表。
 
 <!--listend-->
 
@@ -451,7 +494,7 @@ Idx Name          Size      VMA               LMA               File off  Algn
                   CONTENTS, READONLY, DEBUGGING
 ```
 
-无论是gdb/readelf/objdump/bpftrace都会根据.note.gnu.build-id来查找`/usr/lib/debug/.build-id`目录，所以这是一种标准的放置debuginfo file的机制。
+无论是 gdb/readelf/objdump/bpftrace 都会根据 .note.gnu.build-id 来查找 `/usr/lib/debug/.build-id` 目录，所以这是一种标准的放置 debuginfo file 的机制。
 
 -   .gnu_debuglink section 默认并不会添加到二进制中。
 
@@ -465,11 +508,11 @@ Idx Name          Size      VMA               LMA               File off  Algn
 CentOS/Redhat：
 
 -   6-7版本：只有 debuginfo 包，同时包含 DWARF 调试符号表和源代码；
--   8 开始：debuginfo 和 debugsource 是分开的两个 package ，前者包含 DWARF格式的.debug_XX Sections,后者包含对应的源代码，两者都被安装到`/usr/lib/debug`目录下；
+-   8 开始：debuginfo 和 debugsource 是分开的两个 package，前者包含 DWARF 格式的 .debug_XX Sections, 后者包含对应的源代码，两者都被安装到 `/usr/lib/debug` 目录下；
 -   需要启用 debuginfo 和 debugsource YUM REPO；
 -   Centos 在用 gcc 编译时，默认开启了 -O2 级别优化，所以可能有写源码中的变量不可见，被表示为 &lt;optimized out&gt;;
 
-debuginfo、debugsource 和binary package三者的名称、版本、架构等必须一致：
+debuginfo、debugsource 和 binary package 三者的名称、版本、架构等必须一致：
 
 -   Binary package: packagename-version-release.architecture.rpm
 -   Debuginfo package: packagename-debuginfo-version-release.architecture.rpm
@@ -511,7 +554,7 @@ Missing separate debuginfos, use: dnf debuginfo-install coreutils-8.30-6.el8.x86
 (gdb)
 ```
 
-可以使用 debuginfo-install 来根据binary package来安装对应的 debuginfo 包：
+可以使用 debuginfo-install 来根据 binary package 来安装对应的 debuginfo 包：
 
 ```shell
 # debuginfo-install zlib-1.2.11-10.el8.x86_64
@@ -519,7 +562,7 @@ Missing separate debuginfos, use: dnf debuginfo-install coreutils-8.30-6.el8.x86
 
 Ubuntu：
 
--   一般debug symbols包以 -dbgsym 结尾，如 bash-dbgsym；
+-   一般 debug symbols 包以 -dbgsym 结尾，如 bash-dbgsym；
 -   需要启用 dbgsym Package Source Repo，然后才能查询和安装；
 
 <!--listend-->
@@ -621,9 +664,7 @@ root@lima-ebpf-dev:~#
 
 ### <span class="section-num">5.3</span> objdump -g/-W 显示 .debug_XX 详情 {#objdump-g-w-显示-dot-debug-xx-详情}
 
--   直接从文件中读或者根据debug-link/build-id从系统`/usr/lib/debug`读取 debug 文件。
-
-<!--listend-->
+直接从文件中读或者根据 debuglink/build-id 从系统 `/usr/lib/debug` 读取 debug 文件。
 
 ```shell
 root@lima-ebpf-dev:~# objdump -w -g  hello
@@ -783,7 +824,7 @@ root@lima-ebpf-dev:~#
 
 ## <span class="section-num">6</span> kernel-debuginfo {#kernel-debuginfo}
 
-内核的调试符号表也被安装到`/usr/lib/debug`目录下：
+内核的调试符号表也被安装到 `/usr/lib/debug` 目录下：
 
 -   /usr/lib/debug/lib/modules 对应各种内核模块的符号文件；
 
@@ -843,7 +884,7 @@ root@lima-ebpf-dev:~#
 
 `/usr/lib/debug/lib/modules/4.19.91-013.ali4000.os7.x86_64/vmlinux` 对应完整的内核 elf 文件：
 
--   包含各种.debug_XX调试符号表；
+-   包含各种 .debug_XX 调试符号表；
 -   也包含未 strip 的 .symtab 符号表；
 
 <!--listend-->

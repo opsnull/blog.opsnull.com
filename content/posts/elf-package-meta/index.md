@@ -2,7 +2,7 @@
 title: "add package meta to elf file"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-07T22:38:46+08:00
+lastmod: 2023-08-20T16:51:02+08:00
 tags: ["linux", "elf", "tools"]
 categories: ["elf", "tools"]
 draft: false
@@ -10,14 +10,14 @@ series: ["elf-debug"]
 series_order: 5
 ---
 
-介绍向 elf 二进制文件中添加自定义package meta信息的方法。
+介绍向 elf 二进制文件中添加自定义 package meta 信息的方法。
 
 <!--more-->
 
 
 ## <span class="section-num">1</span> 二进制文件添加自定义 note {#二进制文件添加自定义-note}
 
-ELF 每个note section的开始部分应该包含一个 header，其中包含名字，描述以及类型的长度。然后，接着这个 header
+ELF 每个 note section 的开始部分应该包含一个 header，其中包含名字，描述以及类型的长度。然后，接着这个 header
 的就是名字和描述的内容。同时，为了内存对齐，每个部分可能需要用额外的 null 字节进行填充。
 
 -   不对齐在读取时报错：llvm-readelf: error: 'exec.ok': SHT_STRTAB string table section [index 3] is non-null
@@ -89,12 +89,12 @@ This is some metadataroot@lima-ebpf-dev:#
 
 ## <span class="section-num">2</span> 链接时生成 package meta {#链接时生成-package-meta}
 
-已有机制：.note.gnu.build-id，可以根据 build-id 来使用dnf repoquery --wathprovides debuginfo(build-id_= XXX来反查对应的 package。
+已有机制：.note.gnu.build-id，可以根据 build-id 来使用 dnf repoquery --wathprovides debuginfo(build-id_= XXX 来反查对应的 package。
 
 缺点：
 
 1.  build-id 的信息对用于来说太少；
-2.  需要使用rpm database来反查 package；
+2.  需要使用 rpm database 来反查 package；
 
 新的机制： `.note.package`
 
@@ -179,7 +179,7 @@ JSON payload:
 }
 ```
 
-实现方案: [ld 链接时传递`--package-metadata`参数](https://github.com/systemd/package-notes/blob/main/rpm/redhat-package-notes.in)， make -j4 V=1 LDFLAGS="-static -all-static -specs=/build/package-metadata.spec"，其中
+实现方案: [ld 链接时传递 `--package-metadata` 参数](https://github.com/systemd/package-notes/blob/main/rpm/redhat-package-notes.in)， make -j4 V=1 LDFLAGS="-static -all-static -specs=/build/package-metadata.spec"，其中
 package-metadata.spec 内容如下：
 
 ```shell
@@ -202,9 +202,9 @@ Generator:
 
 不太建议: 因为需要将生成的 c 文件和源代码一块编译链接.
 
-1.  会生成 4 个文件 module_info.ld, auto_module_info.h, module_info.c和 .note.pakage.bin
-2.  module_info.c 包含elf .note.package section的具体内容, module_info.ld 是 ld 链接脚本;
-3.  需要将module_info.c的内容和二进制一块编译链接;
+1.  会生成 4 个文件  module_info.ld, auto_module_info.h, module_info.c 和 .note.pakage.bin
+2.  module_info.c 包含 elf .note.package section 的具体内容, module_info.ld 是 ld 链接脚本;
+3.  需要将 module_info.c 的内容和二进制一块编译链接;
 
 generate-package-note.py 生成 ld 链接脚本：
 
