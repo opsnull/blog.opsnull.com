@@ -2,13 +2,14 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2023-08-07T22:36:50+08:00
-tags: ["hugo", "org-mode"]
+lastmod: 2023-08-20T17:51:25+08:00
+tags: ["hugo", "org-mode", "blog"]
 categories: ["emacs"]
 draft: false
 ---
 
-这篇文章总结下我使用 hugo 和 blowfish 主题搭建博客的配置参数，同时也记录了使用 org-mode 和 ox-hugo 来写博客的过程。
+这篇文章总结下我使用 hugo 和 blowfish 主题搭建博客的配置参数，同时也记录了使用 org-mode 和 ox-hugo
+来写博客的过程。
 
 <!--more-->
 
@@ -51,14 +52,14 @@ $ tree ~/blog/blog.opsnull.com/themes/blowfish/config
 $
 ```
 
-配置config.toml: languageCode = "zh-CN"：与 blowfish/i18n目录下的文件名前缀一致。
+配置 config.toml: languageCode = "zh-CN"：与 blowfish/i18n 目录下的文件名前缀一致。
 
-官方自带的i18n/zh-CN.yaml中的部分配置被注释了, 导致不能正确显示文件更新时间等内容, 需要修正。
+官方自带的 i18n/zh-CN.yaml 中的部分配置被注释了, 导致不能正确显示文件更新时间等内容, 需要修正。
 
 
 ### <span class="section-num">1.3</span> browser icon {#browser-icon}
 
-自定义浏览器角标：在favicon.io将自己的图片生成为各种尺寸的 icon，直接解压在favicon.io下载好的 icon 压缩包，并放在/static目录下即可。
+自定义浏览器角标：在 favicon.io 将自己的图片生成为各种尺寸的 icon，直接解压在favicon.io下载好的icon压缩包，并放在/static目录下即可。
 
 ```shell
 $ ls -l ~/blog/blog.opsnull.com/static/
@@ -79,7 +80,7 @@ $
 
 ### <span class="section-num">1.4</span> custom icon {#custom-icon}
 
-自定义 icon ：将自定义的 svg 文件放在/asserts/icons目录下，为了使 icon 和主题自适应，需要在 svg 文件中添加属性fill=“ currentColor ” 如下：
+自定义 icon： 将自定义的 svg 文件放在 /asserts/icons 目录下，为了使 icon 和主题自适应，需要在 svg 文件中添加属性fill=“currentColor” 如下：
 
 ```yaml
 <svg>
@@ -106,7 +107,7 @@ through either the `icon partial` or `icon shortcode`.
 
 ### <span class="section-num">1.6</span> 调大文档内容宽度 {#调大文档内容宽度}
 
-创建assets/css/custom.css文件，内容如下：
+创建 assets/css/custom.css 文件，内容如下：
 
 ```css
 .max-w-prose {
@@ -146,7 +147,7 @@ var _hmt = _hmt || [];
 ### <span class="section-num">1.9</span> comment {#comment}
 
 1.  utterances： <https://utteranc.es/>
-2.  gisscus：在 layouts/partials/comments.html创建一个页面。在<https://giscus.app/>配置基于github repo的
+2.  gisscus： 在 layouts/partials/comments.html 创建一个页面。在 <https://giscus.app/> 配置基于 github repo 的
     comment 评论系统，然后将自动生成的代码贴入上面的 comments.html页面。
 3.  cusdis：
 
@@ -166,7 +167,7 @@ var _hmt = _hmt || [];
 
 ### <span class="section-num">1.10</span> 相关文章 {#相关文章}
 
-在config/_default/config.toml文件中设置，主要是根据文件的 tags 、categories、 series 等标准来判断：
+在 config/_default/config.toml 文件中设置，主要是根据文件的 tags、categories、series 等标准来判断：
 
 ```toml
 # 相关文档
@@ -224,11 +225,11 @@ var _hmt = _hmt || [];
 
 ### <span class="section-num">1.13</span> Branch Pages {#branch-pages}
 
-List pages 和Taxonomy Pages是有差别的：
+List pages 和 Taxonomy Pages 是有差别的：
 
--   List 一般是因为Branch Pages引起的，显示的是该 branch 下所有文档列表；
+-   List 一般是因为 Branch Pages 引起的，显示的是该 branch 下所有文档列表；
 -   Taxonomy 是一组预定义的列表，后续可以用于对文档指定 taxonomy 的 term，用于对文档进行归类。
--   某个Taxonomy List页面显示一组 term list；
+-   某个 Taxonomy List 页面显示一组 term list；
 -   terms list 页面显示归属到该 term 的文档列表。
 
 
@@ -254,7 +255,7 @@ Content:	content/../_index.md
             └── project.jpg
 ```
 
-可以在\_index.md 中设置适合该 branch 下的所有文档的通用参数：
+可以在 \_index.md  中设置适合该 branch 下的所有文档的通用参数：
 
 ```text
 ---
@@ -276,7 +277,7 @@ page.
 
 是比较特殊的 branch pages，因为他们需要预定义：
 
-1.  编辑文件config/_default/config.toml中的 taxonomies
+1.  编辑文件 config/_default/config.toml 中的 taxonomies
     -   key = value： key 是单数，values 是复数。
 
 <!--listend-->
@@ -289,7 +290,7 @@ page.
   series = "series"
 ```
 
-然后就可以在font mattter中指定复数的 taxonomies，例如：
+然后就可以在 font mattter 中指定复数的 taxonomies，例如：
 
 ```markdown
 ---
@@ -299,14 +300,14 @@ animals: ["lion", "cat"]
 ---
 ```
 
--   这在animals taxonomy下创建了两个 term ：lion和 cat
+-   这在 animals taxonomy 下创建了两个 term：lion 和 cat
 
 Although it’s not obvious at this point, Hugo will now be `generating list and term pages` for this new
 taxonomy. By default the listing can be accessed at `/animals/` and the term pages can be found at `/animals/lion/`
 and `/animals/cat/`.
 
 The list page will `list all the terms` contained within the taxonomy. In this example, navigating to `/animals/`
-will show a page that has links for “ lion ”and“ cat ” which take visitors to `the individual term pages`.
+will show a page that has links for “lion” and “cat” which take visitors to `the individual term pages`.
 
 The term pages will `list all the pages contained within that term`. These term lists are essentially the same
 as normal list pages and behave in much the same way.
@@ -326,7 +327,7 @@ the taxonomy name as the sub-directory name.
 
 Anything in these content files will now be placed onto the generated taxonomy pages. As with other content,
 the front matter variables can be used to override defaults. In this way you could have a tag named lion but
-override the title to be “ Lion ”.
+override the title to be “Lion”.
 
 To see how this looks in reality, check out the tags taxonomy listing on this site.
 
@@ -423,9 +424,9 @@ _build:
 Layout:	layouts/_default/simple.html
 Front Matter:	layout: "simple"
 
-通过在front matter中添加配置layout: "simple"可以对当前页面启用 simple layout。
+通过在 front matter 中添加配置 layout: "simple" 可以对当前页面启用 simple layout。
 
-simple layout 默认会以full-width template来显示当前页面内容。
+simple layout 默认会以 full-width template 来显示当前页面内容。
 
 ```text
 ---
@@ -454,7 +455,7 @@ title: Software
 ---
 ```
 
-位置（可以在博文的fronter matter部分设置）：
+位置（可以在博文的 fronter matter 部分设置）：
 
 -   menu："main"  # header 导航菜单
 -   menu："footer"  # 页末导航菜单
@@ -473,7 +474,7 @@ menu:
    weight: 40
 ```
 
-文档级别可以是目录 \_index.md文件，例如：
+文档级别可以是 目录 \_index.md 文件，例如：
 
 ```nil
 # cat content/ebpf/_index.md
@@ -494,9 +495,9 @@ Blowfish has full support for Hugo taxonomies and will adapt to any taxonomy set
 ---
 ```
 
-后续，所有在该目录下创建的文件，都可以通过`localhost:1313/ebpf/`来访问
+后续，所有在该目录下创建的文件，都可以通过 `localhost:1313/ebpf/` 来访问
 
--   `/ebpf/` 是 contenxt下的子目录名称。
+-   `/ebpf/` 是  contenxt 下的子目录名称。
 
 站点级别： config/_default/menus.zh-cn.toml
 
@@ -529,7 +530,7 @@ Blowfish has full support for Hugo taxonomies and will adapt to any taxonomy set
 
 ### <span class="section-num">2.1</span> 输出文档 {#输出文档}
 
-文档根目录：由 org-hugo-base-dir 配置，markdown 内容会保存到该目录的contenxt/&lt;HUGO_SECTION&gt;目录下。
+文档根目录：由 org-hugo-base-dir 配置，markdown 内容会保存到该目录的 contenxt/&lt;HUGO_SECTION&gt; 目录下。
 
 ox-hugo 全局缺省配置：
 
@@ -548,7 +549,7 @@ By 文档或目录配置：
 HUGO_BASE_DIR:
 
 -   By 文档：#+hugo_base_dir: ~/blog/blog.opsnull.com
--   By 目录：使用.dir-locals.el来设置 org-hugo-base-dir 变量，例如在~/docs目录下创建.dir-locals.el文件，内容如下：
+-   By 目录：使用 .dir-locals.el 来设置 org-hugo-base-dir 变量，例如在 ~/docs 目录下创建 .dir-locals.el 文件，内容如下：
 
 <!--listend-->
 
@@ -559,15 +560,15 @@ HUGO_BASE_DIR:
 ((yas/minor-mode . ((org-hugo-base-dir .  (expand-file-name ~/blog/local.view)))))
 ```
 
-文档输出目录由`HUGO_SECTION`配置:
+文档输出目录由 `HUGO_SECTION` 配置:
 
 -   全局：(setq org-hugo-section "posts")
 -   文件：#+hugo_section: posts
 -   subtree：:EXPORT_HUGO_SECTION: shell
--   如果设置为`/`则表示的是content/目录；
--   如果是 subtree ，对于子 tree，可以通过设置 EXPORT_HUGO_SECTION_FRAG 来在父 tree 的路径下添加子目录, 例如：
+-   如果设置为 `/` 则表示的是 content/ 目录；
+-   如果是 subtree，对于子 tree，可以通过设置 EXPORT_HUGO_SECTION_FRAG  来在父 tree 的路径下添加子目录, 例如：
     -   父 tree 设置 :EXPORT_HUGO_SECTION: a
-    -   子 tree 设置:EXPORT_HUGO_SECTION_FRAG: b,则子 tree 的输出保存位置  content/a/b
+    -   子 tree 设置 :EXPORT_HUGO_SECTION_FRAG: b, 则子 tree 的输出保存位置  content/a/b
 -   参考：<https://ox-hugo.scripter.co/doc/hugo-section/>
 
 输出文档名称：
@@ -577,15 +578,15 @@ HUGO_BASE_DIR:
 
 注意：如果使用 POST Bundle，则文档输出为一个目录：
 
--   目录名称由EXPORT_HUGO_BUNDLE指定；
--   文档名称由:EXPORT_FILE_NAME:指定，但一般为 index 或 \_index（建议, 可以使输出文件名唯一）;
-    -   如果未EXPORT_FILE_NAME（不建议），则文件名称和源文件名称一致。
+-   目录名称由 EXPORT_HUGO_BUNDLE 指定；
+-   文档名称由 :EXPORT_FILE_NAME: 指定，但一般为 index 或 \_index（建议, 可以使输出文件名唯一）;
+    -   如果未 EXPORT_FILE_NAME（不建议）， 则文件名称和源文件名称一致。
 
 对于 subtree property :EXPORT_FILE_NAME:：
 
 -   EXPORT_FILE_NAME 为 subtree 指定输出的 post file name
 -   EXPORT_FILE_NAME 不能嵌套，也即一个子 subtree 不能再定义该 Property；
--   如果使用branch/leaf结构，EXPORT_FILE_NAME 只能用于 leaf nodes
+-   如果使用 branch/leaf 结构，EXPORT_FILE_NAME 只能用于 leaf nodes
     -   也即设置 EXPORT_FILE_NAME: index
 
 发布命令：
@@ -618,25 +619,29 @@ HUGO_BASE_DIR:
 
 ### <span class="section-num">2.2</span> hugo front-matter {#hugo-front-matter}
 
-hugo 支持两种front matter格式: yaml 或 toml:
+hugo 支持两种 front matter 格式: yaml 或 toml:
 
-<div class="verse">
+-   file based
 
-# file based<br />
-,#+hugo_front_matter_format: yaml<br />
-<br />
-\# subtree based<br />
-:PROPERTIES:<br />
-:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml<br />
-:END:<br />
+<!--listend-->
 
-</div>
+```text
+#+hugo_front_matter_format: yaml
+```
+
+subtree based
+
+```text
+:PROPERTIES:
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+```
 
 设置输出文件名:
 
 -   file-base-exported: 需要设置  `#+title` ;
 -   subtree-base-exported: 需要设置 `EXPORT_FILE_NAME`;
--   如果配置了`#+hugo_bundle`或者:EXPORT_HUGO_BUNDLE:,则使用它作为文章目录名, EXPORT_FILE_NAME 可以设置为 index
+-   如果配置了 `#+hugo_bundle` 或者 :EXPORT_HUGO_BUNDLE:, 则使用它作为文章目录名, EXPORT_FILE_NAME 可以设置为 index
     或 \_index;
 
 subtree-based:
@@ -686,10 +691,10 @@ file-based-export:
 
 ### <span class="section-num">2.3</span> Post Bundle 和 Thumbnail {#post-bundle-和-thumbnail}
 
-使用post bundle可以将一篇文档发布为一个目录，这样后续可以在目录中添加thumbnail&amp;hero图片（feature\* 开头）或
+使用 post bundle 可以将一篇文档发布为一个目录，这样后续可以在目录中添加 thumbnail&amp;hero 图片（feature\* 开头）或
 background 图片（background\* 开头）。
 
--   EXPORT_HUGO_BUNDLE: 指定 post bundle的目录名称；
+-   EXPORT_HUGO_BUNDLE: 指定  post bundle 的目录名称；
 -   EXPORT_FILE_NAME: 建议设置，这样放置源文件重命名后，输出多份，一般是固定的 index，；
 
 <div class="verse">
@@ -726,7 +731,7 @@ $
 
 缺省日志格式：org-hugo-date-format: "%Y-%m-%dT%T%z"，示例：2017-07-31T17:05:38-04:00
 
-通过设置#+hugo_auto_set_lastmod: t， ox-hugo 在输出的文档中使用当前 date 来创建或更新 lastmod 字段。
+通过设置 #+hugo_auto_set_lastmod: t，ox-hugo 在输出的文档中使用当前 date 来创建或更新 lastmod 字段。
 
 File-based
 
@@ -750,9 +755,9 @@ Subtree-based Exports
 
 ### <span class="section-num">3.2</span> image link {#image-link}
 
-引用$HUGO_BASE_DIR/static目录下的图片，如 ~/hugo/static/images/foo.png：
+引用 $HUGO_BASE_DIR/static 目录下的图片，如 ~/hugo/static/images/foo.png：
 
--   发布后~/hugo/static作为根目录, 对下面文件的引用使用 /images/foo.png；
+-   发布后 ~/hugo/static 作为根目录, 对下面文件的引用使用 /images/foo.png；
 
 Inline Image（直接显示图片）：
 
@@ -763,7 +768,7 @@ Inline Image（直接显示图片）：
 
 引用 static 目录外的图片：
 
--   如果是位于 static 目录外，且扩展名为 org-hugo-external-file-extensions-allowed-for-copying ；
+-   如果是位于 static 目录外，且扩展名为org-hugo-external-file-extensions-allowed-for-copying；
 -   ox-hugo 会将它们拷贝到 static 目录。
 
 <!--listend-->
@@ -772,13 +777,13 @@ Inline Image（直接显示图片）：
 [[~/some-dir/static/images/foo.png]]
 ```
 
-如果文件source path包含`/static/`则 ox-hugo 将该文件 copy 到 `$HUGO_BASE_DIR/static/` 目录时，会保留源文件路径中`/static/`后的结构:
+如果文件 source path 包含 `/static/` 则 ox-hugo 将该文件 copy 到 `$HUGO_BASE_DIR/static/` 目录时，会保留源文件路径中 `/static/` 后的结构:
 
 {{< figure src="/images/写_blog/2023-07-23_14-57-33_screenshot.png" width="400" >}}
 
 {{< figure src="images/写_blog/2023-07-23_14-56-28_screenshot.png" width="400" >}}
 
-如果文件source path不包含`/static/`则会拷贝到 org-hugo-default-static-subdirectory-for-externals 子目录
+如果文件 source path 不包含 `/static/` 则会拷贝到 org-hugo-default-static-subdirectory-for-externals 子目录
 (ox-hugo):
 
 {{< figure src="/images/写_blog/2023-07-23_14-58-21_screenshot.png" width="400" >}}
@@ -786,7 +791,7 @@ Inline Image（直接显示图片）：
 
 ### <span class="section-num">3.3</span> detail-summary {#detail-summary}
 
-可以使用#+details嵌套的#+summary来对一部分内容进行合并和展开：
+可以使用 #+details 嵌套的 #+summary 来对一部分内容进行合并和展开：
 
 <div class="verse">
 
@@ -823,7 +828,7 @@ You will learn that later below in section.
 
 </div>
 
-或者在正文前使用#+hugo: more标记来分割 summary 和正文。
+或者在正文前使用 #+hugo: more 标记来分割 summary 和正文。
 
 
 ### <span class="section-num">3.5</span> Tags and Categories {#tags-and-categories}
@@ -833,7 +838,7 @@ Subtree-base-exports:
 -   EXPORT_HUGO_TAGS
 -   EXPORT_HUGO_CATEGORIES
 -   tags:header line 上的 org tag,如 :tag1:tag2:
--   categories: header line 上的@开头的 tag,如 :@cat1:@cat2:
+-   categories: header line 上的 @ 开头的 tag,如 :@cat1:@cat2:
 
 File-base-exports:
 
@@ -846,13 +851,13 @@ File-base-exports:
 
 ### <span class="section-num">3.6</span> 不输出 header 内容 {#不输出-header-内容}
 
-1.  默认由变量`org-export-exclude-tags`指定的 tags 来控制;
-2.  可以在文件级别或者特定header section级别打上 `noexport` tag.
+1.  默认由变量 `org-export-exclude-tags` 指定的 tags 来控制;
+2.  可以在文件级别或者特定 header section 级别打上 `noexport` tag.
 
 
 ### <span class="section-num">3.7</span> Author {#author}
 
-指定多个#+author来指定多个作者：
+指定多个 #+author 来指定多个作者：
 
 ```text
 #+author: FirstName LastName
@@ -910,7 +915,7 @@ org-mode 语法：
 
 </div>
 
-然后可以通过<http://localhost:1313/series/>来访问。
+然后可以通过 <http://localhost:1313/series/> 来访问。
 
 Marking an article as part of a series will automatically display the series module as you see in this page
 for example. You can choose whether that module starts opened or not using the article.seriesOpened global
@@ -1017,7 +1022,7 @@ Map 语法：
 
 -   TOML （默认）：:EXPORT_HUGO_FRONT_MATTER_FORMAT: toml；
 -   YAML： :EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
--   具体选 TOML 和 YAML 需要和 ox-hugo 导出时设置的front matter格式一致：
+-   具体选 TOML 和 YAML 需要和 ox-hugo 导出时设置的 front matter 格式一致：
     -   emacs 变量 org-hugo-front-matter-format 配置。
 
 <div class="verse">
@@ -1076,18 +1081,21 @@ The locale is manually set to Chinese or Japanese by setting it to `zh or ja` us
 
 ### <span class="section-num">3.13</span> menu front-matter {#menu-front-matter}
 
-So on each Page, the user can specify the keys of the associated `Menu Entry` using the menu front-matter.
+So on each Page, the user can specify the keys of the associated `Menu Entry` using the menu
+front-matter.
 
 {{< figure src="/images/写_blog/2023-07-23_21-14-55_screenshot.png" width="400" >}}
 
-In Org mode, these Menu Entry keys are specified using the `:EXPORT_HUGO_MENU:` property (subtree-based exports)
-or `#+hugo_menu:` keyword (file-based exports). They are set in this property list form:
+In Org mode, these Menu Entry keys are specified using the `:EXPORT_HUGO_MENU:` property
+(subtree-based exports) or `#+hugo_menu:` keyword (file-based exports). They are set in this property
+list form:
 
 ```text
 :EXPORT_HUGO_MENU: :menu <menu name> <:key 1> <val 1> <:key 2> <val 2> ..
 ```
 
-The `:menu key is mandatory` because that’s used to specify the current Page’s Menu Entry’s parent Menu name.
+The `:menu key is mandatory` because that’s used to specify the current Page’s Menu Entry’s parent
+Menu name.
 
 -   menu name 两个类型：main 和 footer，分别表示页面头部和底部的导航。
 
@@ -1095,9 +1103,9 @@ The `:menu key is mandatory` because that’s used to specify the current Page�
 
 例如：
 
--   未指定:parent时，直接添加到 main 菜单栏中, 指定时 value 应该是父 menu 的 Name 或 Identifier 值。
--   未指定:name时，默认使用文档标题, 如:EXPORT_FILE_NAME:设置的值;
--   :identifier : 如果多个菜单项名称相同, 则需要配置该参数来区分. 如果未设置则默认为:title值;
+-   未指定 :parent 时，直接添加到 main 菜单栏中, 指定时 value 应该是父 menu 的 Name 或 Identifier 值。
+-   未指定 :name 时，默认使用文档标题, 如 :EXPORT_FILE_NAME: 设置的值;
+-   :identifier : 如果多个菜单项名称相同, 则需要配置该参数来区分. 如果未设置则默认为 :title 值;
 -   :title : 默认为文档标题;
 
 <div class="verse">
@@ -1179,7 +1187,7 @@ The `:menu key is mandatory` because that’s used to specify the current Page�
     weight = 1
 ```
 
-file-based 的带parent ment的例子：
+file-based 的带 parent ment 的例子：
 
 ```text
 #+hugo_menu: :menu main :parent Emacs
