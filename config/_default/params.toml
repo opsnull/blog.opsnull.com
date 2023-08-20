@@ -49,8 +49,8 @@ smartTOCHideUnfocusedChildren = true # 是否展开 TOC
 
 [article]
   showDate = true
-  showViews = true
-  showLikes = true
+  showViews = false
+  showLikes = false
   showDateUpdated = true
   showAuthor = false
   showHero = false # 是否显示图片
@@ -84,8 +84,8 @@ smartTOCHideUnfocusedChildren = true # 是否展开 TOC
   layoutBackgroundHeaderSpace = true # only used when heroStyle equals background
   showBreadcrumbs = false
   showSummary = true # 列表显示时是否显示 summary
-  showViews = true
-  showLikes = true
+  showViews = false
+  showLikes = false
   showTableOfContents = false
   showCards = true  # 是否显示 card 边框
   groupByYear = false
@@ -118,13 +118,13 @@ smartTOCHideUnfocusedChildren = true # 是否展开 TOC
   cardViewScreenWidth = false
 
 [firebase]
-  apiKey = "AIzaSyA7hHCnrNpJdSHrf9bE7JNALhiuVTYD-1Q"
-  authDomain = "blog-opsnull-com.firebaseapp.com"
-  projectId = "blog-opsnull-com"
-  storageBucket = "blog-opsnull-com.appspot.com"
-  messagingSenderId = "64395406008"
-  appId = "1:64395406008:web:d8ed81d31de63e440b224d"
-  measurementId = "G-CV1YG6LZVE"
+  # apiKey = "AIzaSyA7hHCnrNpJdSHrf9bE7JNALhiuVTYD-1Q"
+  # authDomain = "blog-opsnull-com.firebaseapp.com"
+  # projectId = "blog-opsnull-com"
+  # storageBucket = "blog-opsnull-com.appspot.com"
+  # messagingSenderId = "64395406008"
+  # appId = "1:64395406008:web:d8ed81d31de63e440b224d"
+  # measurementId = "G-CV1YG6LZVE"
 
 [fathomAnalytics]
   # site = "ABC12345"
