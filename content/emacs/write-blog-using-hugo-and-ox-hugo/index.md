@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2023-08-20T18:03:34+08:00
+lastmod: 2023-08-20T20:49:44+08:00
 tags: ["hugo", "org-mode", "blog"]
 categories: ["emacs"]
 draft: false
@@ -203,12 +203,80 @@ var _hmt = _hmt || [];
 ```
 
 
-### <span class="section-num">1.11</span> rss {#rss}
+### <span class="section-num">1.11</span> 阅读计数器 {#阅读计数器}
+
+这里使用 busuanzi 阅读计数器方案。
+
+在 config/_default/params.toml 尾部添加配置参数：
+
+```text
+[busuanzi]
+  enable = true
+```
+
+在 layouts/partials/extend-footer.html 文件中添加如下内容：
+
+```text
+<!-- busuanzi -->
+<div class="busuanzi-footer">
+  <span id="busuanzi_container_site_pv">
+    本站总访问量: <span id="busuanzi_value_site_pv"></span> 次
+  </span>
+  <span id="busuanzi_container_site_uv">
+    本站访客数: <span id="busuanzi_value_site_uv"></span> 人次
+  </span>
+</div>
+
+```
+
+在 layouts/partials/extend-head.html 中添加如下内容：
+
+```text
+  <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <meta name="referrer" content="no-referrer-when-downgrade">
+```
+
+创建和修改指定 article-meta 目录：
+
+```nil
+mkdir layouts/partials/article-meta/
+cp themes/blowfish/layouts/partials/article-meta/basic.html layouts/partials/article-meta/
+```
+
+修改 basic.html 文件，在 Ooutput taxonomies 的尾部添加 busuanzi 相关的内容：
+
+```text
+{{/* Output taxonomies */}}
+{{ if .Params.showTaxonomies | default (.Site.Params.article.showTaxonomies | default false) }}
+<div class="flex flex-row flex-wrap items-center">
+  {{ range $taxonomy, $terms := .Site.Taxonomies }}
+  {{ if and (not (eq $taxonomy "authors")) (not (eq $taxonomy "series"))}}
+  {{ if (gt (len ($context.GetTerms $taxonomy)) 0) }}
+  {{ range $context.GetTerms $taxonomy }}
+  <span style="margin-top:0.5rem" class="mr-2" onclick="window.open({{ .RelPermalink }},'_self');">
+    {{ partial "badge.html" .LinkTitle }}
+  </span>
+  {{ end }}
+  {{ end }}
+  {{ end }}
+
+  {{ end }}
+
+  <!-- busuanzi -->
+  <span id="busuanzi_container_page_pv">阅读量: <span id="busuanzi_value_page_pv"></span>次</span>
+
+</div>
+{{ end }}
+{{ end }}
+```
+
+
+### <span class="section-num">1.12</span> rss {#rss}
 
 访问地址：<http://blog.opsnull.com/index.xml>
 
 
-### <span class="section-num">1.12</span> TOC {#toc}
+### <span class="section-num">1.13</span> TOC {#toc}
 
 全局控制 TOC 显示级别：
 
@@ -223,7 +291,7 @@ var _hmt = _hmt || [];
 -   showTableOfContents: true
 
 
-### <span class="section-num">1.13</span> Branch Pages {#branch-pages}
+### <span class="section-num">1.14</span> Branch Pages {#branch-pages}
 
 List pages 和 Taxonomy Pages 是有差别的：
 
@@ -233,13 +301,13 @@ List pages 和 Taxonomy Pages 是有差别的：
 -   terms list 页面显示归属到该 term 的文档列表。
 
 
-### <span class="section-num">1.14</span> Homepage # {#homepage}
+### <span class="section-num">1.15</span> Homepage # {#homepage}
 
 -   Layout:	layouts/index.html
 -   Content: content/_index.md
 
 
-### <span class="section-num">1.15</span> List pages # {#list-pages}
+### <span class="section-num">1.16</span> List pages # {#list-pages}
 
 -   Layout:	layouts/_default/list.html
 -   Content: content/&lt;XX&gt;/_index.md
@@ -288,7 +356,7 @@ showing. This is a great way to override default theme parameters for an entire 
 having to include them in every individual page.
 
 
-### <span class="section-num">1.16</span> Taxonomy pages {#taxonomy-pages}
+### <span class="section-num">1.17</span> Taxonomy pages {#taxonomy-pages}
 
 是比较特殊的 branch pages，因为他们需要预定义：
 
@@ -378,10 +446,10 @@ Emacs 分类下的页面
 ```
 
 
-### <span class="section-num">1.17</span> Leaf Pages {#leaf-pages}
+### <span class="section-num">1.18</span> Leaf Pages {#leaf-pages}
 
 
-### <span class="section-num">1.18</span> single {#single}
+### <span class="section-num">1.19</span> single {#single}
 
 -   Layout:	layouts/_default/single.html
 -   Content (standalone):	content/&lt;XX&gt;/page-name.md
@@ -411,7 +479,7 @@ Leaf pages have a wide variety of front matter parameters that can be used to cu
 displayed.
 
 
-### <span class="section-num">1.19</span> External links {#external-links}
+### <span class="section-num">1.20</span> External links {#external-links}
 
 -   点击时跳转到外部页面
 
@@ -431,7 +499,7 @@ _build:
 ```
 
 
-### <span class="section-num">1.20</span> simple  pages {#simple-pages}
+### <span class="section-num">1.21</span> simple  pages {#simple-pages}
 
 -   Layout:	layouts/_default/simple.html
 -   Front Matter: layout: "simple"
@@ -448,7 +516,7 @@ This page content is now full-width.
 ```
 
 
-### <span class="section-num">1.21</span> 导航菜单 {#导航菜单}
+### <span class="section-num">1.22</span> 导航菜单 {#导航菜单}
 
 <https://gohugo.io/content-management/menus/>
 
