@@ -1,7 +1,8 @@
 ---
+title: "Linux 内核追踪和 eBPF 介绍"
 author: ["张俊(zj@opsnull.com)"]
 date: 2023-08-20T00:00:00+08:00
-lastmod: 2024-02-19T21:12:23+08:00
+lastmod: 2024-02-19T21:32:19+08:00
 tags: ["ebpf"]
 categories: ["ebpf"]
 draft: false
