@@ -2,7 +2,7 @@
 title: "add package meta to elf file"
 author: ["opsnull"]
 date: 2023-08-06T00:00:00+08:00
-lastmod: 2023-08-20T16:51:02+08:00
+lastmod: 2024-02-19T21:07:29+08:00
 tags: ["linux", "elf", "tools"]
 categories: ["elf", "tools"]
 draft: false
@@ -51,13 +51,13 @@ root@lima-ebpf-dev:#
 ```
 
 ```shell
-root@lima-ebpf-dev:# python3 mynote.py
+root@lima-ebpf-dev:# python3 mynote.py #创建自定义签名
 root@lima-ebpf-dev:# cat note.bin
 MyNoteThis is some metadataroot@lima-ebpf-dev:#
 
-root@lima-ebpf-dev:# objcopy --add-section .note.mynote2=note.bin ./exec
+root@lima-ebpf-dev:# objcopy --add-section .note.mynote2=note.bin ./exec  # 将签名添加到 binary ELF 文件的
 
-root@lima-ebpf-dev:# readelf -n ./exec
+root@lima-ebpf-dev:# readelf -n ./exec  # 读取 ELF 文件中添加的签名
 
 Displaying notes found in: .note.go.buildid
   Owner                Data size        Description
@@ -69,7 +69,7 @@ Displaying notes found in: .note.mynote
   MyNote               0x00000016       NT_VERSION (version)
    description data: 54 68 69 73 20 69 73 20 73 6f 6d 65 20 6d 65 74 61 64 61 74 61 00
 
-Displaying notes found in: .note.mynote2
+Displaying notes found in: .note.mynote2  # 添加的自定义签名
   Owner                Data size        Description
   MyNote               0x00000016       NT_VERSION (version)
    description data:
@@ -77,7 +77,7 @@ Displaying notes found in: .note.mynote2
 54 68 69 73 20 69 73 20 73 6f 6d 65 20 6d 65 74 61 64 61 74 61 00
 root@lima-ebpf-dev:#
 
-root@lima-ebpf-dev:# echo "5468697320697320736f6d65206d6574616461746100" | xxd -r -p
+root@lima-ebpf-dev:# echo "5468697320697320736f6d65206d6574616461746100" | xxd -r -p # 解码，验证一致。
 This is some metadataroot@lima-ebpf-dev:#
 ```
 
@@ -89,7 +89,8 @@ This is some metadataroot@lima-ebpf-dev:#
 
 ## <span class="section-num">2</span> 链接时生成 package meta {#链接时生成-package-meta}
 
-已有机制：.note.gnu.build-id，可以根据 build-id 来使用 dnf repoquery --wathprovides debuginfo(build-id_= XXX 来反查对应的 package。
+已有机制：.note.gnu.build-id，可以根据 build-id 来使用 dnf repoquery --wathprovides
+debuginfo(build-id_= XXX 来反查对应的 package。
 
 缺点：
 
@@ -321,7 +322,7 @@ ubuntu 22.04 和 alios7 的 binutils 版本低, 都不支持 --package-metadata:
 
 ```shell
 #ubuntu 22.04
-root@lima-ebpf-dev:/Users/zhangjun/go/src/gitlab.alibaba-inc.com/apsara_paas# ld --version
+root@lima-ebpf-dev:/# ld --version
 GNU ld (GNU Binutils for Ubuntu) 2.38
 Copyright (C) 2022 Free Software Foundation, Inc.
 This program is free software; you may redistribute it under the terms of

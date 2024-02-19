@@ -3,28 +3,38 @@ global:
 
 article:
   anchor_label: "锚点"
-  date: "{{ .Date }}"
-  # date_updated: "Updated: {{ .Date }}"
+  date: "创建: {{ .Date }}"
+  date_updated: "更新:{{ .Date }}"
   draft: "草稿"
   edit_title: "编辑内容"
   reading_time:
+    one: "{{ .Count }} 分钟"
     other: "{{ .Count }} 分钟"
   reading_time_title: "预计阅读"
-  # table_of_contents: "Table of Contents"
+  table_of_contents: "Table of Contents"
   word_count:
     one: "{{ .Count }} 字"
     other: "{{ .Count }} 字"
-  part_of_series: "This article is part of a series."
-  part: "Part"
-  this_article: "This Article"
-  related_articles: "Related"
+  views:
+    one: "{{ .Count }} view"
+    other: "{{ .Count }} views"
+  likes:
+    one: "{{ .Count }} like"
+    other: "{{ .Count }} likes"
+  part_of_series: "这篇文章属于一个系列。"
+  part: "§"
+  this_article: "本文"
+  related_articles: "相关文章"
+  zen_mode_title:
+    enable: "Enable zen mode"
+    disable: "Disable zen mode"
 
 author:
   byline_title: "作者"
 
-# code:
-#   copy: "Copy"
-#   copied: "Copied"
+code:
+  copy: "Copy"
+  copied: "Copied"
 
 error:
   404_title: "找不到网页 :confused:"
@@ -40,9 +50,9 @@ list:
   externalurl_title: "链接到外部网站"
   no_articles: "这里还没有任何文章可以列出。"
 
-# nav:
-#   scroll_to_top_title: "Scroll to top"
-#   skip_to_main: "Skip to main content"
+nav:
+  scroll_to_top_title: "Scroll to top"
+  skip_to_main: "Skip to main content"
 
 # search:
 #   open_button_title: "Search (/)"

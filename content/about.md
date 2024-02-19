@@ -1,5 +1,5 @@
 ---
-title: "About"
+title: "关于我"
 menu: "footer"
 weight: 10
 layout: simple

@@ -1,10 +1,14 @@
+# Hugo and Blowfish
+public/
+resources/
+exampleSite/resources/
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-exampleSite/
 
 # Test binary, built with `go test -c`
 *.test
@@ -25,3 +29,4 @@ node_modules
 ._*
 .Spotlight-V100
 .Trashes
+.idea
