@@ -27,7 +27,7 @@ defaultBackgroundImage = "/img/ocean.jpg" # used as default for background image
 # 文章目录 TOC
 highlightCurrentMenuArea = true # 高亮 TOC 中当前位置
 smartTOC = true  #显示 TOC 位置
-smartTOCHideUnfocusedChildren = true # 是否展开 TOC
+smartTOCHideUnfocusedChildren = true # 是否展开 TOC, 如果为 false，则默认展开，但是内容超过页面时不能正确显示。
 
 [header]
   layout = "fixed-fill" # valid options: basic, fixed, fixed-fill, fixed-fill-blur
