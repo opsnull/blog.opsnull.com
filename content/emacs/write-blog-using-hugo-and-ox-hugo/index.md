@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2023-08-20T20:49:44+08:00
+lastmod: 2024-02-20T12:56:29+08:00
 tags: ["hugo", "org-mode", "blog"]
 categories: ["emacs"]
 draft: false
@@ -19,8 +19,6 @@ draft: false
 
 ### <span class="section-num">1.1</span> 安装和更新主题 {#安装和更新主题}
 
-<https://blowfish.page/docs/installation/#install-hugo>
-
 ```shell
 # 安装
 hell new site mywebsite
@@ -31,6 +29,8 @@ git submodule add -b main https://github.com/nunocoracao/blowfish.git themes/blo
 # 更新
 git submodule update --remote --merge
 ```
+
+参考：[blowfish 安装文档。](https://blowfish.page/docs/installation/#install-hugo)
 
 
 ### <span class="section-num">1.2</span> 配置主题 {#配置主题}
@@ -49,17 +49,97 @@ $ tree ~/blog/blog.opsnull.com/themes/blowfish/config
     └── params.toml
 
 1 directory, 6 files
-$
+$ cp -r ~/blog/blog.opsnull.com/themes/blowfish/config/_default/ ~/blog/blog.opsnull.com/config/
 ```
 
-配置 `config.toml: languageCode = "zh-CN"` ：与 `blowfish/i18n` 目录下的文件名前缀一致。
+配置 `config/_default/config.toml` 文件中的 `languageCode` 参数，设置为 `"zh-CN"` ：与 `blowfish/i18n` 目录下的文件名前缀一致。
 
-官方自带的 `i18n/zh-CN.yaml` 中的部分配置被注释了, 导致不能正确显示文件更新时间等内容, 需要修正。
+`blowfish/i18n/zh-CN.yaml` 中的部分配置被注释了, 导致不能正确显示博客文章的更新时间等内容, 需要修正:
+
+```shell
+# 修正后的内容如下（直接修改主题目录中的 i18n/zh-CN.yaml 文件）
+zj@a:~/blog/blog.opsnull.com$ cat themes/blowfish/i18n/zh-CN.yaml
+global:
+  language: "🇨🇳"
+
+article:
+  anchor_label: "锚点"
+  date: "创建: {{ .Date }}"
+  date_updated: "更新:{{ .Date }}"
+  draft: "草稿"
+  edit_title: "编辑内容"
+  reading_time:
+    one: "{{ .Count }} 分钟"
+    other: "{{ .Count }} 分钟"
+  reading_time_title: "预计阅读"
+  table_of_contents: "Table of Contents"
+  word_count:
+    one: "{{ .Count }} 字"
+    other: "{{ .Count }} 字"
+  views:
+    one: "{{ .Count }} view"
+    other: "{{ .Count }} views"
+  likes:
+    one: "{{ .Count }} like"
+    other: "{{ .Count }} likes"
+  part_of_series: "这篇文章属于一个系列。"
+  part: "§"
+  this_article: "本文"
+  related_articles: "相关文章"
+  zen_mode_title:
+    enable: "Enable zen mode"
+    disable: "Disable zen mode"
+
+author:
+  byline_title: "作者"
+
+code:
+  copy: "Copy"
+  copied: "Copied"
+
+error:
+  404_title: "找不到网页 :confused:"
+  404_error: "404 错误"
+  404_description: "您请求的页面似乎不存在。"
+
+footer:
+  dark_appearance: "切换为深色模式"
+  light_appearance: "切换为浅色模式"
+  powered_by: "由 {{ .Hugo }} &amp; {{ .Theme }} 强力驱动"
+
+list:
+  externalurl_title: "链接到外部网站"
+  no_articles: "这里还没有任何文章可以列出。"
+
+nav:
+  scroll_to_top_title: "Scroll to top"
+  skip_to_main: "Skip to main content"
+
+# search:
+#   open_button_title: "Search (/)"
+#   close_button_title: "Close (Esc)"
+#   input_placeholder: "Search"
+
+sharing:
+  email: "通过电子邮件发送"
+  facebook: "分享到 Facebook"
+  linkedin: "分享到 LinkedIn"
+  pinterest: "钉到 Pinterest"
+  reddit: "提交到 Reddit"
+  twitter: "分享到 Twitter"
+
+shortcode:
+  recent_articles: "最近的文章"
+
+recent:
+  show_more: "显示更多"
+zj@a:~/blog/blog.opsnull.com$
+```
 
 
 ### <span class="section-num">1.3</span> browser icon {#browser-icon}
 
-自定义浏览器角标：在 favicon.io 将自己的图片生成为各种尺寸的 icon，直接解压在 favicon.io 下载好的
+自定义浏览器图标：在 favicon.io 将自己的图片生成为各种尺寸的 icon，直接解压在 favicon.io 下载好的
 icon 压缩包，并放在 /static 目录下即可。
 
 ```shell
@@ -110,8 +190,8 @@ website through either the `icon partial` or `icon shortcode`.
 创建 `assets/css/custom.css` 文件，内容如下：
 
 ```css
-.max-w-prose {
-  max-width: 100%;
+.max-w-fit, .max-w-prose {
+    max-width: 100%;
 }
 ```
 
@@ -291,23 +371,27 @@ cp themes/blowfish/layouts/partials/article-meta/basic.html layouts/partials/art
 -   showTableOfContents: true
 
 
-### <span class="section-num">1.14</span> Branch Pages {#branch-pages}
+### <span class="section-num">1.14</span> 各种页面和配置Branch Pages {#各种页面和配置branch-pages}
 
-List pages 和 Taxonomy Pages 是有差别的：
+各种页面的 title：设置页面标题。
 
--   List 一般是因为 Branch Pages 引起的，显示的是该 branch 下所有文档列表；
--   Taxonomy 是一组预定义的列表，后续可以用于对文档指定 taxonomy 的 term，用于对文档进行归类。
--   某个 Taxonomy List 页面显示一组 term list；
--   terms list 页面显示归属到该 term 的文档列表。
+```text
+---
+title: 分类列表
+---
+Blowfish 支持一些定制一些 taxonomies 页面。
 
+Blowfish has full support for Hugo taxonomies and will adapt to any taxonomy set up. Taxonomy listings like this one also support custom content to be displayed above the list of terms.
 
-### <span class="section-num">1.15</span> Homepage # {#homepage}
+---
+```
 
--   Layout:	layouts/index.html
+Homepage：主页。
+
+-   Layout: layouts/index.html
 -   Content: content/_index.md
 
-
-### <span class="section-num">1.16</span> List pages # {#list-pages}
+List/Branch pages：显示该 branch 下的所有文章。
 
 -   Layout:	layouts/_default/list.html
 -   Content: content/&lt;XX&gt;/_index.md
@@ -325,11 +409,7 @@ List pages 和 Taxonomy Pages 是有差别的：
             └── project.jpg
 ```
 
-可以在 \_index.md  中设置适合该 branch 下的所有文档的通用参数：
-
--   例如添加目录项：
-
-<!--listend-->
+可以在 \_index.md  中设置适合该 List/Branch 下的所有文档的通用参数：例如添加目录项：
 
 ```text
 ---
@@ -344,21 +424,14 @@ menu:
 ---
 title: "Projects"
 description: "Learn about some of my projects."
-cascade:
+cascade: # 对该目录下的 sub-page 都生效
   showReadingTime: false
 ---
 This section contains all my current projects.
 ```
 
-In this example, the special `cascade` parameter is being used to hide the reading time on any
-sub-pages within this section. By doing this, any project pages will not have their reading time
-showing. This is a great way to override default theme parameters for an entire section without
-having to include them in every individual page.
-
-
-### <span class="section-num">1.17</span> Taxonomy pages {#taxonomy-pages}
-
-是比较特殊的 branch pages，因为他们需要预定义：
+Taxonomy pages：较特殊的 branch pages，因为它显示的是一组预定义的列表（term list），后续可以用于对文档指定 taxonomy 的 term，用于对文档进行归类。某个 Taxonomy List 页面显示一组 term list，terms list
+页面显示归属到该 term 的文档列表。
 
 1.  编辑文件 config/_default/config.toml 中的 taxonomies
     -   key = value： key 是单数，values 是复数。
@@ -366,73 +439,42 @@ having to include them in every individual page.
 <!--listend-->
 
 ```toml
-[taxonomies]
+[taxonomies] # 预定义的 taxnomies，如 tags 和 categories
   tag = "tags"
   category = "categories"
   author = "authors"
   series = "series"
 ```
 
-然后就可以在 font mattter 中指定复数的 taxonomies，例如：在 animals taxonomy 下创建了两个 term：lion
-和 cat：
+然后就可以在 front mattter 中指定复数的 taxonomies，例如：categories/tags/series：
 
 ```text
+# org-mode 文档配置
+#+HUGO_TAGS: ebpf
+#+HUGO_CATEGORIES: ebpf
+#+HUGO_CUSTOM_FRONT_MATTER: :series '("ebpf") :series_order 1
+
+# 生成的 front matter：
 ---
-title: "Into the Lion's Den"
-description: "This week we're learning about lions."
-animals: ["lion", "cat"]
+title: "Linux 内核追踪和 eBPF 介绍"
+author: ["张俊(zj@opsnull.com)"]
+date: 2023-08-20T00:00:00+08:00
+lastmod: 2024-02-19T21:32:19+08:00
+tags: ["ebpf"]
+categories: ["ebpf"]
+draft: false
+series: ["ebpf"]
+series_order: 1
 ---
 ```
 
-Although it’s not obvious at this point, Hugo will now be `generating list and term pages` for this
-new taxonomy. By default the listing can be accessed at `/animals/` and the term pages can be found at
-`/animals/lion/` and `/animals/cat/`.
+tags 和 categories 是通过预定义的 taxonomies 来实现的：
 
-The list page will `list all the terms` contained within the taxonomy. In this example, navigating to
-`/animals/` will show a page that has links for “lion” and “cat” which take visitors to `the individual
-term pages`.
+1.  content/categories/_index.md  # categories terms 列表，列表文件名固定为 \_index.md
+2.  content/tags/_index.md        # tags terms 列表
+3.  content/categories/emacs/_index.md # categories 下的具体分类 emacs 页面，title 可以设置页面标题。
 
-The term pages will `list all the pages contained within that term`. These term lists are essentially
-the same as normal list pages and behave in much the same way.
-
-In order to add custom content to taxonomy pages, simply create `_index.md` files in the content
-folder using the taxonomy name as the sub-directory name.
-
-```text
-.
-└── content
-    └── animals
-        ├── _index.md       # /animals
-        └── lion
-            └── _index.md   # /animals/lion
-
-```
-
-Anything in these content files will now be placed onto the generated taxonomy pages. As with other
-content, the front matter variables can be used to override defaults. In this way you could have a
-tag named lion but override the title to be “Lion”.
-
-tags 和 categories 都是预定义的 taxonomies。
-
-自定义 list 页面如下：创建目录和文件：
-
-1.  content/categories/_index.md
-2.  content/tags/_index.md
-
-title：可以设置页面标题。
-
-```text
----
-title: 分类列表
----
-Blowfish 支持一些定制一些 taxonomies 页面。
-
-Blowfish has full support for Hugo taxonomies and will adapt to any taxonomy set up. Taxonomy listings like this one also support custom content to be displayed above the list of terms.
-
----
-```
-
-分类页面定制：content/categories/emacs/_index.md
+<!--listend-->
 
 ```markdown
 ---
@@ -445,41 +487,74 @@ Emacs 分类下的页面
 ---
 ```
 
-
-### <span class="section-num">1.18</span> Leaf Pages {#leaf-pages}
-
-
-### <span class="section-num">1.19</span> single {#single}
-
--   Layout:	layouts/_default/single.html
--   Content (standalone):	content/&lt;XX&gt;/page-name.md
--   Content (bundled):	content/&lt;XX&gt;/page-name/index.md
-
-Leaf pages in Hugo are basically `standard content pages`. They are defined as pages that `don’t
-contain any sub-pages`. These could be things like `an about page`, or an `individual blog post` that
-lives in the blog section of the website.
-
-The most important thing to remember about leaf pages is that unlike branch pages, `leaf pages should
-be named index.md without an underscore`. Leaf pages are also special in that they can be `grouped
-together at the top level` of the section and named with a unique name.
+Although it’s not obvious at this point, Hugo will now be `generating list and term pages` for this
+new taxonomy. By default the listing can be accessed at `/animals/` and the term pages can be found at
+`/animals/lion/` and `/animals/cat/`. The list page will `list all the terms` contained within the
+taxonomy. In this example, navigating to `/animals/` will show a page that has links for “lion” and
+“cat” which take visitors to `the individual term pages`. The term pages will `list all the pages
+contained within that term`. These term lists are essentially the same as normal list pages and
+behave in much the same way. In order to add custom content to taxonomy pages, simply create
+`_index.md` files in the content folder using the taxonomy name as the sub-directory name. Anything in
+these content files will now be placed onto the generated taxonomy pages. As with other content, the
+front matter variables can be used to override defaults. In this way you could have a tag named lion
+but override the title to be “Lion”.
 
 ```text
 .
 └── content
-    └── blog  # section 名称，用于对 leaf page 进行 group
-        ├── first-post.md     # /blog/first-post  # 访问时不带文件名后缀
-        ├── second-post.md    # /blog/second-post
-        └── third-post                   # bundle package，必须是 index.md 文件名
-            ├── index.md      # /blog/third-post
-            └── image.jpg
+    └── animals
+        ├── _index.md       # /animals，文件名必须是 _index.md
+        └── lion
+            └── _index.md   # /animals/lion
 
 ```
 
-Leaf pages have a wide variety of front matter parameters that can be used to customise how they are
-displayed.
+leaf pages：Leaf pages in Hugo are basically `standard content pages`. They are defined as pages that
+`don’t contain any sub-pages`. These could be things like `an about page`, or an `individual blog post`
+that lives in the `blog` section of the website. The most important thing to remember about leaf pages
+is that unlike branch pages, `leaf pages should be named ~index.md~ without an underscore`. Leaf pages
+are also special in that they can be `grouped together at the top level` of the `section` and named with
+a unique name. Leaf pages have a wide variety of front matter parameters that can be used to
+customise how they are displayed.
 
+-   两种形式：普通的 standalone 格式 file-name.md 或则 bundled 格式。
 
-### <span class="section-num">1.20</span> External links {#external-links}
+<!--listend-->
+
+```text
+.
+└── content
+    └── blog  # section 名称，用于对 leaf page 进行分组
+        ├── first-post.md     # /blog/first-post  # 访问时不带文件名后缀
+        ├── second-post.md    # /blog/second-post
+        └── third-post        # bundle package，访问路径 /blog/third-post，文件名必须是 index.md
+            ├── index.md
+            └── image.jpg
+```
+
+single page：文章页面：
+
+-   Layout:	layouts/_default/single.html  # 文章页面
+-   Content (standalone):	content/&lt;XX&gt;/page-name.md  # standalone 格式
+-   Content (bundled):	content/&lt;XX&gt;/page-name/index.md # bundled 格式
+
+simple page：
+
+-   Layout:	layouts/_default/simple.html
+-   Front Matter: layout: "simple"
+
+通过在 front matter 中添加配置 layout: "simple" 可以对当前页面启用 simple layout。simple layout 默认会以 full-width template 来显示当前页面内容。
+
+```text
+---
+title: "My landing page"
+date: 2022-03-08
+layout: "simple"
+---
+This page content is now full-width.
+```
+
+External links
 
 -   点击时跳转到外部页面
 
@@ -499,31 +574,14 @@ _build:
 ```
 
 
-### <span class="section-num">1.21</span> simple  pages {#simple-pages}
-
--   Layout:	layouts/_default/simple.html
--   Front Matter: layout: "simple"
-
-通过在 front matter 中添加配置 layout: "simple" 可以对当前页面启用 simple layout。simple layout 默认会以 full-width template 来显示当前页面内容。
-
-```text
----
-title: "My landing page"
-date: 2022-03-08
-layout: "simple"
----
-This page content is now full-width.
-```
-
-
-### <span class="section-num">1.22</span> 导航菜单 {#导航菜单}
+### <span class="section-num">1.15</span> 导航菜单 {#导航菜单}
 
 <https://gohugo.io/content-management/menus/>
 
 ```yaml
 ---
 menu:
-  main:
+  main:  #  main：header 导航，footer：页末导航
     params:
       class: center
     parent: Products
@@ -533,26 +591,21 @@ title: Software
 ---
 ```
 
-位置（可以在博文的 fronter matter 部分设置）：
+菜单显示位置（可以在博文的 fronter matter 部分设置）：
 
--   menu："main"  # header 导航菜单
+-   menu："main"    # header 导航菜单
 -   menu："footer"  # 页末导航菜单
 
 排序：
 
 -   wight：值越大越靠右
 
-文档级别：例如：在 header 导航栏显示一个 now 链接，点击时显示所在的文档：
+定义方式：section 级别、文档级别或站点级别。
 
-```toml
-# aritle front matter
-menu:
-  main:  # 头部
-   name: now  # 菜单项名称
-   weight: 40
-```
+1.  section 级别：在 section 的 \_index.md 文件中定义，后续所有在该目录下创建的文件，都可以通过
 
-文档级别可以是 目录 \_index.md 文件，例如：
+`localhost:1313/ebpf/` 来访问（ `/ebpf/` 是 contenxt 下的子目录名称，例如
+<http://127.0.0.1:1313/ebpf/linux-tracing-and-ebpf-introduction/>）
 
 ```nil
 # cat content/ebpf/_index.md
@@ -573,11 +626,22 @@ Blowfish has full support for Hugo taxonomies and will adapt to any taxonomy set
 ---
 ```
 
-后续，所有在该目录下创建的文件，都可以通过 `localhost:1313/ebpf/` 来访问
+1.  文档级别：在文档的 foront matter 部分定义，如在 header 导航栏显示一个 now 链接，点击时显示所在的文档：
 
--   `/ebpf/` 是  contenxt 下的子目录名称。
+<!--listend-->
 
-站点级别： config/_default/menus.zh-cn.toml
+```toml
+# aritle front matter
+menu:
+  main:  # 头部
+   name: now  # 菜单项名称
+   weight: 40
+```
+
+1.  站点级别： config/_default/menus.zh-cn.toml，可以通过 pageRef 来引用 section（显示为一个 lsit）或
+    page（显示具体的文章）。
+
+<!--listend-->
 
 ```toml
 [[main]]    # main 表示 header 导航菜单
@@ -608,9 +672,11 @@ Blowfish has full support for Hugo taxonomies and will adapt to any taxonomy set
 
 ### <span class="section-num">2.1</span> 输出文档 {#输出文档}
 
-文档根目录：由 org-hugo-base-dir 配置，markdown 内容会保存到该目录的 contenxt/&lt;HUGO_SECTION&gt; 目录下。
-
 ox-hugo 全局缺省配置：
+
+-   文档根目录：由 org-hugo-base-dir 配置，markdown 内容会保存到该目录的 contenxt/&lt;HUGO_SECTION&gt; 目录下。
+
+<!--listend-->
 
 ```emacs-lisp
 (use-package ox-hugo
@@ -623,49 +689,53 @@ ox-hugo 全局缺省配置：
   (setq org-hugo-auto-set-lastmod t))
 ```
 
-By 文档或目录配置：
-HUGO_BASE_DIR:
+By 文档输出根目录：HUGO_BASE_DIR：
 
--   By 文档：#+hugo_base_dir: ~/blog/blog.opsnull.com
--   By 目录：使用 .dir-locals.el 来设置 org-hugo-base-dir 变量，例如在 ~/docs 目录下创建 .dir-locals.el 文件，内容如下：
-
-<!--listend-->
-
-```emacs-lisp
-;;; Directory Local Variables            -*- no-byte-compile: t -*-
-;;; For more information see (info "(emacs) Directory Variables")
-
-((yas/minor-mode . ((org-hugo-base-dir .  (expand-file-name ~/blog/local.view)))))
+```text
+#+hugo_base_dir: ~/blog/blog.opsnull.com
 ```
 
-文档输出目录由 `HUGO_SECTION` 配置:
+By 文档输出 section：HUGO_SECTION：
 
--   全局：(setq org-hugo-section "posts")
--   文件：#+hugo_section: posts
+-   整个文件：#+hugo_section: posts
 -   subtree：:EXPORT_HUGO_SECTION: shell
+
+说明：
+
 -   如果设置为 `/` 则表示的是 content/ 目录；
 -   如果是 subtree，对于子 tree，可以通过设置 EXPORT_HUGO_SECTION_FRAG  来在父 tree 的路径下添加子目录, 例如：
     -   父 tree 设置 :EXPORT_HUGO_SECTION: a
     -   子 tree 设置 :EXPORT_HUGO_SECTION_FRAG: b, 则子 tree 的输出保存位置  content/a/b
 -   参考：<https://ox-hugo.scripter.co/doc/hugo-section/>
 
-输出文档名称：
+输出文档标题：#+titile
 
-1.  文件：#+titile 来指定；
-2.  subtree：:EXPORT_FILE_NAME: 来指定；
+输出文件名：
 
-注意：如果使用 POST Bundle，则文档输出为一个目录：
+-   \#+EXPORT_FILE_NAME: index
+
+输出 Bundle 文档：
+
+1.  Bundle 是位于某一个 Section 下的目录名，由 #+HUGO_BUNDLE 配置；
+2.  输出文件名必须是 index，由 #+EXPORT_FILE_NAME: index 配置；
+    -   如果未定义 EXPORT_FILE_NAME（不建议）， 则文件名称和源文件名称一致。
+
+示例：
+
+```example
+#+HUGO_BASE_DIR: ~/blog/blog.opsnull.com
+#+HUGO_SECTION: ebpf
+#+,HUGO_BUNDLE: linux-tracing-and-ebpf-introduction
+#+EXPORT_FILE_NAME: index
+```
+
+对于 subtree 输出 Bundle 文档：
 
 -   目录名称由 EXPORT_HUGO_BUNDLE 指定；
--   文档名称由 :EXPORT_FILE_NAME: 指定，但一般为 index 或 \_index（建议, 可以使输出文件名唯一）;
-    -   如果未 EXPORT_FILE_NAME（不建议）， 则文件名称和源文件名称一致。
-
-对于 subtree property :EXPORT_FILE_NAME:：
-
--   EXPORT_FILE_NAME 为 subtree 指定输出的 post file name
--   EXPORT_FILE_NAME 不能嵌套，也即一个子 subtree 不能再定义该 Property；
--   如果使用 branch/leaf 结构，EXPORT_FILE_NAME 只能用于 leaf nodes
-    -   也即设置 EXPORT_FILE_NAME: index
+-   输出文档名由 :EXPORT_FILE_NAME: 指定，但一般为 index 或 \_index（建议, 可以使输出文件名唯一）;
+    -   EXPORT_FILE_NAME 不能嵌套，也即一个子 subtree 不能再定义该 Property；
+    -   如果使用 branch/leaf 结构，EXPORT_FILE_NAME 只能用于 leaf nodes
+        -   也即设置 EXPORT_FILE_NAME: index
 
 发布命令：
 
@@ -715,9 +785,11 @@ subtree based
 :END:
 ```
 
+输出文章标题： `#+title` ;
+
 设置输出文件名:
 
--   file-base-exported: 需要设置  `#+title` ;
+-   file base：#+EXPORT_FILE_NAME；
 -   subtree-base-exported: 需要设置 `EXPORT_FILE_NAME`;
 -   如果配置了 `#+hugo_bundle` 或者 :EXPORT_HUGO_BUNDLE:, 则使用它作为文章目录名, EXPORT_FILE_NAME 可以设置为 index
     或 \_index;
@@ -771,7 +843,7 @@ file-based-export:
 
 使用 post bundle 可以将一篇文档发布为一个目录，这样后续可以在目录中添加 thumbnail&amp;hero 图片（feature\* 开头）或background 图片（background\* 开头）。
 
--   EXPORT_HUGO_BUNDLE: 指定  post bundle 的目录名称, 位于 content 目录下的子目录名称。
+-   EXPORT_HUGO_BUNDLE: 指定 post bundle 的目录名称, 位于 content 目录下的子目录名称。
 -   EXPORT_FILE_NAME: 建议设置，这样放置源文件重命名后，输出多份，一般是固定的 index；
 
 <!--listend-->

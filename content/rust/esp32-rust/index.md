@@ -2,7 +2,7 @@
 title: "Rust ESP32 开发"
 author: ["张俊(zj@opsnull.com)"]
 date: 2024-02-19T00:00:00+08:00
-lastmod: 2024-02-19T21:52:14+08:00
+lastmod: 2024-02-20T11:28:36+08:00
 tags: ["rust", "esp32"]
 categories: ["rust", "esp32"]
 draft: false
@@ -26,28 +26,28 @@ ESP32 Rust 开发环境：
 1.  <https://github.com/apollolabsdev/ESP32C3%EF%BC%9A>。
 
 
-## <span class="section-num">2</span> 安装 esp-idf {#安装-esp-idf}
-
-除了使用 c/c++ 原生方式使用 esp-idf 外，在进行 Rust 和 c/++ 混合编程时（如 cargo generate
-esp-rs/esp-idf-template cmake) 时也使用 esp-idf 的开发、构建和烧写工具 idf.py.
-
--   <https://github.com/esp-rs/esp-idf-template/blob/master/README-cmake.md>
+## <span class="section-num">2</span> esp-idf 安装 {#esp-idf-安装}
 
 [
 安装 ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/linux-macos-setup.html#for-macos-users) 到 ~/.espressif/:
+
+-   使用 HTTP 代理而非 SOCKS5 代理, 否则构建时 python 报错: ERROR: Could not install packages due to
+    an OSError: Missing dependencies for SOCKS support.
+
+<!--listend-->
 
 ```shell
 $ brew install cmake ninja dfu-util
 $ brew install ccache # 可选, 加快构建速度
 $ echo 'PATH=/local/opt/ccache/libexec:$PATH' >>~/.bashrc
-$ python --version  # 确保系统是 python 3 版本
+$ python3 --version  # 确保系统是 python 3 版本
 
 $ mkdir -p ~/esp
 $ cd ~/esp
 $ git clone --recursive https://github.com/espressif/esp-idf.git
 $ cd ~/esp/esp-idf
 
-$ enable_http_proxy  # python 不支持 SOCKS5 代理，否则执行下面脚本会出错。
+$ enable_http_proxy  # python3 不支持 SOCKS5 代理，否则执行下面脚本会出错。
 $ ./install.sh esp32s3  #  esp32,esp32s2 等目标芯片, all 表示所有.
 Detecting the Python interpreter
 Checking "python3" ...
@@ -58,21 +58,11 @@ Installing ESP-IDF tools
 Selected targets are: esp32s3
 Current system platform: macos
 Installing tools: xtensa-esp-elf-gdb, xtensa-esp-elf, riscv32-esp-elf, esp32ulp-elf, openocd-esp32, esp-rom-elfs
-Skipping xtensa-esp-elf-gdb@12.1_20231023 (already installed)
-Skipping xtensa-esp-elf@esp-13.2.0_20230928 (already installed)
-Skipping riscv32-esp-elf@esp-13.2.0_20230928 (already installed)
-Skipping esp32ulp-elf@2.35_20220830 (already installed)
-Skipping openocd-esp32@v0.12.0-esp32-20230921 (already installed)
-Skipping esp-rom-elfs@20230320 (already installed)
+。。。
 Installing Python environment and packages
 Python 3.12.1
 pip 23.2.1 from /Users/zhangjun/.espressif/python_env/idf5.3_py3.12_env/lib/python3.12/site-packages/pip (python 3.12)
-Upgrading pip and setuptools...
-Requirement already satisfied: pip in /Users/zhangjun/.espressif/python_env/idf5.3_py3.12_env/lib/python3.12/site-packages (23.2.1)
-Successfully installed pip-24.0 setuptools-69.0.3
-Downloading https://dl.espressif.com/dl/esp-idf/espidf.constraints.v5.3.txt
-Destination: /Users/zhangjun/.espressif/espidf.constraints.v5.3.txt.tmp
-Done
+。。。
 Installing Python packages
  Constraint file: /Users/zhangjun/.espressif/espidf.constraints.v5.3.txt
  Requirement files:
@@ -102,8 +92,7 @@ xtensa-esp-elf-gdb/
 <!--listend-->
 
 ```shell
-zj@a:~$ which xtensa-esp-elf-gcc
-/Users/zhangjun/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp-elf-gcc
+zj@a:~/codes/esp32/esp-demo2/myesp$ source ~/esp/esp-idf/export.sh # export.sh 脚本不能移动，必须 source 使用。
 zj@a:~/codes/esp32/esp-demo2/myesp$ which xtensa-esp32s3-elf-gcc
 /Users/zhangjun/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc
 
@@ -124,27 +113,11 @@ xtensa-esp32s3-elf-c++filt     xtensa-esp32s3-elf-gcc         xtensa-esp32s3-elf
 后续每次使用 esp-idf 前需要 `source ~/esp/esp-idf/export.sh(文件不能移动)` 文件：
 
 ```shell
-# 使用 HTTP 代理而非 SOCKS5 代理, 否则构建时 python 报错: ERROR: Could not install packages due to an OSError: Missing dependencies for SOCKS support.
-zj@a:~/codes/esp32/esp-demo$ echo  'export all_proxy="http://192.168.3.2:1080" ALL_PROXY="http://192.168.3.2:1080"' >> ~/esp/esp-idf/export.sh
-
-#alias export_idf='. $HOME/esp/esp-idf/export.sh'
-#alias export_esp='. $HOME/esp/export-esp.sh'
+echo  'export all_proxy="http://192.168.3.2:1080" ALL_PROXY="http://192.168.3.2:1080"' >> ~/esp/esp-idf/export.sh
 
 zj@a:~/esp/esp-idf$ . ./export.sh
 Setting IDF_PATH to '/Users/zhangjun/esp/esp-idf'
-Detecting the Python interpreter
-Checking "python3" ...
-Python 3.12.1
-"python3" has been detected
-Checking Python compatibility
-Checking other ESP-IDF version.
-Adding ESP-IDF tools to PATH...
-Checking if Python packages are up to date...
-Constraint file: /Users/zhangjun/.espressif/espidf.constraints.v5.3.txt
-Requirement files:
- - /Users/zhangjun/esp/esp-idf/tools/requirements/requirements.core.txt
-Python being checked: /Users/zhangjun/.espressif/python_env/idf5.3_py3.12_env/bin/python
-Python requirements are satisfied.
+...
 Added the following directories to PATH:
   /Users/zhangjun/esp/esp-idf/components/espcoredump
   /Users/zhangjun/esp/esp-idf/components/partition_table
@@ -173,18 +146,25 @@ zj@a:~/esp/esp-idf$
 
 ## <span class="section-num">3</span> esp-idf 开发 {#esp-idf-开发}
 
+除了使用 c/c++ 原生方式使用 esp-idf 外，在进行 Rust 和 c/++ 混合编程时（如 cargo generate
+esp-rs/esp-idf-template cmake) 时也使用 esp-idf 的开发、构建和烧写工具 idf.py:
+
+-   <https://github.com/esp-rs/esp-idf-template/blob/master/README-cmake.md>
+
 ESP-IDF (Espressif IoT Development Framework)  [开发者文档](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/index.html)：
+
+-   idf.py menuconfig 生成 sdkconfig，具体的配置参数列表：[kconfig.html](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/kconfig.html)
+-   JTAG Debugging: <https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/jtag-debugging/index.html>
 
 hello-world 示例：
 
 ```shell
-zj@a:~$ source ~/esp/esp-idf/export.sh  # 必须 source 安装路径中的 export.sh
+zj@a:~$ source ~/esp/esp-idf/export.sh  # 每次使用 esp-dif 前必须 source 安装路径中的 export.sh
 zj@a:~$ cd esp/
 zj@a:~/esp$ ls
 esp-idf/
 zj@a:~/esp$ cp -r $IDF_PATH/examples/get-started/hello_world .
 zj@a:~/esp$ cd hello_world/
-
 lzj@a:~/esp/hello_world$ ls
 CMakeLists.txt  README.md  main/  pytest_hello_world.py  sdkconfig.ci
 
@@ -208,18 +188,7 @@ zj@a:~/esp/hello_world$ idf.py build
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-Generated /Users/zhangjun/esp/hello_world/build/bootloader/bootloader.bin
-[112/112] cd /Users/zhangjun/esp/hello_world/build/bootloader/esp-idf/esptool_...bootloader 0x0 /Users/zhangjun/esp/hello_world/build/bootloader/bootloader.bin
-Bootloader binary size 0x5240 bytes. 0x2dc0 bytes (36%) free.
-[980/981] Generating binary image from built executable
-esptool.py vv4.8.dev1
-Creating esp32s3 image...
-Merged 2 ELF sections
-Successfully created esp32s3 image.
-Generated /Users/zhangjun/esp/hello_world/build/hello_world.bin
-[981/981] cd /Users/zhangjun/esp/hello_world/build/esp-idf/esptool_py && /User...able/partition-table.bin /Users/zhangjun/esp/hello_world/build/hello_world.bin
-hello_world.bin binary size 0x360c0 bytes. Smallest app partition is 0x100000 bytes. 0xc9f40 bytes (79%) free.
-
+。。。
 Project build complete. To flash, run:
  idf.py flash
 or
@@ -230,20 +199,19 @@ or from the "/Users/zhangjun/esp/hello_world/build" directory
  python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"
 ```
 
-烧写了三个文件:
+烧写到设备 Flash：
 
-1.  0x0 build/bootloader/bootloader.bin
-2.  0x8000 build/partition_table/partition-table.bin
-3.  0x10000 build/hello_world.bin
-
-烧写到设备 Flash, flash 命令自动 build 和 flash：
-
--   USB 串口：linux: /dev/ttyUSB0, macOS: /dev/cu.
+-   USB 串口：linux: /dev/ttyUSB0, macOS: /dev/cu.\*
+-   烧写了三个文件：
+    1.  0x0 build/bootloader/bootloader.bin
+    2.  0x8000 build/partition_table/partition-table.bin
+    3.  0x10000 build/hello_world.bin
 
 <!--listend-->
 
 ```shell
-idf.py -p PORT flash
+
+$ idf.py -p PORT flash # flash 命令自动 build 和 flash：
 
 # 监控串口输出
 $ idf.py -p <PORT> monitor
@@ -261,125 +229,16 @@ ets Jun  8 2016 00:22:57
 idf.py -p PORT flash monitor
 ```
 
-idf.py 命令帮助:
 
-```shell
-zj@a:~/esp/hello_world$ idf.py --help
-Usage: idf.py [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
-
-  ESP-IDF CLI build management tool. For commands that are not known to idf.py an attempt to execute it as a build system target will be
-  made. Selected target: esp32s3
-
-Options:
-  --version                       Show IDF version and exit.
-  --list-targets                  Print list of supported targets and exit.
-  -C, --project-dir PATH          Project directory.
-  -B, --build-dir PATH            Build directory.
-  -w, --cmake-warn-uninitialized / -n, --no-warnings
-                                  Enable CMake uninitialized variable warnings for CMake files inside the project directory. (--no-
-                                  warnings is now the default, and doesn't need to be specified.) The default value can be set with the
-                                  IDF_CMAKE_WARN_UNINITIALIZED environment variable.
-  -v, --verbose                   Verbose build output.
-  --preview                       Enable IDF features that are still in preview.
-  --ccache / --no-ccache          Use ccache in build. Disabled by default. The default value can be set with the IDF_CCACHE_ENABLE
-                                  environment variable.
-  -G, --generator [Ninja|Unix Makefiles]
-                                  CMake generator.
-  --no-hints                      Disable hints on how to resolve errors and logging.
-  -D, --define-cache-entry TEXT   Create a cmake cache entry. This option can be used at most once either globally, or for one subcommand.
-  -p, --port PATH                 Serial port. The default value can be set with the ESPPORT environment variable. This option can be used
-                                  at most once either globally, or for one subcommand.
-  -b, --baud INTEGER              Baud rate for flashing. It can imply monitor baud rate as well if it hasn't been defined locally. The
-                                  default value can be set with the ESPBAUD environment variable. This option can be used at most once
-                                  either globally, or for one subcommand.
-  --help                          Show this message and exit.
-
-Commands:
-  add-dependency               Add dependency to the manifest file.
-  all                          Aliases: build. Build the project.
-  app                          Build only the app.
-  app-flash                    Flash the app only.
-  bootloader                   Build only bootloader.
-  bootloader-flash             Flash bootloader only.
-  build-system-targets         Print list of build system targets.
-  clang-check                  run clang-tidy check under current folder, write the output into "warnings.txt"
-  clang-html-report            generate html report to "html_report" folder by reading "warnings.txt" (may take a few minutes). This
-                               feature requires extra dependency "codereport". Please install this by running "pip install codereport"
-  clean                        Delete build output files from the build directory.
-  confserver                   Run JSON configuration server.
-  coredump-debug               Create core dump ELF file and run GDB debug session with this file.
-  coredump-info                Print crashed task’s registers, callstack, list of available tasks in the system, memory regions and
-                               contents of memory stored in core dump (TCBs and stacks)
-  create-component             Create a new component.
-  create-manifest              Create manifest for specified component.
-  create-project               Create a new project.
-  create-project-from-example  Create a project from an example.
-  delete-version               (Deprecated) Deprecated! New CLI command: "compote component delete". Delete specified version of the
-                               component from the component registry.
-  dfu                          Build the DFU binary
-  dfu-flash                    Flash the DFU binary
-  dfu-list                     List DFU capable devices
-  docs                         Open web browser with documentation for ESP-IDF
-  efuse-common-table           Generate C-source for IDF's eFuse fields.
-  efuse-custom-table           Generate C-source for user's eFuse fields.
-  encrypted-app-flash          Flash the encrypted app only.
-  encrypted-flash              Flash the encrypted project.
-  erase-flash                  Erase entire flash chip.
-  erase-otadata                Erase otadata partition.
-  flash                        Flash the project.
-  fullclean                    Delete the entire build directory contents.
-  gdb                          Run the GDB.
-  gdbgui                       GDB UI in default browser.
-  gdbtui                       GDB TUI mode.
-  menuconfig                   Run "menuconfig" project configuration tool.
-  monitor                      Display serial output.
-  openocd                      Run openocd from current path
-  pack-component               (Deprecated) Deprecated! New CLI command: "compote component pack". Create component archive and store it
-                               in the dist directory.
-  partition-table              Build only partition table.
-  partition-table-flash        Flash partition table only.
-  post-debug                   Utility target to read the output of async debug action and stop them.
-  python-clean                 Delete generated Python byte code from the IDF directory
-  qemu                         Run QEMU.
-  read-otadata                 Read otadata partition.
-  reconfigure                  Re-run CMake.
-  save-defconfig               Generate a sdkconfig.defaults with options different from the default ones
-  set-target                   Set the chip target to build.
-  show-efuse-table             Print eFuse table.
-  size                         Print basic size information about the app.
-  size-components              Print per-component size information.
-  size-files                   Print per-source-file size information.
-  uf2                          Generate the UF2 binary with all the binaries included
-  uf2-app                      Generate an UF2 binary for the application only
-  update-dependencies          Update dependencies of the project
-  upload-component             (Deprecated) Deprecated! New CLI command: "compote component upload". Upload component to the component
-                               registry. If the component doesn't exist in the registry it will be created automatically.
-  upload-component-status      (Deprecated) Deprecated! New CLI command: "compote component upload-status". Check the component uploading
-                               status by the job ID.
-```
-
-
-### <span class="section-num">3.1</span> build-system {#build-system}
-
-
-### <span class="section-num">3.2</span> Project Configuration {#project-configuration}
-
-idf.py menuconfig 生成 sdkconfig。
-
-配置参数列表：
-<https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/kconfig.html>
-
-
-### <span class="section-num">3.3</span> JTAG Debugging {#jtag-debugging}
-
-<https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/jtag-debugging/index.html>
-
-
-## <span class="section-num">4</span> 安装 esp rust 开发环境 {#安装-esp-rust-开发环境}
+## <span class="section-num">4</span> esp-rs 安装 {#esp-rs-安装}
 
 参考：<https://esp-rs.github.io/book/introduction.html>
 
 [安装依赖](https://github.com/esp-rs/esp-idf-template?tab=readme-ov-file#prerequisites):
+
+-   不需要手动安装 esp-idf，后续构建 esp-rs 项目是 build.rs 会自动下载 esp-dif。
+
+<!--listend-->
 
 ```shell
 # 提供 cargo generate 子命令
@@ -398,14 +257,10 @@ cargo install espflash
 cargo install cargo-espflash # Optional，将 espflash 作为 cargo 的子命令来使用
 ```
 
-espup 可以同时安装和维护  Xtensa and RISC-V architectures 的工具链。
+espup 可以同时安装和维护 Xtensa and RISC-V architectures 的工具链，包括 esp fork 的 rust，GCC 和
+LLVM 等：
 
 -   espup 是 rust 开发的工具，取代了 rust-build 项目。
--   Newer Espressif chips are all RISC-V based.
-
-使用 espup 安装 Stensa Rust toolchain 和 custom LLVM 工具链（没有何如 upstream）:
-
--   不需要手动安装 esp-idf。
 
 <!--listend-->
 
@@ -421,26 +276,7 @@ zj@a:~/codes/esp32$ enable_http_proxy
 
 # Install all the necessary tools to develop Rust applications for all supported Espressif target
 zj@a:~/codes/esp32$ espup install -l debug
-[debug]: connecting to crates.io:443 at 13.32.99.58:443
-[debug]: No cached session for DnsName("crates.io")
-[debug]: Not resuming any session
-[debug]: Using ciphersuite TLS13_AES_128_GCM_SHA256
-[debug]: Not resuming
-[debug]: TLS1.3 encrypted extensions: [ServerNameAck]
-[debug]: ALPN protocol is None
-[debug]: created stream: Stream(RustlsStream)
-[debug]: sending request GET https://crates.io/api/v1/crates/espup/versions
-[debug]: writing prelude: GET /api/v1/crates/espup/versions HTTP/1.1
-Host: crates.io
-User-Agent: ureq/2.9.1
-Accept: */*
-accept-encoding: gzip
-[debug]: Chunked body in response
-[debug]: response 200 to GET https://crates.io/api/v1/crates/espup/versions
-[debug]: dropping stream: Stream(RustlsStream)
-[info]: Installing the Espressif Rust ecosystem
-[debug]: Querying GitHub API: 'https://api.github.com/repos/esp-rs/rust-build/releases/latest'
-[debug]: starting new connection: https://api.github.com/
+。。。
 [debug]: Parsing Xtensa Rust version: 1.75.0.0
 [debug]: Querying GitHub API: 'https://api.github.com/repos/esp-rs/rust-build/releases'
 [debug]: starting new connection: https://api.github.com/
@@ -490,7 +326,7 @@ accept-encoding: gzip
             See other methods for setting the environment in https://esp-rs.github.io/book/installation/riscv-and-xtensa.html#3-set-up-the-environment-variables
 ```
 
-espup 安装的内容位于 ~/.espup 目录下：
+espup 安装的内容位于 ~/.espup 目录下（rustc 编译器本身是依赖 LLVM 的）：
 
 -   Espressif Rust fork with support for Espressif targets
 -   nightly toolchain with support for RISC-V targets
@@ -589,6 +425,7 @@ xtensa-esp8266-none-elf
 zj@a:~/docs$ cat ~/codes/esp32/esp-demo2/myesp/rust-toolchain.toml
 [toolchain]
 channel = "esp"  # ~/.rustup/toolchains/ 下的目录名称，这里使用 esp toolchain
+
 zj@a:~/codes/esp32/esp-demo2/myesp$ cat .cargo/config.toml
 [build]
 target = "xtensa-esp32s3-espidf"  # 要构建的 target，这里使用链接 esp-idf 的 target
@@ -600,7 +437,6 @@ runner = "espflash flash --monitor" # Select this runner for espflash v2.x.x
 rustflags = [ "--cfg",  "espidf_time64"] # Extending time_t for ESP IDF 5: https://github.com/esp-rs/rust/issues/110
 
 
-
 zj@a:~/docs$ ls -l  ~/.espup/
 total 0
 lrwxr-xr-x 1 zhangjun 95  2  8 14:49 esp-clang -> /Users/zhangjun/.rustup/toolchains/esp/xtensa-esp32-elf-clang/esp-16.0.4-20231113/esp-clang/lib/
@@ -610,38 +446,39 @@ zj@a:~/docs$ ls  ~/.rustup/toolchains/esp/xtensa-esp32-elf-clang/esp-16.0.4-2023
 clang/  libLLVM.dylib  libclang-cpp.dylib  libclang.dylib
 
 
-zj@a:~/docs$ ls  ~/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-addr2line*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-ar*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-as*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-c++*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-c++filt*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-cc*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-cpp*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-elfedit*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-g++*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc-13.2.0*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc-ar*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc-nm*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc-ranlib*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcov*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcov-dump*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcov-tool*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gprof*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-ld*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-ld.bfd*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-lto-dump*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-nm*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-objcopy*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-objdump*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-ranlib*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-readelf*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-size*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-strings*
-/Users/zhangjun/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin/xtensa-esp32s3-elf-strip*
-zj@a:~/docs$
-
+zj@a:~/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin$ ls -l
+total 104M
+-rwxr-xr-x 1 zhangjun  1.2M  9 29 00:21 xtensa-esp-elf-addr2line*
+-rwxr-xr-x 1 zhangjun  1.3M  9 29 00:21 xtensa-esp-elf-ar*
+-rwxr-xr-x 1 zhangjun  1.6M  9 29 00:21 xtensa-esp-elf-as*
+-rwxr-xr-x 1 zhangjun  1.8M  9 29 00:21 xtensa-esp-elf-c++*
+-rwxr-xr-x 1 zhangjun  1.2M  9 29 00:21 xtensa-esp-elf-c++filt*
+lrwxr-xr-x 1 zhangjun    18  9 28 23:12 xtensa-esp-elf-cc -> xtensa-esp-elf-gcc*
+-rwxr-xr-x 1 zhangjun  1.8M  9 29 00:21 xtensa-esp-elf-cpp*
+-rwxr-xr-x 1 zhangjun   58K  9 29 00:21 xtensa-esp-elf-elfedit*
+-rwxr-xr-x 1 zhangjun  1.8M  9 29 00:21 xtensa-esp-elf-g++*
+-rwxr-xr-x 1 zhangjun  1.8M  9 29 00:21 xtensa-esp-elf-gcc*
+-rwxr-xr-x 1 zhangjun  1.8M  9 29 00:21 xtensa-esp-elf-gcc-13.2.0*
+-rwxr-xr-x 1 zhangjun   51K  9 29 00:21 xtensa-esp-elf-gcc-ar*
+-rwxr-xr-x 1 zhangjun   51K  9 29 00:21 xtensa-esp-elf-gcc-nm*
+-rwxr-xr-x 1 zhangjun   51K  9 29 00:21 xtensa-esp-elf-gcc-ranlib*
+-rwxr-xr-x 1 zhangjun  1.3M  9 29 00:21 xtensa-esp-elf-gcov*
+-rwxr-xr-x 1 zhangjun  990K  9 29 00:21 xtensa-esp-elf-gcov-dump*
+-rwxr-xr-x 1 zhangjun 1015K  9 29 00:21 xtensa-esp-elf-gcov-tool*
+-rwxr-xr-x 1 zhangjun  1.3M  9 29 00:21 xtensa-esp-elf-gprof*
+-rwxr-xr-x 1 zhangjun  1.9M  9 29 00:21 xtensa-esp-elf-ld*
+-rwxr-xr-x 1 zhangjun  1.9M  9 29 00:21 xtensa-esp-elf-ld.bfd*
+-rwxr-xr-x 1 zhangjun   25M  9 29 00:21 xtensa-esp-elf-lto-dump*
+-rwxr-xr-x 1 zhangjun  1.2M  9 29 00:21 xtensa-esp-elf-nm*
+-rwxr-xr-x 1 zhangjun  1.4M  9 29 00:21 xtensa-esp-elf-objcopy*
+-rwxr-xr-x 1 zhangjun  1.8M  9 29 00:21 xtensa-esp-elf-objdump*
+-rwxr-xr-x 1 zhangjun  1.3M  9 29 00:21 xtensa-esp-elf-ranlib*
+-rwxr-xr-x 1 zhangjun  1.1M  9 29 00:21 xtensa-esp-elf-readelf*
+-rwxr-xr-x 1 zhangjun  1.2M  9 29 00:21 xtensa-esp-elf-size*
+-rwxr-xr-x 1 zhangjun  1.2M  9 29 00:21 xtensa-esp-elf-strings*
+-rwxr-xr-x 1 zhangjun  1.4M  9 29 00:21 xtensa-esp-elf-strip*
+。。。
+zj@a:~/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin$
 
 # export-esp.sh 将该 bin 目录添加 PATH 前面
 zj@a:~/docs$ ls   ~/.rustup/toolchains/esp/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/xtensa-esp-elf/bin/
@@ -739,6 +576,10 @@ In the esp-rs organization, we use the following wording:
 
 对于 RISC-V targets，rust 官方是 Tier2 支持，可以直接向官方 rustc 添加对应 target：
 
+-   Newer Espressif chips are all RISC-V based.
+
+<!--listend-->
+
 ```shell
 rustup toolchain install nightly --component rust-src
 
@@ -751,7 +592,7 @@ rustup target add riscv32imac-unknown-none-elf # For ESP32-C6 and ESP32-H2
 # riscv32imc-esp-espidf 和 riscv32imac-esp-espidf
 ```
 
-esp32 fork 了 rust 工具链，通过 espup 安装了 esp channel 的 rust 工具链：
+esp32 fork 了 rust 工具链，通过 espup 安装了 esp channel 的 rust 工具链，以支持 xtensa CPU：
 
 ```shell
 # esp rustc 支持 x86_64/arm64/riscv64/xtensa-esp32s3-espidf/xtensa-esp32s3-none-elf target
@@ -786,7 +627,7 @@ xtensa-esp8266-none-elf
 ```
 
 
-## <span class="section-num">5</span> esp-idf 和 std 应用 {#esp-idf-和-std-应用}
+## <span class="section-num">5</span> rust std 应用 {#rust-std-应用}
 
 esp-idf 是 C-based 开发框架。esp-idf, in turn, provides `a newlib environment` with enough
 functionality to `build the Rust standard library (std) on top of it`. This is the approach that is
@@ -839,13 +680,13 @@ esp-idf-sys
 
 {{< figure src="/images/esp-idf_和_std_应用/2024-02-11_15-26-13_screenshot.png" width="400" >}}
 
+一般使用 esp-rs/esp-idf-template 模板项目来创建 std 项目：
 
-### <span class="section-num">5.1</span> std 应用 {#std-应用}
+cargo generate esp-rs/esp-idf-template cargo
+: 使用 cargo 来构建纯 rust 应用（cargo-frst）；
 
-使用 esp-rs/esp-idf-template 来创建 std 项目
-
--   cargo generate esp-rs/esp-idf-template cargo：使用 cargo 来构建纯 rust 应用（cargo-frst）；
--   cargo generate esp-rs/esp-idf-template cmake：mix Rust and C/C++ in a traditional ESP-IDF idf.py；
+cargo generate esp-rs/esp-idf-template cmake
+: mix Rust and C/C++ in a traditional ESP-IDF idf.py；
 
 <!--listend-->
 
@@ -856,7 +697,7 @@ cargo generate esp-rs/esp-idf-template cargo  # 除了 cargo 外，还可以选�
 cargo generate esp-rs/esp-template
 ```
 
-1.  STD cargo-first 项目：
+1.  cargo-first 项目：
 2.  <https://github.com/esp-rs/esp-idf-template/blob/master/README.md>
 3.  STD support：When true, adds support for the Rust Standard Library. Otherwise, we will use Rust
     Core Library.
@@ -997,7 +838,7 @@ target/xtensa-esp32s3-espidf/debug/esp-demo: ELF 32-bit LSB executable, Tensilic
 zj@a:~/codes/esp32/esp-demo$
 ```
 
-1.  STD cmake 项目：
+1.  cmake 项目：
 2.  <https://github.com/esp-rs/esp-idf-template/blob/master/README-cmake.md>
 3.  原理：<https://github.com/esp-rs/esp-idf-template/blob/master/README-cmake-details.md>
 4.  需要先手动安装 esp-idf，然后 source ~/esp/esp-idf/export.sh 脚本;
@@ -1027,8 +868,7 @@ idf.py -p /dev/ttyUSB0 flash
 idf.py -p /dev/ttyUSB0 monitor
 ```
 
-对于使用 esp-idf-sys 的 std 应用，项目目录下的 `build.rs` 文件会使用 embuild crate 来下载、编译和链接
-esp-idf C framework 和 gcc toolchian。
+对于使用 esp-idf-sys 的 cargo-first std 应用，项目目录下的 `build.rs` 文件会使用 embuild crate 来下载、编译和链接esp-idf C framework 和 gcc toolchian。
 
 -   默认是 by 项目下载 esp-idf 的，为了加快速度，可以设置 `ESP_IDF_TOOLS_INSTALL_DIR=global` 来使用
 
@@ -1073,9 +913,6 @@ esp_idf_components = ["pthread"]
         -   custom:&lt;dir&gt; - the tooling will be installed or used in the directory specified by
             &lt;dir&gt;. If this directory is a relative location, it is assumed to be relative to the
             workspace directory;
-        -   fromenv - use the build framework from the environment
-            -   native builder: use activated esp-idf environment (see esp-idf docs unix / windows)
-            -   pio builder: use platformio from the environment (i.e. $PATH)
 4.  idf_path, $IDF_PATH (native builder only)
     -   A path to a user-provided local clone of the esp-idf, that will be used instead of the one
         downloaded by the build script.
@@ -1159,8 +996,7 @@ Max cache size                       10 GiB
 zj@a:~/codes/esp32/st7735-lcd-examples/esp32c3-examples$
 ```
 
-
-### <span class="section-num">5.2</span> 参考示例 {#参考示例}
+std 参考示例
 
 1.  [esp-rs/std-trainning](https://github.com/esp-rs/std-training): Embedded Rust Trainings for Espressif
 2.  <https://github.com/ivmarkov/rust-esp32-std-demo%EF%BC%9A> Rust on ESP32 STD demo app
@@ -1168,7 +1004,7 @@ zj@a:~/codes/esp32/st7735-lcd-examples/esp32c3-examples$
     -   <https://github.com/apollolabsdev/ESP32C3>
 
 
-## <span class="section-num">6</span> no_std 应用 {#no-std-应用}
+## <span class="section-num">6</span> rust no_std 应用 {#rust-no-std-应用}
 
 对于 no_std 则使用 Rust core 库，core 是 std 库的一个子集。 当前支持：
 HAL/WIFI/BLE/ESP-NOW/Backtrace/Storage。
@@ -1189,9 +1025,10 @@ no_std 相关的库：
 -   esp-backtrace Exception and panic handlers
 -   esp-storage Embedded-storage traits to access unencrypted flash memory
 
-使用 esp-rs/esp-template 来快速创建 non_std 类型项目：
+一般使用 esp-rs/esp-template 模板来快速创建 non_std 类型项目：
 
 -   在 .cargo/config.toml 的 env 部分添加 ESP_IDF_TOOLS_INSTALL_DIR = "global"
+-   可以指定是否使用 WiFi/Bluetooth/ESP-NOW via the esp-wifi crate；
 
 <!--listend-->
 
@@ -1200,15 +1037,7 @@ no_std 相关的库：
 cargo generate esp-rs/esp-idf-template cargo
 # NO-STD (Bare-metal) Project
 cargo generate esp-rs/esp-template
-```
 
-nonSTD 项目：
-
--   可以指定是否使用 WiFi/Bluetooth/ESP-NOW via the esp-wifi crate；
-
-<!--listend-->
-
-```nil
 zj@a:~/codes/esp32$ enable_http_proxy
 zj@a:~/codes/esp32$ cargo generate esp-rs/esp-template
 ⚠️   Favorite `esp-rs/esp-template` not found in config, using it as a git repository: https://github.com/esp-rs/esp-template.git
@@ -1256,8 +1085,7 @@ build-std = ["core"]
 zj@a:~/codes/esp32/esp-dem-nonstd$
 ```
 
-
-### <span class="section-num">6.1</span> 参考示例 {#参考示例}
+参考示例
 
 1.  <https://apollolabsblog.hashnode.dev/series/esp32c3-embedded-rust-hal> 强烈推荐。
     -   <https://github.com/apollolabsdev/ESP32C3>
@@ -1265,7 +1093,7 @@ zj@a:~/codes/esp32/esp-dem-nonstd$
 
 ## <span class="section-num">7</span> espflash 烧录和监视工具 {#espflash-烧录和监视工具}
 
-espflash 使用 USB 串口(linux: /dev/ttyUSB0, macOS: /dev/cu.) 来烧录芯片:
+espflash 使用 USB 串口(linux: /dev/ttyUSB0, macOS: /dev/cu.\*) 来烧录芯片:
 
 -   <https://github.com/esp-rs/espflash/tree/main/espflash#installation>
 
@@ -1296,7 +1124,7 @@ Options:
 zj@a:~/codes/esp32$
 ```
 
-cargo run: 在项目的 .cargo/config.toml 中添加如下内容, 然后就可以执行 argo run 来 flsh 和 monitor 应用:
+cargo run: 在项目的 .cargo/config.toml 中添加如下内容, 然后就可以执行 cargo run 来 flash 和 monitor 应用:
 
 ```rust
 [target.'cfg(any(target_arch = "riscv32", target_arch = "xtensa"))']
@@ -1306,17 +1134,13 @@ runner = "espflash flash --baud=921600 --monitor /dev/ttyUSB0"
 espflash 配置文件 espflash.toml:
 
 1.  Serial port:
-
-<!--listend-->
-
-```toml
-[connection]
-serial = "/dev/ttyUSB0"
-```
-
-1.  baudrate = 460800
-2.  bootloader = "path/to/custom/bootloader.bin"
-3.  partition_table = "path/to/custom/partition-table.bin"
+    ```toml
+    [connection]
+    serial = "/dev/ttyUSB0"
+    ```
+2.  baudrate = 460800
+3.  bootloader = "path/to/custom/bootloader.bin"
+4.  partition_table = "path/to/custom/partition-table.bin"
 
 espflash.toml 文件位置:
 
