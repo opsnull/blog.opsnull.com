@@ -2,7 +2,7 @@
 title: "LCD 中英文字体制作"
 author: ["张俊(zj@opsnull.com)"]
 date: 2024-02-19T00:00:00+08:00
-lastmod: 2024-02-26T11:27:07+08:00
+lastmod: 2024-02-26T11:37:21+08:00
 tags: ["rust", "esp32"]
 categories: ["rust", "esp32"]
 draft: false
@@ -139,13 +139,20 @@ zj@a:~/codes/rust/bdf/eg-font-converter$ cp output/bdf_lxgwwenkai_regular_font.*
 # 添加本地依赖
 gzj@a:~/codes/esp32/st7735-lcd-examples/esp32c3-examples$ grep eg Cargo.toml
 eg-bdf = { path = "../../../rust/bdf/eg-bdf/" } // clone https://github.com/embedded-graphics/bdf 的本地目录
+```
 
-# 引用使用
+代码举例:
+
+```rust
+
 use eg_bdf::{BdfGlyph, BdfTextStyle};
 
 include!("./bdf_lxgwwenkai_regular_font.rs");
 
 fn main() {
+    let text = "Happy\u{AD}Loong\u{AD}Year!\
+      Happy Hacking!\
+      Happy Loong Year!\u{A0}新年快乐!\u{A0}-from Rust ESP32";
     let bdf_style = BdfTextStyle::new(&BDF_LXGWWenKai_Regular_FONT, Rgb565::WHITE);
     let textbox_style = TextBoxStyleBuilder::new()
       .line_height(LineHeight::Pixels(12)) // 字体高度与生成 otf2bdf  -p 12 一致
