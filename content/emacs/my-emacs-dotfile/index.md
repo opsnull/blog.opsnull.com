@@ -2,13 +2,16 @@
 title: "My Emacs Dotfile"
 author: ["张俊(geekard@qq.com)"]
 date: 2023-08-20T00:00:00+08:00
-lastmod: 2024-04-05T10:44:19+08:00
+lastmod: 2024-04-08T12:04:48+08:00
 tags: ["emacs"]
 categories: ["emacs"]
 draft: false
 series: ["emacs"]
 series_order: 1
 ---
+
+更多 Emacs 内容请访问我的博客: <https://blog.opsnull.com/emacs/>
+
 
 ## <span class="section-num">1</span> install {#install}
 
@@ -2428,26 +2431,6 @@ xx-mode-hook, 否则添加到 xx-mode-hook 的内容不会被自动执行.
                              )))))
 ```
 
-eglot 运行时将 xref-backend-functions 设置为 eglot-xref-backend，而忽略已注册的其它 backend, 可以使用 dir-local 文件来关闭 eglot mode. 这里定义一个一键切换函数，在 eglot 失效的情况下，手动关闭当前
-major-mode 的 eglot，从而让 xref-backend-functions 恢复为以前的值，如 dump-jump-xref-active:
-
-```emacs-lisp
-(defun my/toggle-eglot ()
-  (interactive)
-  (let ((current-mode major-mode)
-        (hook (intern (concat (symbol-name major-mode) "-hook"))))
-    (if (bound-and-true-p eglot--managed-mode)
-        (progn
-          (eglot-shutdown-all)
-          (remove-hook hook 'eglot-ensure)
-          ;; 将 citre 添加到 xref backend 中，-100 表示添加到开头，确保优先使用。
-          (add-hook 'xref-backend-functions #'citre-xref-backend -100))
-      (progn
-        (add-hook hook 'eglot-ensure)
-        (eglot-ensure)))))
-(global-set-key (kbd "s-`") 'my/toggle-eglot)
-```
-
 调试 eglot, 先切换到源码文件 buffer:
 
 -   调大 eglot-events-buffer-size 变量值;
@@ -2502,168 +2485,7 @@ consult-eglot 提供 `consult-eglot-symbols` 函数，方便选择 workspace 中
 ```
 
 
-### <span class="section-num">11.8</span> citre {#citre}
-
-`Etags`: GNU Emacs comes with two ctags utilities, `etags and ctags`, which are compiled from the same
-source code. Etags generates a tag table file for Emacs, while the ctags command is used to create a
-similar table in a format understood by vi. They have different sets of command line options: etags
-does not recognize and ignores options which only make sense for vi style tag files produced by the
-ctags command.
-
--   etags 和 ctags 都是来自于同一个项目的源码，但是 etags 为 emacs 生产 tag table，而 ctags 为 vi 生成
-    tag table。
--   etags 生成的文件名称为 `TAGS` ，ctags 命令生成的文件名称为 `tags` ，GNU global 的 gtags 命令生成的文件名称为 `GTAGS` ；
-
-`Exuberant Ctags`: written and maintained by Darren Hiebert until 2009, was initially distributed with
-Vim, but became a separate project upon the release of Vim 6. It includes support for Emacs and
-etags compatibility. Exuberant Ctags includes support for over 40 programming languages with the
-ability to add support for even more using regular expressions.
-
--   最开始随 vim 发布，也支持 emacs 的 etags，支持大量语言， `目前已经被 Universal Ctags 取代` 。
-
-`Universal Ctags`: is a fork of Exuberant Ctags, with the objective of continuing its development. A
-few parsers are rewritten to better support the languages.
-
--   Universal Ctags 是 Exuberant Ctags 的 fork 版本。
-
-[GNU Global](https://www.gnu.org/software/global/) 内置了 5 种语言解析器，包括 C/Yacc/JAVA/assembly, 其他 25 种语言使用 Pygments + Universal
-Ctags 解析器插件来支持的。
-
-安装 GNU global 和 pygments, global 依赖并自动安装 universal-ctags, 通过 pygments 能生成更丰富的 TAG 内容，同时支持 reference 搜索。
-
--   <https://github.com/universal-ctags/citre/blob/master/docs/user-manual/citre-global.md>
--   global 默认使用 brew 安装的 python@3.12 和 pygments, 而不能直接使用 pip install pygments.
-
-<!--listend-->
-
-```bash
-brew install global pygments # 提供 global、gtags 命令, gtags 使用 pygments 支持跟多语言
-
-# 在 ~/.bashrc 中添加如下配置：
-# 统一的 tags 文件目录
-export GTAGSOBJDIRPREFIX=~/.cache/gtags/
-mkdir $GTAGSOBJDIRPREFIX
-export GTAGSCONF=/opt/homebrew/opt/global/share/gtags/gtags.conf
-# 使用 pygments 支持更多的语言，他噢夹南是支持 reference 搜索。
-export GTAGSLABEL=pygments
-```
-
-citre 是基于 Ctags（Universal Ctags 版本）的代码浏览器工具，也支持[集成使用GNU global 的 GTAGS 文件](https://github.com/universal-ctags/citre/blob/master/docs/user-manual/citre-global.md)。
-
-```emacs-lisp
-(setenv "GTAGSOBJDIRPREFIX" (expand-file-name "~/.cache/gtags/"))
-(setenv "GTAGSCONF" (car (file-expand-wildcards "/opt/homebrew/opt/global/share/gtags/gtags.conf")))
-(setenv "GTAGSLABEL" "pygments")
-
-(use-package citre
-  :after (eglot)
-  :init
-  ;; 当打开一个文件时，如果可以找到对应 TAGS 文件则自动开启 citre-mode。开启了 citre-mode 后，会自动
-  ;; 向 xref-backend-functions hook 添加 citre-xref-backend，从而支持于 xref 和 imenu 的集成。
-  (require 'citre-config)
-  :config
-  ;; 只使用支持 reference 的 GNU Global tags。
-  (setq citre-completion-backends '(global))
-  (setq citre-find-definition-backends '(global))
-  (setq citre-find-reference-backends '(global))
-  (setq citre-tags-in-buffer-backends  '(global))
-  (setq citre-auto-enable-citre-mode-backends '(global))
-  ;; citre-config 的逻辑只对 prog-mode 的文件有效。
-  (setq citre-auto-enable-citre-mode-modes '(go-ts-mode go-mode python-ts-mode python-mode rust-ts-mode rust-mode))
-  (setq citre-use-project-root-when-creating-tags t)
-  (setq citre-peek-file-content-height 20)
-  ;; citre-config 自动开启 citre-mode 后，下面 citre-mode-map 快捷键才生效。
-  (define-key citre-mode-map (kbd "s-.") 'citre-jump)
-  (define-key citre-mode-map (kbd "s-,") 'citre-jump-back)
-  (define-key citre-mode-map (kbd "s-?") 'citre-peek-reference)
-  (define-key citre-mode-map (kbd "s-p") 'citre-peek)
-  (define-key citre-peek-keymap (kbd "s-n") 'citre-peek-next-line)
-  (define-key citre-peek-keymap (kbd "s-p") 'citre-peek-prev-line)
-  (define-key citre-peek-keymap (kbd "s-N") 'citre-peek-next-tag)
-  (define-key citre-peek-keymap (kbd "s-P") 'citre-peek-prev-tag)
-  (global-set-key (kbd "C-x c u") 'citre-global-update-database)
-  ;; eglot 生效时关闭 citre-mode，防止两者的 xref backend 相互干扰。
-  (add-hook 'eglot-managed-mode-hook (lambda ()(citre-mode -1))))
-```
-
-创建和更新 GNU global GTAGS 文件（保存到 GTAGSOBJDIRPREFIX 环境变量指定的位置，如 ~/.cache/gtags/)：
-
--   M-x citre-global-create-database
--   M-x citre-global-update-database
-
-<!--listend-->
-
-```shell
-zj@a:~/.cache/gtags/Users/alizj/go/src/**/bp-agent$ ls -l
-total 2.8M
--rw-r--r-- 1 alizj  32K  3 30 11:53 GPATH
--rw-r--r-- 1 alizj 600K  3 30 11:53 GRTAGS  # reference tags
--rw-r--r-- 1 alizj 1.9M  3 30 11:53 GTAGS   # tags
-```
-
-注意以下两个命令创建 Universal Ctags 的 ctags 文件（项目有 .tags/ 目录或 .tags 或 tags 文件），而非
-GNU global GTAGS 文件，不支持 references，不建议使用：
-
--   M-x citre-create-tags-file
--   M-x citre-update-tags-file
-
-如果误使用了上面的命令创建 ctags 文件则后续使用 xref-find-references 会 hang，需要删除。
-
-使用 citre:
-
-M-x citre-jump-to-reference
-: which reuses the citre-jump UI;
-
-M-x citre-peek-references
-: equivalent to citre-peek;
-
-M-x citre-ace-peek-references
-: equivalent to citre-ace-peek;
-
-M-x citre-peek-through-references
-: equivalent to citre-peek-through.
-
-M-x citre-ace-peek
-: 使用 ace 来 peek 查看指定的符号定义或函数签名。
-
-M-x citre-peek
-: 查看当前光标处符号的定义或函数签名。
-
-执行 s-? (citre-peek-reference) 支持如下快捷键：
-
--   M-n, M-p: Next/prev line，当前显示的内容的下一行或上一行（文件不变）。
--   M-N, M-P: Next/prev definition. 切换到下一个或上一个文件。
--   M-l j: Jump to the definition. (跳转到当前预览的位置定义文件，同时 peek window 继续显示，可以使用
-    M-n/M-p/M-N/M-P 来使用 peek window)。
--   M-l p：M-x citre-peek-through， 在 peek window 中选择一个 symbol，然后跳转到定义。
--   C-g: Close the peek window.
-
-M-l 前缀快捷键：
-
--   j citre-peek-jump
--   f citre-peek-make-current-tag-first
--   D citre-peek-delete-branches
--   d citre-peek-delete-branch
--   r citre-peek-through-reference
--   p citre-peek-through
-
-通过 peek through 打开多个多个 function definition 后，citre 会在 peek window 下方记录 peek history，可以使用 &lt;left&gt;/&lt;right&gt; 来移动 history，当前的位置用 [func] 方括号来表示。
-
-可以使用 C-l 来调整 peek window 的位置。
-
-对于开启了 citre-mode 的 buffer，citre 会向 xref-backend-functions 中添加 citre-xref-backend, 所以后续使用 imenu/xref-find-references/xref-find-definitions 时会使用 citre 提供的输入。同时 xref 和
-consult 结合，可以使用 consult 来预览 xref 的结果。
-
-xref-backend-functions 可能会被添加多个 backend，它使用第一个 backend 返回地信息，所以必须确保
-citre-xref-backend 位于列表的第一位。常见的问题是 eglot 会将 xref-backend-functions 重置为唯一的
-eglot-xref-backend。
-
--   解决办法：定义一个函数 my/toggle-eglot 来关闭 eglot，这时 xref-backend-functions 会恢复为 eglot 启动前设置的值。
-
-在 citre-jump（M-.) 的弹出时 buffer 中可以使用正则语法对候选者进行过滤（orderless 提供的支持）, 例如: `something kind:^member$ kind:^macro$ input:.c$`
-
-
-### <span class="section-num">11.9</span> python {#python}
+### <span class="section-num">11.8</span> python {#python}
 
 brew install python 目前(2024.03.17)安装的是 python@12 版本:
 
@@ -2814,7 +2636,7 @@ executionEnvironments：
 `*lsp-log*` buffer 的日志。
 
 
-### <span class="section-num">11.10</span> go {#go}
+### <span class="section-num">11.9</span> go {#go}
 
 安装最新 gopls 工具:
 
@@ -2915,7 +2737,7 @@ go work use ./path/to/module1 ./path/to/module2
 1.  如果补全或自动提示异常, 执行 `M-x eglot-events-buffer` 看是否有报错(例如 GOPROXY=Off 导致的问题.)
 
 
-### <span class="section-num">11.11</span> rust {#rust}
+### <span class="section-num">11.10</span> rust {#rust}
 
 安装 rust 工具链，这里使用 rustup 来管理工具链和版本：
 
@@ -3113,7 +2935,7 @@ carg-mode 命令(快捷键前缀: C-c a):
     2.  或者先将 `所有依赖` 提前添加到 Cargo.toml 文件, 然后再启动 eglot;
 
 
-### <span class="section-num">11.12</span> markdown {#markdown}
+### <span class="section-num">11.11</span> markdown {#markdown}
 
 ```bash
 brew install multimarkdown
@@ -3218,7 +3040,7 @@ machine api.github.com login geekard@qq.com password YOUR_TOKEN
 ```
 
 
-### <span class="section-num">11.13</span> shell {#shell}
+### <span class="section-num">11.12</span> shell {#shell}
 
 emacs 使用 `bash-ts-mode` 来编辑 shell 脚本。安装 bash language server:
 
@@ -3244,7 +3066,7 @@ brew install shellcheck
 1.  [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
 
 
-### <span class="section-num">11.14</span> clang {#clang}
+### <span class="section-num">11.13</span> clang {#clang}
 
 安装最新的 llvm 和 clang:
 
@@ -3461,7 +3283,7 @@ bpf
 ```
 
 
-### <span class="section-num">11.15</span> tempel {#tempel}
+### <span class="section-num">11.14</span> tempel {#tempel}
 
 ```emacs-lisp
 (use-package tempel
@@ -3484,7 +3306,7 @@ bpf
 ```
 
 
-### <span class="section-num">11.16</span> dape {#dape}
+### <span class="section-num">11.15</span> dape {#dape}
 
 C/C++/Rust 语言调试: llvm 项目提供了名为 lldb-vscode(新版被重命名为 lldb-dap) 的 debug adapter, 但相比 codelldb 功能较弱而且和 dape 不兼容(执行失败), 会报类似错误: failed to load objfile
 ...lib/rustlib/x86_64-apple-darwin/lib/libcore-ef02792cbce15279.rlib, 所以需要使用 codelldb 来代替.
@@ -3656,7 +3478,7 @@ dape 不使用 launch.json 配置, 而是使用 emacs dir-local 变量, 例如:
 3.  结束调试: M-x dape-quit, 自动关闭 dape buffer 窗口.
 
 
-### <span class="section-num">11.17</span> compilation {#compilation}
+### <span class="section-num">11.16</span> compilation {#compilation}
 
 ```emacs-lisp
 ;; https://gitlab.com/skybert/my-little-friends/-/blob/master/emacs/.emacs#L295
@@ -3751,7 +3573,7 @@ C-c C-k
 : kill-compilation
 
 
-### <span class="section-num">11.18</span> others {#others}
+### <span class="section-num">11.17</span> others {#others}
 
 mwim：C-a/C-e 移动到行或代码的开头、结尾：
 
