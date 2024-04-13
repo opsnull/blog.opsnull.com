@@ -2,7 +2,7 @@
 title: "Rust Notes"
 author: ["张俊(zj@opsnull.com)"]
 date: 2024-04-05T00:00:00+08:00
-lastmod: 2024-04-05T11:02:48+08:00
+lastmod: 2024-04-13T21:31:06+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -10,23 +10,23 @@ series: ["rust-lang"]
 series_order: 1
 ---
 
-STARTUP: overview hideblocks
-
-
 ## <span class="section-num">1</span> comment {#comment}
 
-常规注释(不显示在 doc 中)：
+<https://doc.rust-lang.org/reference/comments.html>
 
-1.  `//` ：单行注释， 注释到行尾；
+常规注释(不显示在 cargo doc 中)：
+
+1.  `//` ：单行注释，注释到行尾；
 2.  `/* */` : 块注释；
 
-cargo doc 文档注释：
+cargo doc 注释：
 
-1.  `///` ：为 following item 创建 lib doc；
-2.  `/**` ： 为 following item 创建 lib doc；
-3.  `//!` : 为 eclosing item 创建 lib doc, 例如 module/crate 级别的注释.
+1.  INNER LINE DOC: `//!`
+2.  INNER BLOCK DOC:  `/*!`
+3.  OUTER LINE DOC: `///`
+4.  OUTER BLOCK DOC: `/** */`
 
-<!--listend-->
+其中 INNER 是 module/crate 级别的注释，而 OUTER 是紧接着的 item 的注释。
 
 ```rust
 //! A doc comment that applies to the implicit anonymous module of this crate
@@ -92,126 +92,7 @@ pub mod outer_module {
 ```
 
 
-## <span class="section-num">2</span> type {#type}
-
-rust 基本类型: Integer, Float, bool, char,Unit type (), array [T; N], tuple, pointer.
-
--   struct/enum/union 等属于自定义类型；
-
-type alias 只是原样替换，并没有引入新类型，所以可以按照本来的方式使用别名，它可以提升代码的可读性。
-
-```rust
-type Thunk = Box<dyn Fn() + Send + 'static>;
-let f: Thunk = Box::new(|| println!("hi"));
-fn takes_long_type(f: Thunk) {
-    // --snip--
-}
-fn returns_long_type() -> Thunk {
-    // --snip--
-}
-
-type Result<T> = std::result::Result<T, std::io::Error>;
-
-type Meters = u32;
-let x: u32 = 5;
-let y: Meters = 5;
-println!("x + y = {}", x + y);  // Meters 是 u32 的 alias，还具有 u32 的所有操作。
-```
-
-rust 不对 primitive 类型提供隐式的转换（coercion），但是可以通过 as 关键字做显式的类型转换（casting），转换规则和 C 类似。as 转换只适合 primitive 类型，对于自定义类型，如 struct/enum，需要使用 From/Into
-等 trait 的方法来转换。
-
-```rust
-#![allow(overflowing_literals)]
-
-fn main() {
-    let decimal = 65.4321_f32;
-
-    // Error! No implicit conversion
-    let integer: u8 = decimal;
-
-    // Explicit conversion
-    let integer = decimal as u8;
-    let character = integer as char;
-
-    // Error! There are limitations in conversion rules.  A float cannot be directly converted to a
-    // char.
-    let character = decimal as char;
-
-    println!("Casting: {} -> {} -> {}", decimal, integer, character);
-
-    // when casting any value to an unsigned type, T,
-    // T::MAX + 1 is added or subtracted until the value
-    // fits into the new type
-
-    // 1000 already fits in a u16
-    println!("1000 as a u16 is: {}", 1000 as u16);
-
-    // 1000 - 256 - 256 - 256 = 232
-    // Under the hood, the first 8 least significant bits (LSB) are kept,
-    // while the rest towards the most significant bit (MSB) get truncated.
-    println!("1000 as a u8 is : {}", 1000 as u8);
-    // -1 + 256 = 255
-    println!("  -1 as a u8 is : {}", (-1i8) as u8);
-
-    // For positive numbers, this is the same as the modulus
-    println!("1000 mod 256 is : {}", 1000 % 256);
-
-    // When casting to a signed type, the (bitwise) result is the same as
-    // first casting to the corresponding unsigned type. If the most significant
-    // bit of that value is 1, then the value is negative.
-
-    // Unless it already fits, of course.
-    println!(" 128 as a i16 is: {}", 128 as i16);
-
-    // In boundary case 128 value in 8-bit two's complement representation is -128
-    println!(" 128 as a i8 is : {}", 128 as i8);
-
-    // repeating the example above
-    // 1000 as u8 -> 232
-    println!("1000 as a u8 is : {}", 1000 as u8);
-    // and the value of 232 in 8-bit two's complement representation is -24
-    println!(" 232 as a i8 is : {}", 232 as i8);
-
-    // Since Rust 1.45, the `as` keyword performs a *saturating cast*
-    // when casting from float to int. If the floating point value exceeds
-    // the upper bound or is less than the lower bound, the returned value
-    // will be equal to the bound crossed.
-
-    // 300.0 as u8 is 255
-    println!(" 300.0 as u8 is : {}", 300.0_f32 as u8);
-    // -100.0 as u8 is 0
-    println!("-100.0 as u8 is : {}", -100.0_f32 as u8);
-    // nan as u8 is 0
-    println!("   nan as u8 is : {}", f32::NAN as u8);
-
-    // This behavior incurs a small runtime cost and can be avoided with unsafe methods, however the
-    // results might overflow and return **unsound values**. Use these methods wisely:
-    unsafe {
-        // 300.0 as u8 is 44
-        println!(" 300.0 as u8 is : {}", 300.0_f32.to_int_unchecked::<u8>());
-        // -100.0 as u8 is 156
-        println!("-100.0 as u8 is : {}", (-100.0_f32).to_int_unchecked::<u8>());
-        // nan as u8 is 0
-        println!("   nan as u8 is : {}", f32::NAN.to_int_unchecked::<u8>());
-    }
-}
-```
-
-栈变量类型：
-
-1.  原始值；
-2.  array/struct/tuple/enum/union
-
-堆变量类型：
-
-1.  字符串：String
-2.  容器：Vec/HashMap/HashSet
-3.  Slice
-4.  智能指针：Box/Rc/Arc/
-
-
-## <span class="section-num">3</span> scalar {#scalar}
+## <span class="section-num">2</span> scalar {#scalar}
 
 Scalar 类型如下：
 
@@ -236,26 +117,17 @@ The unit type ()
 对于数值变量:
 
 1.  没有指定类型时, 默认为 i32 和 f64;
-2.  可以加类型后缀, 如 23u8, 12.3f64;
-3.  数字/类型后缀之间可以加下划线, 如 2_3_u8 = 23u8;
-4.  可以使用 0b/0o/0x 表示整型；
+2.  字面量可以加类型后缀, 如 23u8, 12.3f64;
+3.  数字/类型后缀之间可以加下划线, 如 2_3_u8 等效于 23u8;
+4.  可以使用 0b/0o/0x 表示整型(只能使用小写字母前缀)；
 
 <!--listend-->
 
+<a id="code-snippet--scalar-test"></a>
 ```rust
-let x = 42; // 类型推断为 i32
-let y = 42u64; // 使用类型后缀指定为 u64
-let bin = 0b1111_0000; // 二进制，等于十进制的 240
-let oct = 0o377; // 八进制，等于十进制的 255
-let hex = 0xff; // 十六进制，等于十进制的 255
-
-let remainder = 43.0 % 5.0; // 取模运算, 截断除法
-
-let age: u32 = 18;
-let is_adult: bool = if age >= 18 { true } else { false };
-assert!(result == 4, "Expected the result to be 4");  // assert!() 检查表达式值是否为 true。
-
 fn main() {
+    let remainder = 43.0 % 5.0; // 浮点取模运算, 截断除法
+
     // Variables can be type annotated.
     let logical: bool = true;
 
@@ -272,14 +144,16 @@ fn main() {
     let mut mutable = 12; // Mutable `i32`
     mutable = 21;
     // Error! The type of a variable can't be changed.
-    mutable = true;
+    //mutable = true;
 
     // Variables can be overwritten with shadowing.
     let mutable = true;
+
+    println!("hello");
 }
 ```
 
-整数在超出其类型能表示的范围时会溢出。
+整数可能会溢出。
 
 1.  在 debug 构建中，Rust 检查整数溢出并导致 panic。
 2.  在 release 构建中，溢出不会被检查，并可能导致 "环绕" 行为。
@@ -294,58 +168,25 @@ fn main() {
 }
 ```
 
-char 是 unicode codepoint, 占用 4 bytes, 可以表示所有 unicode 字符.
-
-```rust
-let emoji: char = '😂';
-let chinese_character: char = '中';
-fn main() { // 遍历字符串中的 char 字符
-    let word = "Rust语言";
-    for ch in word.chars() {
-        println!("{}", ch);
-    }
-}
-
-// 使用 as 将 char 转换为整型码点, 使用 std::char::from_u32() 将码点 u32 转换为 char
-let unicode_codepoint = '🦀' as u32; // 将字符转换为对应的 Unicode 代码点
-println!("The Unicode code point of '🦀' is: U+{:X}", unicode_codepoint);
-let character_from_codepoint = std::char::from_u32(unicode_codepoint).unwrap_or_default();
-println!("The character from code point U+{:X} is: '{}'", unicode_codepoint, character_from_codepoint);
-
-// 向 String 添加 char 和 &str
-let mut s = String::new();
-s.push('H'); // 添加单个字符到字符串
-s.push_str("ello"); // 添加字符串到现有字符串
-```
-
-rust 不会为 primitive type 做隐式的转换，需要使用 as 关键字来显式转换：
-
--   as 是后缀运算法，优先级非常高。
--   类型转换时，如果浮点数转换为整数，其小数部分将被截断（不进行四舍五入）。如果整数类型转换为浮点数，值将被转换为最接近的浮点数表示。
-
-<!--listend-->
+Rust 不会为 primitive type 做隐式的转换，需要使用 as 表达式来显式转换。as 是后缀运算符，优先级非常高。类型转换时，浮点数转换为整数时小数部分将被截断（不进行四舍五入）。
 
 ```rust
 fn main() {
     let decimal = 97.123_f32;
-    let integer: u8 = decimal as u8; // 小数部分被阶段
+    let integer: u8 = decimal as u8;
     let c1: char = decimal as char;
     let c2 = integer as char;
-    assert_eq!(integer, 'b' as u8);
-    println!("Success!");
 
     let integer: u32 = 5;
     let float: f64 = 3.0;
-
     // 整数转换为浮点数
     let int_to_float = integer as f64; // 5.0
-
-    // 浮点数转换为整数
+    // 浮点数转换为整数，小数部分被截断
     let float_to_int = float as u32; // 3
 }
 ```
 
-复杂的类型转换, 需要使用 From/Into/TryInto trait. try_into 方法会返回一个 Result 类型，当转换失败时（例如，因为类型溢出或数据丢失），它会返回一个错误。from 方法则通常用于无风险的转换，它不会产生错误。
+复杂的类型转换需要使用 From/Into/TryInto trait. try_into 方法会返回一个 Result 类型，当转换失败时（例如，因为类型溢出或数据丢失），它会返回一个错误。from 方法则通常用于无风险的转换，它不会产生错误。
 
 ```rust
 use std::convert::TryInto;
@@ -383,7 +224,7 @@ fn main() {
 }
 ```
 
-单元类型 (Unit Type)：() 既是类型也是它的唯一值。单元类型在 Rust 中的一个主要用途是作为函数的返回类型，表明该函数执行一些操作，但不返回任何数据。
+单元类型 (Unit Type)：() 既是类型也是它的唯一值。单元类型在 Rust 中的一个主要用途是作为函数的返回类型，表明该函数不返回任何数据。
 
 ```rust
 fn main() {
@@ -417,57 +258,106 @@ fn take_unit(_unit: ()) {
 ```
 
 
-## <span class="section-num">4</span> char/str/String/OsStr/OsString/CStr/CString {#char-str-string-osstr-osstring-cstr-cstring}
+## <span class="section-num">3</span> char/str/String/OsStr/OsString/CStr/CString {#char-str-string-osstr-osstring-cstr-cstring}
 
 char 是固定 4 bytes 的 Unicode 字符码点, 可以使用 as 在 u8/u32 相互转换。str 和 String 保存的是
 UTF-8 变长编码的 Unicode 字符.
 
-str 是 rust 的原始类型，对应一块类型为 [u8] 的连续内存区域，和 String 类似，保存的是字符串的 UTF-8编码值，str 是编译时大小未知的，一般不能直接作为变量类型使用，而是使用借用类型 &amp;str；
-
--   rust 字符串字面量类型是 &amp;str，而且默认具有 'static lifetime；
+-   使用 as 将 char 转换为整型码点, 使用 std::char::from_u32() 将码点 u32 转换为 char；
 
 <!--listend-->
+
+```rust
+let emoji: char = '😂';
+let chinese_character: char = '中';
+fn main() {
+    // 遍历字符串中的 char 字符
+    let word = "Rust语言";
+    for ch in word.chars() {
+        println!("{}", ch);
+    }
+}
+
+let unicode_codepoint = '🦀' as u32; // 将字符转换为对应的 Unicode 代码点
+println!("The Unicode code point of '🦀' is: U+{:X}", unicode_codepoint);
+let character_from_codepoint = std::char::from_u32(unicode_codepoint).unwrap_or_default();
+println!("The character from code point U+{:X} is: '{}'", unicode_codepoint, character_from_codepoint);
+```
+
+str 是原始类型，对应一块 [u8] 连续内存区域，保存的是字符串的 UTF-8编码值。str 编译时大小未知，一般不能直接作为变量类型使用，而是使用借用类型 &amp;str 或智能指针 Box&lt;str&gt; 类型。另外 Rust 字符串字面量类型是
+&amp;'static str：
 
 ```rust
 fn main() {
     let s: str = "hello, world"; // 错误，str 不能直接作为类型
     let s: &str = "hello, world"; // OK
     println!("Success!");
+
+    let s: Box<str> = "hello, world".into(); // 在对上分配对象，s 拥有该对象
+    greetings(&s)
+
+    struct Anime { name: &'static str, bechdel_pass: bool };
+    let aria = Anime { name: "Aria: The Animation", bechdel_pass: true };
 }
+
+fn greetings(s: &str) {
+    println!("{}",s)
+}
+
 
 // &str 不能自动协变到 &[u8], 可以使用 as_bytes() 方法来转换为 &[u8]
 let bytes = "bors".as_bytes();
 assert_eq!(b"bors", bytes);
 ```
 
-也可以使用 Box&lt;str&gt; 来将未知大小的 str 转换为智能指针类型，，然后使用 Box&lt;T&gt; 缺省实现的
-Derefer&lt;Target=T&gt; 来在需要 &amp;T 的地方使用 &amp;Box&lt;T&gt;:
-
-```rust
-fn main() {
-    let s: Box<str> = "hello, world".into(); // 在对上分配对象，s 拥有该对象
-    greetings(&s)
-}
-
-fn greetings(s: &str) {
-    println!("{}",s)
-}
-```
-
-&amp;str 和 String 的相互转换：
+&amp;str 和 String 间转换：
 
 1.  String -&gt; &amp;str: String.as_str();
 2.  String::from("Sunfei") 或 "Sunface".to_string()
 
-String 是 UTF-8 编码的可变长字符串，位于 heap 中, 可以自动增加和修改内容:
+String 是 UTF-8 编码的可变长字符串，在 heap 中保存内容，可以动态修改。
 
--   char 是固定的 4 bytes 长度的 Unicode 码点，而 UTF-8 是可变长编码；
--   b'x' 返回字符 x 的 UTF-8 编码值（u8 类型）， 如 104 = b'h';
--   b"xyz" 返回 &amp;[u8; N] 类型数组的借用，支持转义字符, 即为 &amp;['x', 'y', 'z'];
--   r###"\\a\\b\\c"###: 不对字符串内容转义，r 后面的 # 数量可变，且只能使用连续的 # 字符；
--   br##"\\a\\b\\c\\t\\n"##: 类型为 &amp;[u8, 10], 不对字符串转移，必须是 br 而不能是 rb；
+-   String 和 &amp;str 的 len() 方法返回的都是 byte 的数量，而非 char 字符的数量；
+
+创建 String：
+
+1.  &amp;str.to_string()
+2.  &amp;str.to_owned()
+3.  format!()
+4.  Array/slice/Vec 的 .concat() 和 .join()
+
+<!--listend-->
+
+```rust
+let error_message = "too many pets".to_string();
+assert_eq!(format!("{}°{:02}′{:02}′′N", 24, 5, 23), "24°05′23′′N".to_string());
+let bits = vec!["veni", "vidi", "vici"];
+assert_eq!(bits.concat(), "venividivici");
+assert_eq!(bits.join(", "), "veni, vidi, vici");
+```
+
+其他：
+
+1.  char 是固定的 4 bytes 长度的 Unicode 码点，而 UTF-8 是可变长编码；
+2.  b'x'： byte char，返回字符 x 的 UTF-8 编码值（u8 类型）， 如 104 = b'h';
+3.  b"xyz"： byte string，返回 &amp;[u8; N] 类型数组的借用，也支持转义字符，如 &amp;['x', 'y', 'z'];
+4.  r###"\\a\\b\\c"###: raw string，不对字符串内容转义，r 后面的 # 数量可变, 但只能使用连续的 # 字符；
+5.  br##"\\a\\b\\c\\t\\n"##: raw byte string，类型为 &amp;[u8, 10], 不对字符串转义，必须是 br 而不能是 rb；
+6.  c"hello"：C string，以 NULL 结尾的 C 字符串。
+7.  cr#"hello"#：raw C string，以 NULL 结尾的 C 原生字符串。
+
+byte string 是 u8 类型的数组引用，所以可以当作 &amp;[u8] 来使用：
+
+```rust
+let method = b"GET";
+assert_eq!(method, &[b'G', b'E', b'T']);
+```
 
 字符串可以包含换行, 转义字符(如 \\x23, \\u{211D}), 默认左对齐, 行尾如果是 \\ 字符, 则删除换行符:
+
+-   转义字符包括：\\xaf, \\n, \\r, \\t, \\\\, \\0, \\', \\", \\u{0}, \\u{00}, …, \\u{000000}， 不包括二进制和八进制。
+
+<!--listend-->
 
 ```rust
 let s1 = String::from("hello,");
@@ -489,7 +379,7 @@ println!("{}", "a\t
 
 String 和 &amp;str 的 Index 操作返回 &amp;str, 但是需要保证 &amp;s[i..j] 的 i..j 是有效的字符边界，否则 panic，可以使用 non-panicking 版本 get();
 
--   s[i] 是禁止的， 因为 String/&amp;str 是 UTF-8 编码，返回 &amp;u8 可能是无意义的。
+-   s[i] 是禁止的，因为 String/&amp;str 是 UTF-8 编码，返回 &amp;u8 可能是无意义的；
 
 <!--listend-->
 
@@ -511,10 +401,10 @@ let s = String::from("hello world");
 let hello = &s[0..5]; // &str 类型
 ```
 
-String 类型实现了 Defref&lt;Target = str&gt;, 所以编译器自动将 &amp;String 转换为 &amp;str：
+String 类型实现了 Defref&lt;Target = str&gt;, 所以：
 
 1.  String 类似可以使用 str 定义的所有方法；
-2.  在需要 &amp;str 的函数参数，可以传入 &amp;String;
+2.  在需要 &amp;str 类型的地方可以传入 &amp;String;
 
 <!--listend-->
 
@@ -528,19 +418,9 @@ assert_eq!("💖", sparkle_heart);
 let s = "hello";
 let third_character = s.chars().nth(2); // charts() 返回 char 类型（固定 4 bytes Unicode 码点）
 assert_eq!(third_character, Some('l'));
-```
 
-str 和 String 都是 `严格遵守 UTF-8 编码的` ，但是对于一些操作系统文件名或路径，可以不是 UTF-8 编码的字符串。所以 rust 引入了 std::ffi::OsStr/OsString 类型：
-
--   OsStr 是 unsized type，一般需要和 &amp; 和 Box 使用，不可以改变，类似于 str；
--   OsString 是 sized type，是 Owned 版本，可以修改，类似于 String；
--   OsString 实现了 Deref&lt;target = OsStr&gt;， 所以 &amp;OsString 可以使用 &amp;OsStr 定义的所有方法。
-
-<!--listend-->
-
-```rust
-use std::ffi::OsStr;
-let os_str = OsStr::new("foo");
+let noodles = "noodles".to_string();
+let oodles = &noodles[1..]; // String 的 slice 操作返回 str
 ```
 
 String 可以 +/+= &amp;str, 但是不支持 &amp;str 之间的 +/+= 操作, 以及 &amp;str + String:
@@ -559,6 +439,19 @@ assert_eq!(s3, "hello,world!");
 println!("{}", s1); // s1 已经在上面的 + 操作被 move, 导致继续使用 s1 出错。
 ```
 
+str 和 String 都是 `严格遵守 UTF-8 编码的` ，但是对于一些操作系统文件名或路径，可以不是 UTF-8 编码的字符串。所以 Rust 引入了 std::ffi::OsStr/OsString 类型：
+
+-   OsStr 是 unsized type，一般需要和 &amp; 和 Box 使用，不可以改变，类似于 str；
+-   OsString 是 sized type，是 OsStr 的 Owned 类型，可以修改，类似于 String；
+-   OsString 实现了 Deref&lt;target = OsStr&gt;， 所以 &amp;OsString 可以使用 &amp;OsStr 定义的所有方法。
+
+<!--listend-->
+
+```rust
+use std::ffi::OsStr;
+let os_str = OsStr::new("foo");
+```
+
 OsStr 的方法:
 
 -   pub fn as_encoded_bytes(&amp;self) -&gt; &amp;[u8]
@@ -568,7 +461,12 @@ OsStr 的方法:
 -   pub fn to_str(&amp;self) -&gt; Option&lt;&amp;str&gt;
 -   pub fn to_string_lossy(&amp;self) -&gt; Cow&lt;'_, str&gt;
 
-OsStr/OsString 都不是 NULL 终止的字符串, 但是类型 `std::ffi::CStr 和 std::ffi::CString` 是 NULL 终止的字符串.
+OsStr/OsString 都不是 NULL 终止的字符串, 但是类型 `std::ffi::CStr 和 std::ffi::CString` 是 NULL 终止的字符串，CStr 也有字面量形式：
+
+-   c"hello"：以 NULL 结尾的 C 原生字符串。
+-   cr#"hello"#：以 NULL 结尾的 C 原生字符串。
+
+<!--listend-->
 
 ```rust
 use std::ffi::CString;
@@ -598,10 +496,10 @@ to use `format!`, especially where there is a mix of literal and non-literal str
     format!("Hello {name}!")
 ```
 
-FromStr trait: 从 string 来生成各种类型的值：
+FromStr trait: 从 &amp;str 来生成各种类型的值：
 
 -   一般被 &amp;str.parse::&lt;T&gt;() 方法隐式调用。
--   rust 的基本类型，如整数、浮点数、bool、char、String、PathBuf、IpAddr、SocketAddr、Ipv4Addr、
+-   Rust 的基本类型，如整数、浮点数、bool、char、String、PathBuf、IpAddr、SocketAddr、Ipv4Addr、
     Ipv6Addr 都实现了该 trait。
 
 <!--listend-->
@@ -613,21 +511,13 @@ pub trait FromStr: Sized {
     // Required method
     fn from_str(s: &str) -> Result<Self, Self::Err>;
 }
-```
 
-str 的 parse::&lt;T&gt;() 方法用于将字符串转换为其它对象：
-
-```rust
 pub fn parse<F>(&self) -> Result<F, <F as FromStr>::Err>
   where
       F: FromStr,
 ```
 
-在使用 &amp;str.parse() 方法时一般需要指定目标对象类型，否则 rustc 不支持该调用哪个类型的 FromStr 实现：
-
--   注意：只支持目标类型本身，而不是它的 &amp;T 或 &amp;mut T；
-
-<!--listend-->
+使用 &amp;str.parse() 方法时一般需要指定目标对象类型，否则编译器可能不知道该调用那个类型的 FromStr 实现而报错：
 
 ```rust
 let four: u32 = "4".parse().unwrap();
@@ -641,7 +531,7 @@ let nope = "j".parse::<u32>();
 assert!(nope.is_err());
 ```
 
-b"xxx" 的类型是 &amp;[u8; N] 可以被当作 &amp;[u8] 使用， 支持如下方法：
+b"xxx" 的类型是 &amp;[u8; N]，可以自动被 unsized ceerce 到 &amp;[u8]：
 
 ```rust
 impl [u8]
@@ -655,9 +545,9 @@ pub fn eq_ignore_ascii_case(&self, other: &[u8]) -> bool
 pub fn make_ascii_uppercase(&mut self)
 pub fn make_ascii_lowercase(&mut self)
 pub fn escape_ascii(&self) -> EscapeAscii<'_>
-    let s = b"0\t\r\n'\"\\\x9d";
-    let escaped = s.escape_ascii().to_string();
-    assert_eq!(escaped, "0\\t\\r\\n\\'\\\"\\\\\\x9d");
+let s = b"0\t\r\n'\"\\\x9d";
+let escaped = s.escape_ascii().to_string();
+assert_eq!(escaped, "0\\t\\r\\n\\'\\\"\\\\\\x9d");
 
 pub const fn trim_ascii_start(&self) -> &[u8]
 #![feature(byte_slice_trim_ascii)]
@@ -682,21 +572,15 @@ pub const fn as_bytes(&self) -> &[u8]
 ```
 
 
-## <span class="section-num">5</span> array {#array}
+## <span class="section-num">4</span> array {#array}
 
-array 是固定类型和长度的数组，用 [T; N] 表示，N 必须是编译时常量且是类型的一部分，在栈上分配的连续内存空间, 可以高效连续访问和遍历。
+array 是同类型元素的和固定长度的，在栈上分配的连续内存空间，用 [T; N] 表示，N 必须是编译时常量且是类型的一部分，可以高效连续访问和遍历。
 
 ```rust
 fn init_arr(n: i32) {
     let arr = [1; n]; // 错误, n 不是编译时常量.
 }
 ```
-
-array 的特性
-
-1.  同类型元素：数组中的所有元素必须是相同的数据类型。
-2.  固定长度：数组的长度在编译时就确定，并且之后不能更改。
-3.  栈分配：数组通常在栈上分配，这意味着它们的访问速度非常快。
 
 创建 array：
 
@@ -706,7 +590,7 @@ let zeroes: [i32; 5] = [0; 5]; // 声明一个有 5 个元素都是 0 的数组.
 println!("numbers: {:?}", numbers);
 println!("zeroes: {:?}", zeroes);
 
-let mut values: [i32; 3] = [10, 20, 30]; // 声明可变数组，后续可以修改。
+let mut values: [i32; 3] = [10, 20, 30];
 values[1] = 25;
 println!("values: {:?}", values);
 println!("The array has {} elements.", values.len());
@@ -739,23 +623,24 @@ fn print_type_of<T>(v: &T) -> String {
     format!("{}", std::any::type_name_of_val(v))
 }
 
-print_type_of(&numbers[0]); // i32，切片引用支持 index 操作，返回元素本身, 必须实现 Copy, 否则会被转移所有权
+print_type_of(&numbers[0]); // i32，切片引用支持 index 操作，返回元素本身, 必须实现 Copy, 否则报错。
 ```
 
-rust 数组和集合的元素索引都从 0 开始, 必须 &lt; len(), 否则会 panic. 但是可以通过 get(i) 返回的
+Rust 数组和集合的元素索引都从 0 开始, 必须 &lt; len(), 否则会 panic，但是可以通过 get(i) 返回的
 Option&lt;T&gt; 来判断 index 对应的元素是否存在.
 
-array 的 slice 操作, 如 a[start..ennd] 返回一个 dynamic size 的 slice [T] 类型，一般使用 2 个 usize
-大小的 &amp;[T] 类型，它包含指向连续内存 array 的起始地址以及 slice 的长度。
+array 的 slice 操作, 如 a[start..ennd] 返回一个 dynamic size 的 slice [T] 类型，故一般使用 &amp;[T] 或
+Box&lt;[T]&gt;:
 
 -   slice 操作返回的 &amp;a[start..ennd] 不需要拷贝内存, 它们不拥有任何数据，而只是借用数组或其他集合中的数据。
--   slice [T] 是 dynamic size, 不能反向 coerce 到 array, 但是可以使用 slice.try_into().unwrap() or
-    &lt;ArrayType&gt;::try_from(slice).unwrap(). 来在相同长度的 slice 和 array 之间转换:
+-   slice [T] 是 dynamic size, 不能反向 coerce 到 array, 但是可以使用 slice.try_into().unwrap() 或
+    &lt;ArrayType&gt;::try_from(slice).unwrap() 来在相同长度的 slice 和 array 之间转换:
 
 <!--listend-->
 
 ```rust
 let arr = [1, 2, 3, 4, 5];
+
 // 创建一个包含整个数组的切片
 let slice_whole = &arr[..]; // 等同于 &arr
 // 创建一个包含数组中一部分元素的切片
@@ -767,7 +652,7 @@ let hello = &s[0..5];
 // 创建一个字符串切片，包含后5个字符
 let world = &s[6..11];
 
-let bytes: [u8; 3] = [1, 0, 2]; // bytes 是 array
+let bytes: [u8; 3] = [1, 0, 2];
 // &bytes[0..2] 返回 slice
 // <[u8; 2]>::try_from(&bytes[0..2]) 是从 slice 生成 array
 assert_eq!(1, u16::from_le_bytes(<[u8; 2]>::try_from(&bytes[0..2]).unwrap()));
@@ -815,10 +700,9 @@ fn main() {
 }
 ```
 
-rust index 操作返回的是元素本身, 如果 array 中元素不支持 Copy 则不能被 move.(rust 不允许
-Array/Vec/HashMap/HashSet 中的元素被 move 出来).
+Rust 不允许 Array/Vec/HashMap/HashSet 中的元素被 partial move 出来（全部 move 出来是 OK 的），所以如果 array 元素不支持 Copy，则 index 操作后赋值会失败：
 
--   其他类似场景, 如 Vec/Struct/Enum 也不允许部分元素或成员被 move out；
+-   但是允许 struct/tupule/union 中的 field 被部分 move 出来。
 -   解决办法是使用 std::mem::replace() 来用其同类型对象来替换:
 -   Slice patterns can match both arrays of fixed size and slices of dynamic size.
 
@@ -826,24 +710,9 @@ Array/Vec/HashMap/HashSet 中的元素被 move 出来).
 
 ```rust
 fn move_away(_: String) { /* Do interesting things. */ }
-let [john, roa] = ["John".to_string(), "Roa".to_string()];
+let [john, roa] = ["John".to_string(), "Roa".to_string()]; // 全部 move 出来， OK！
 move_away(john);
 move_away(roa);
-
-// Fixed size
-let arr = [1, 2, 3];
-match arr {
-    [1, _, _] => "starts with one",
-    [a, b, c] => "starts with something else",
-};
-
-// Dynamic size
-let v = vec![1, 2, 3];
-match v[..] {
-    [a, b] => { /* this arm will not apply because the length doesn't match */ }
-    [a, b, c] => { /* this arm will apply */ }
-    _ => { /* this wildcard is required, since the length is not known statically */ }
-};
 
 // 有问题代码:
 struct Buffer<T> { buf: Vec<T> }
@@ -855,8 +724,7 @@ impl<T> Buffer<T> {
         t
     }
 }
-
-// std::mem::replace 对 &mut 对象操作, 替换并返回 Array/Vec 的元素:
+// std::mem::replace 对 &mut 对象替换, 返回替换前的对象
 use std::mem;
 impl<T> Buffer<T> {
     fn replace_index(&mut self, i: usize, v: T) -> T {
@@ -869,7 +737,7 @@ assert_eq!(buffer.replace_index(0, 2), 0);
 assert_eq!(buffer.buf[0], 2);
 ```
 
-如果 array 的元素类型实现了如下 trait，这 array 也实现了对应 trait：
+如果 array 元素类型实现了如下 trait，则 array 也实现了对应 trait：
 
 -   Copy，Clone
 -   Debug
@@ -880,12 +748,12 @@ assert_eq!(buffer.buf[0], 2);
 -   Borrow, BorrowMut
 
 
-## <span class="section-num">6</span> slice {#slice}
+## <span class="section-num">5</span> slice {#slice}
 
-slice 代表一块连续的内存区域，用 [T] 表示，它是未知大小的类型，一般转换为指针类型，如 &amp; 或 Box/Rc 等；
+slice 代表一块连续的内存区域，用 [T] 表示，它是编译时大小未知的类型。作为变量/函数输入/输出参数类型来使用时, 一般使用具体固定大小的 &amp;[T] 或 Box&lt;[T]&gt; 类型:
 
--   [T] 是编译时位置大小的类型, 但 &amp;[T]/&amp;mut [T] 是固定 2 usize 大小的指针类型；
--   作为变量/函数输入/输出参数类型来使用时, 一般使用具体固定大小的 &amp;[T] 类型；
+-   虽然编译时大小未知，但是 .len() 方法返回 slice 的元素数量；
+-   &amp;[T] 固定大小为 2 usize 的引用（指针）类型（栈变量），包含指向内存区域的指针和元素数量；
 
 <!--listend-->
 
@@ -899,7 +767,7 @@ assert_eq!(2 * pointer_size, std::mem::size_of::<Rc<[u8]>>());
 
 创建 slice &amp;[T]：
 
--   对 array/vec/String/&amp;str 的 range index 操作返回 [T];
+-   对 array/Vec/String/&amp;str 的 range index 操作返回 [T]， 如 &amp;v[0..2]，&amp;v[1..]，&amp;v[..] 等；
 -   Vec[T] 实现了 Deref&lt;Target=[T]&gt;，所以 &amp;Vec&lt;T&gt; 可以被隐式转换为 &amp;[T]，在需要 &amp;[T] 类型的地方可以传入 &amp;Vec&lt;T&gt; 类型，Vec 对象也可以调用 slice [T] 的方法；
     -   &amp;vec 返回 &amp;Vec&lt;i32&gt; 类型，而 &amp;vec[n..m] 返回 &amp;[i32]；
 -   array [T; N] 可以被 type coercing 到 [T], 所以 &amp;[T; N] 可以被隐式转换为 &amp;[T]，这样 array 对象也可以调用 slice [T] 的方法；
@@ -919,10 +787,6 @@ let mut x = [1, 2, 3];
 let x = &mut x[..]; // Take a full slice of `x`.
 x[1] = 7;
 assert_eq!(x, &[1, 7, 3]);
-
-// 对 String 类型进行 slice 操作, 结果为 &str
-let s = String::from("hello world");
-let hello = &s[0..5];
 
 // 由于数组 [i32; 3] 可以被 coerce 到 unsize 的 [T], 所以 &[i32; 3] 可以被赋值给 &[i32]
 let numbers: &[i32] = &[0, 1, 2];
@@ -975,11 +839,7 @@ fn main() {
 
 slice.to_vec() 方法将 slice 内容 clone 到一个新的 Vec 中.
 
-slice [T] 的 index 操作返回的 T 类型, mut [T] 的 index 操作返回的 mut T 类型:
-
--   s[i] 返回的 s 的元素类型而非它的引用，所以支持将 x[i] 作为左值。
-
-<!--listend-->
+s[i] 返回的 s 的元素类型而非它的引用，所以支持将 x[i] 作为左值:
 
 ```rust
 let mut x = [1, 2, 3];
@@ -1040,7 +900,9 @@ assert!(empty_slice_of_arrays.flatten().is_empty());
 ```
 
 
-### <span class="section-num">6.1</span> slice 方法 {#slice-方法}
+### <span class="section-num">5.1</span> slice 方法 {#slice-方法}
+
+slice 方法：
 
 ```rust
 impl<T> [T]
@@ -1278,7 +1140,6 @@ assert_eq!(s.split_once(|&x| x == 2), Some((
 )));
 assert_eq!(s.split_once(|&x| x == 0), None);
 
-
 pub fn contains(&self, x: &T) -> bool where T: PartialEq
 let v = [10, 40, 30];
 assert!(v.contains(&30));
@@ -1308,10 +1169,10 @@ pub fn binary_search_by_key<'a, B, F>(&'a self, b: &B,f:F) -> Result<usize, usiz
 
 // 对 slice 进行排序，unstable 表示不保证重复元素的顺序
 pub fn sort_unstable(&mut self) where T: Ord
-pub fn sort_unstable_by<F>(&mut self, compare: F) where    F: FnMut(&T, &T) -> Ordering
-pub fn sort_unstable_by_key<K, F>(&mut self, f: F) where    F: FnMut(&T) -> K,    K: Ord
-pub fn select_nth_unstable(    &mut self,    index: usize) -> (&mut [T], &mut T, &mut [T]) where    T: Ord
-pub fn select_nth_unstable_by<F>(    &mut self,    index: usize,    compare: F) -> (&mut [T], &mut T, &mut [T]) where F: FnMut(&T, &T) -> Ordering
+pub fn sort_unstable_by<F>(&mut self, compare: F) where F: FnMut(&T, &T) -> Ordering
+pub fn sort_unstable_by_key<K, F>(&mut self, f: F) where F: FnMut(&T) -> K, K: Ord
+pub fn select_nth_unstable( &mut self, index: usize) -> (&mut [T], &mut T, &mut [T]) where T: Ord
+pub fn select_nth_unstable_by<F>( &mut self, index: usize, compare: F) -> (&mut [T], &mut T, &mut [T]) where F: FnMut(&T, &T) -> Ordering
 pub fn select_nth_unstable_by_key<K, F>( &mut self, index: usize, f: F ) -> (&mut [T], &mut T, &mut [T]) where F: FnMut(&T) -> K, K: Ord
 let mut v = [-5, 4, 1, -3, 2];
 v.sort_unstable();
@@ -1472,17 +1333,10 @@ pub fn connect<Separator>( &self, sep: Separator ) -> <[T] as Join<Separator>>::
 ```
 
 
-## <span class="section-num">7</span> tuple {#tuple}
+## <span class="section-num">6</span> tuple {#tuple}
 
-tuple 中的元素类型可以不同,格式为 (T1, T2, T3), 可以使用 pattern match 进行析构, 这使得元组非常灵活和强大，非常适合于存储和传递一组异构数据。元组也可以作为函数的返回值, 或者将数据组织成单个复合类型。
-
-元组的特性
-
-1.  类型多样性：元组可以包含不同类型的数据。
-2.  固定大小：一旦定义，元组的大小和类型就固定下来，不能更改。
-3.  索引访问：可以通过索引来访问元组的特定元素。
-
-<!--listend-->
+tuple 是固定大小和可以保存不同数据类型的类型，用 (T1, T2, T3) 表示。 可以使用 pattern match 进行析构,
+这使得元组非常灵活和强大，非常适合于存储和传递一组异构数据。元组也可以作为函数的返回值, 或者将数据组织成单个复合类型。
 
 ```rust
 fn main() {
@@ -1513,9 +1367,9 @@ tuple 拥有其中的各元素对象, 和 struct 一样, 允许部分元素被 m
 -   array/vec/slice 等集合不允许元素被 move 走.
 -   具体参考: [2](#org-target--partial-move)
 
-使用 index 访问元素, 如 t.0, t.1 等.
+使用 index 访问各元素, 如 t.0, t.1 等.
 
-析构 tuple: 对于 enum 类型是在枚举 variant 值外部而非内部类匹配 &amp; 或 &amp;mut 的， 对于 tuple 类型也是在
+析构 tuple: enum 类型是在枚举 variant 值外部而非内部类匹配 &amp; 或 &amp;mut 的， 对于 tuple 类型也是在
 tuple 外部匹配 &amp; 或 &amp;mut 的:
 
 ```rust
@@ -1567,19 +1421,17 @@ fn main() {
 }
 ```
 
-单个元素: (T,) 不能是 (T), 以免和函数参数混淆.
+单个元素类型时，元素后需要加逗号，如 (T,) ，以免和函数参数混淆。多个元素时，最后一个元素后可选的加逗号。
 
-多个元素, 最后可加可选的 , 号, 如: (1, 2,).
-
-空 tuple () 也称为 unit type, 只有一个空值 ().
+空 tuple () 也称为 unit type, 只有一个空值 ()。
 
 
-## <span class="section-num">8</span> const/static/lazy_static! {#const-static-lazy-static}
+## <span class="section-num">7</span> const/static/lazy_static! {#const-static-lazy-static}
 
-rust 支持两种 const 常量，可以在全局或任意 scope 中声明（和变量一样，必须先声明并初始化后才可以使用）：
+Rust 支持两种 const 常量，可以在全局或任意 scope 中声明：
 
 1.  const：不可变值；
-2.  static：可能可变的（static mut）, 默认带 'static lifetime，需要在 unsafe 中读写 static mut 值；
+2.  static：可能可变的（static mut），需要在 unsafe 中读写 static mut 值；
 3.  全局常量需要使用 `全大写名称` ，否则编译器警告；
 
 <!--listend-->
@@ -1614,13 +1466,37 @@ fn main() {
 2.  不能分配内存和操作原始指针(即使在 unsafe block 中也不行);
 3.  除了声明周期外,不能使用其他类型作为泛型参数;
 
-对 const/static 变量的初始化, 只能使用 const 函数/tuple 类型:
+对 const/static 变量的初始化, 只能使用 const 函数/tuple 类型。可以使用 lazy_static! 宏定义静态变量，可以使用任何表达式进行初始化，表达式会在变量第一次解引用时运行，值会被存储在变量中以便后续使用。使用
+lazy_static! 会导致每次访问静态数据有微小的性能开销。它的实现里使用 了 std::sync::Once，它是一种用于一次性初始化的底层同步原语。在幕后，每一次访 问一个惰性静态变量时，程序都会执行一个原子 load指令来检查是否已经初始化过。
 
--   如各种原子类型的 new 方法, 如 AtomicUsize::new() , 以及 String::new() 是 const fn，新版的
-    Mutex::new() 也是.
--   用 Mutex/Atomic/RwMutex 等内部可变性机制,可以对全局 static 进行修改.
+```rust
+use std::sync::Mutex;
+lazy_static! {
+    static ref HOSTNAME: Mutex<String> = Mutex::new(String::new());
+}
+```
 
-<!--listend-->
+const/static 默认具有 'static lifetime.
+
+```rust
+const BIT1: u32 = 1 << 0;
+const BIT2: u32 = 1 << 1;
+
+const BITS: [u32; 2] = [BIT1, BIT2];
+const STRING: &'static str = "bitstring";
+
+struct BitsNStrings<'a> {
+    mybits: [u32; 2],
+    mystring: &'a str,
+}
+
+const BITS_N_STRINGS: BitsNStrings<'static> = BitsNStrings {
+    mybits: BITS,
+    mystring: STRING,
+};
+```
+
+由于全局 const/static 默认是不可修改的，所以一般使用支持内部可变性的 Mutex/AtomicXX 来作为全局对象的类型，这样后续可以修改他们。
 
 ```rust
 use std::sync::atomic::AtomicUsize;
@@ -1636,22 +1512,8 @@ fn main() {
 }
 ```
 
-解决办法：使用 lazy_static! 宏定义静态变量，可以使用任何表达式进行初始化，表达式会在变量第一次解引用时运行，值会被存储在变量中以便后续使用。
 
--   使用 lazy_static! 会导致每次访问静态数据有微小的性能开销。它的实现里使用 了 std::sync::Once，它是一种用于一次性初始化的底层同步原语。
--   在幕后，每一次访 问一个惰性静态变量时，程序都会执行一个原子 load 指令来检查是否已经初始化过。
-
-<!--listend-->
-
-```rust
-use std::sync::Mutex;
-lazy_static! {
-    static ref HOSTNAME: Mutex<String> = Mutex::new(String::new());
-}
-```
-
-
-## <span class="section-num">9</span> pointer {#pointer}
+## <span class="section-num">8</span> pointer {#pointer}
 
 Rust 提供如下几种指针类型：
 
@@ -1705,11 +1567,11 @@ fn main() {
 ```
 
 
-## <span class="section-num">10</span> struct {#struct}
+## <span class="section-num">9</span> struct {#struct}
 
-struct/enum/union 是 rust 的三种自定义类型。自定义类型名必须是 CamelCase，否则 rustc 会 warnning。
+struct/enum/union 是 Rust 的三种自定义类型。自定义类型名必须是 CamelCase，否则编译时警告。
 
-struct 和 enum 一样有三种类型:
+struct 有三种类型:
 
 1.  unit struct，不含任何 field： `struct MyStruct;`
 2.  tuple struct： `struct MyStruct(T1, T2);`
@@ -1745,8 +1607,7 @@ let Pair(integer, decimal) = pair;  // 解构 struct，注意前面的 Pair 不�
 在初始化 struct 对象时, 必须列出每一个 field:
 
 -   与 field 同名的变量赋值, 可以使用简写形式；
--   可以使用某个 struct 对象展开来快速创建一个新的 struct 对象, 它必须位于新 struct 初始化的最后一项,
-    不能包含结尾的分号;
+-   可以使用某个 struct 对象展开来快速创建一个新的 struct 对象, 它必须位于新 struct 初始化的最后一项且结尾不能有逗号。
 
 <!--listend-->
 
@@ -1820,60 +1681,45 @@ fn main() {
 fn set_email(u: User) -> User {
     User {
         email: String::from("contact@im.dev"),
-        ..u // u 必须位于最后, 且不能有逗号结尾。
+        ..u // u 必须位于最后, 且结尾不能有逗号
     }
 }
 // Make a new point by using struct update syntax to use the fields of our other one
 let bottom_right = Point { x: 5.2, ..point };
 ```
 
-无 field 的 struct MyStruct；示例：
+无 field 的 struct MyStruct； 等效于 struct MyStruct {}; :
 
 ```rust
-// Non-copyable types.
-struct Empty;
-struct Null;
-
-// A trait generic over `T`.
-trait DoubleDrop<T> {
-    // Define a method on the caller type which takes an additional single parameter `T` and does
-    // nothing with it.
-    fn double_drop(self, _: T);
-}
-
-// Implement `DoubleDrop<T>` for any generic parameter `T` and caller `U`.
-impl<T, U> DoubleDrop<T> for U {
-    // This method takes ownership of both passed arguments, deallocating both.
-    fn double_drop(self, _: T) {}
-}
-
-fn main() {
-    let empty = Empty; // Empty 是 struct Empty; 的唯一值;
-    let null  = Null;
-    empty.double_drop(null);
-}
+struct Cookie;
+let c = [Cookie, Cookie {}, Cookie, Cookie {}];
+// 等效于
+struct Cookie {}
+const Cookie: Cookie = Cookie {};
+let c = [Cookie, Cookie {}, Cookie, Cookie {}];
 ```
 
-由于 struct 会 owner 对应的 field value, 所以 field 一般使用 owneed 类型而非 &amp;T/&amp;mut T 类型('static
-除外), 因为后者需要声明生命周期参数:
+struct 会 owner 对应的 field value, 所以 field 一般使用 owneed 类型而非 &amp;T/&amp;mut T 类型('static 除外),
+因为后者需要声明生命周期参数:
 
 ```rust
-  struct Person {
-      name: String, // name 和 hobby 都是 Owner 类型, 而不是 &str;
-      hobby: String,
-  }
+struct Person {
+    name: String, // name 和 hobby 都是 Owner 类型, 而不是 &str;
+    hobby: String,
+}
 ```
 
 struct 整体和各 field 需要单独设置 public (enum 是整体 public 即可), 没有设置 public 的 filed 默认是私有的, 其他 moudule 不能访问.
 
-struct 默认没有实现 Copy/Clone 以及 Debug, 可以通过 derive 宏来让 rustc 编译器自动生成.
+struct 默认没有实现 Copy/Clone 以及 Debug, 可以通过 derive 宏来让编译器自动生成.
 
 -   不能通过 derive 属性来生成 Display trait, 需要手动实现该 trait.
 
-struct 在被 Destructure 时，如果 filed 没有实现 Copy，这可能会被 partial move, move 的 field 后续不能再访问:
+struct 的各 field 可以被单独借用，在被 Destructure 时，如果 filed 没有实现 Copy，这可能会被 partial
+move, move 的 field 后续不能再访问:
 
 -   enum 也可以被 partial move；
--   array/tuple/vec 元素不能被 partial move；
+-   array/tuple/vec 元素不能被 partial move, 但可以整体或全部没 move 出来（如迭代）。
 
 <!--listend-->
 
@@ -1904,7 +1750,8 @@ fn main() {
 
 struct 包含引用类型成员时需要明确指定 lifetime。嵌套带声明周期的 struct 时，外层 struct 也必须声明生命周期：
 
--   where 'a: 'b 表示 'a 的 lifetime 至少要比 'b 长。
+-   'a: 'b 表示 'a 的 lifetime 至少要比 'b 长。
+-   T: 'a 表示 T 的生命周期要比 'a 长.
 
 <!--listend-->
 
@@ -1949,12 +1796,12 @@ struct D<'a> {
 ```
 
 
-## <span class="section-num">11</span> enum {#enum}
+## <span class="section-num">10</span> enum {#enum}
 
 enum variant 可以包含（own）数据, 和 struct 类似，有 3 种类型:
 
 1.  Quit;
-2.  Quit {x: y, xx:yy}; // own struct 的 field 数据
+2.  Quit {x: y, xx:yy};
 3.  Quit (i32, String);
 
 <!--listend-->
@@ -1986,6 +1833,13 @@ enum Message {
     Write(String),
     ChangeColor(i32, i32, i32),
 }
+
+// 不允许多个 field 使用相同的 tag 值。
+enum SharedDiscriminantError2 {
+    Zero,       // 0
+    One,        // 1
+    OneToo = 1  // 1 (collision with previous!)
+}
 ```
 
 特殊的空 enum (无 variant)不能作为 value 使用, 主要的使用场景是作为不可能发生错误的 Result，如标准库类型 std::convert::Infallible：
@@ -2001,6 +1855,11 @@ impl<T, U> TryFrom<U> for T where U: Into<T> {
         Ok(U::into(value))  // Never returns `Err`
     }
 }
+
+// 另一个例子
+enum ZeroVariants {}
+let x: ZeroVariants = panic!();
+let y: u32 = x; // mismatched type error
 ```
 
 enum variant 的数据可以用在 pattern match 中：
@@ -2176,7 +2035,7 @@ fn main() {
 
 enum 只需为整体指定 pub 可见性即可，各 variant 的可见性继承自整体。（struct 需要为每个 field 指定可见性）。
 
-析构 enum：对于 enum 类型是在枚举 variant 值外部而非内部类匹配 &amp; 或 &amp;mut 的，
+析构 enum：对于 enum 类型是在枚举 variant 值外部而非内部类匹配 &amp; 或 &amp;mut 的:
 
 ```rust
 let x: &Option<i32> = &Some(3);
@@ -2218,58 +2077,32 @@ fn a_to_b(e: &mut MyEnum) {
 }
 ```
 
+Option/Result 也是 enum 类型，也支持迭代（实现了 IntoIterator），效果就如一个或 0 个元素。
 
-### <span class="section-num">11.1</span> Option/Result/Error {#option-result-error}
+Enum 的内存布局包括：tag 字段 和能容纳所有 variant 的内存，其中 tag 是 Rust 内部用来区分 variant 的。
 
-Option/Result 都是 enum 类型，也支持迭代（实现了 IntoIterator），效果就如一个或 0 个元素。
 
-Return consumed argument on error: If a fallible function consumes (moves) an argument, return that
-argument back inside an error.
+## <span class="section-num">11</span> variable binding {#variable-binding}
+
+Rust 使用 let 关键字声明变量。默认情况下，Rust 变量是不可变的（immutable），这意味着一旦一个变量被赋值后，它的值就不能改变。这种特性有利于保证代码的安全性和避免数据竞争。如果需要可变性，可以选择使用
+mut 关键字来声明变量。
 
 ```rust
-// https://rust-unofficial.github.io/patterns/idioms/return-consumed-arg-on-error.html
-pub fn send(value: String) -> Result<(), SendError> {
-    println!("using {value} in a meaningful way");
-    // Simulate non-deterministic fallible action.
-    use std::time::SystemTime;
-    let period = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
-    if period.subsec_nanos() % 2 == 1 {
-        Ok(())
-    } else {
-        Err(SendError(value))
-    }
-}
-
-pub struct SendError(String);
-
 fn main() {
-    let mut value = "imagine this is very long string".to_string();
+    let _immutable_binding = 1;
+    let mut mutable_binding = 1;
 
-    let success = 's: {
-        // Try to send value two times.
-        for _ in 0..2 {
-            value = match send(value) {
-                Ok(()) => break 's true,
-                Err(SendError(value)) => value,
-            }
-        }
-        false
-    };
+    // Ok
+    println!("Before mutation: {}", mutable_binding);
+    mutable_binding += 1;
+    println!("After mutation: {}", mutable_binding);
 
-    println!("success: {success}");
+    // Error! Cannot assign a new value to an immutable variable
+    _immutable_binding += 1;
 }
 ```
 
-
-## <span class="section-num">12</span> variable binding {#variable-binding}
-
-Rust 使用 let 关键字声明变量，而可变性则是由变量能否在其生命周期中改变值来定义的。
-
-默认情况下，Rust 中的变量是不可变的（immutable），这意味着一旦一个变量被赋值后，它的值就不能改变。这种特性有利于保证代码的安全性和避免数据竞争。如果需要可变性，可以选择使用 mut 关键字来声明变量。
-
-rust 是强类型静态语言，每个变量都需要有明确的类型，但一般情况下不需要明确指定而是由编译器推导。rust
+Rust 是强类型静态语言，每个变量都需要有明确的类型，但一般情况下不需要明确指定而是由编译器推导。Rust
 根据当前赋值或后续操作、赋值等情况，对变量的类型进行推导：
 
 ```rust
@@ -2315,6 +2148,60 @@ fn main() {
     another_binding = 1;
     println!("another binding: {}", another_binding);
 }
+// 另一个例子
+let name; // 先声明
+if user.has_nickname() { // 复杂条件判断, 在初始化变量:
+    name = user.nickname(); }
+else {
+    name = generate_unique_name();
+    user.register(&name);
+}
+```
+
+Rust 的 block 可以返回值, 所以可以用于复杂变量值的初始化:
+
+```rust
+let display_name = match post.author() {
+    Some(author) => author.name(),
+    None => {
+        let network_info = post.get_network_metadata()?;
+        let ip = network_info.client_address();
+        ip.to_string()  // 该 block 最后一条语句没有分号, 作为 block 的返回值
+    }
+};
+
+let msg = {
+    // let-declaration: semicolon is always required
+    let dandelion_control = puffball.open();
+    // expression + semicolon: method is called, return value
+    dropped
+    dandelion_control.release_all_seeds(launch_codes);
+    // expression with no semicolon: method is called, return value stored in `msg`
+    dandelion_control.get_status()
+};
+```
+
+但是如果 if 表达式没有用于赋值, 则 block 不能有返回值(必须是 ())
+
+```rust
+let suggested_pet =
+if with_wings { Pet::Buzzard } else { Pet::Hyena }; // ok
+
+
+// 错误的情况:
+if preferences.changed() {
+    page.compute_size()  // oops, missing semicolon
+}
+
+// 报错:
+  error[E0308]: mismatched types
+  22 |         page.compute_size()  // oops, missing semicolon
+     |         ^^^^^^^^^^^^^^^^^^^- help: try adding a semicolon:
+  `;`
+||
+| expected (), found tuple |
+= note: expected unit type `()`
+                found tuple `(u32, u32)`
 ```
 
 Rust 中的每个变量默认 `都需要被使用` ，否则编译器会警告，可以在变量名前加 _ 来表明该变量可能不被使用：
@@ -2334,26 +2221,9 @@ fn main() {
 }
 ```
 
-变量默认是不可变的，可以通过添加 mut 修饰符来修改：
-
-```rust
-fn main() {
-    let _immutable_binding = 1;
-    let mut mutable_binding = 1;
-
-    // Ok
-    println!("Before mutation: {}", mutable_binding);
-    mutable_binding += 1;
-    println!("After mutation: {}", mutable_binding);
-
-    // Error! Cannot assign a new value to an immutable variable
-    _immutable_binding += 1;
-}
-```
-
 变量绑定是有一个 scope 的，默认是所在的 block：
 
--   rust 变量可以被 shadow，shadow 并不会 drop 前面变量的值，shadown 可以为同名变量指定不同的可变性和变量值类型。
+-   变量可以被 shadow，shadow 并不会 drop 前面变量的值，shadown 可以为同名变量指定不同的可变性和变量值类型。
 -   如果 shadow 使用 `同名的变量名` ，则非 mut 变量可以将前面同名的 mut 变量 freezing，即不可修改。
 
 <!--listend-->
@@ -2398,17 +2268,28 @@ fn main() {
     // Ok! `_mutable_integer` is not frozen in this scope
     _mutable_integer = 3;
 }
+
+// 同名变量遮蔽，可以减少一个变量定义
+for line in file.lines() {
+    let line = line?;
+    // ...
+}
+// 未使用变量遮蔽的情况
+for line_result in file.lines() {
+    let line = line_result?;
+    // ...
+}
 ```
 
 
-## <span class="section-num">13</span> refer/borrow {#refer-borrow}
+## <span class="section-num">12</span> refer/borrow {#refer-borrow}
 
 Rust 变量不仅包含 stack 上的数据, 还 own resource, 如 Box&lt;T&gt; 拥有 T 在堆上的数据。
 
-RAII： Rust 中每一个资源或对象只能有一个 Owner（如变量），在 Owner 离开作用域 scope 时，它的 Drop
-trait 被调用来释放资源：可以避免资源泄露, 避免手动释放资源。也可以避免多次 free。
+RAII：Rust 中每一个资源或对象只能有一个 Owner（如变量），在 Owner 离开作用域 scope 时，它的 Drop
+trait 被调用来释放资源：可以避免资源泄露, 避免手动释放资源，也可以避免多次 free 资源。
 
--   panic 时的默认行为 unwind 也会调用 Drop trait 来释放资源。
+-   panic 默认行为是 unwind，期间也会调用 Drop trait 来释放资源。
 
 Rust 对象都有唯一的所有权，所有权可以通过赋值表达式、函数传参、函数返回、添加到 struct/tuple 和集合等来转移所有权, 原来的变量变成 `未初始化状态, 不能再使用`, 可以避免 dangling pointers。
 
@@ -2463,7 +2344,7 @@ fn main() {
 
 为了不获得对象所有权的情况下来使用对象，Rust 通过借用操作（borrow/mut borrow）来获得对象的引用。
 
--   或者通过引用技术类型，如 Rc/Arc 来使用对象。
+-   或者通过引用计数类型，如 Rc/Arc 来使用对象。
 
 `Rust borrow checker` 对所有权和借用进行检查，违反时编译报错：
 
@@ -2540,7 +2421,7 @@ let msm2 = &mut msm.1; // 可以从 &mut 创建出另一个 &mut
 msm2.push_str(" def");
 ```
 
-在 by-move 转移对象的所有权时可以改变它的可变性（毕竟转移到的变量 own 该对象）：
+在转移对象的所有权时可以改变它的可变性（毕竟转移到的变量 own 该对象）：
 
 ```rust
 fn main() {
@@ -2560,24 +2441,9 @@ fn main() {
 }
 ```
 
-Temporarily move out of borrowed content：
-
-```rust
-self.current_buffer = std::mem::replace(&mut self.next_buffer, Buffer { buffer: buf });
-
-/* ptr::read(src: *const T) -> T会从src指针处获取要复制的内容（假定是T类型实例），然后通过**”浅复制“**的方式，复制一份新实例，并返回。
-
-ptr::read(src: *const Buffer)会从src指针copy Buffer结构体内容 到tmp(*mut Buffer)处；而Buffer内部buffer是String类型，非copy类型，此时tmp内的buffer与src内 */
-unsafe {
-    let result = ::std::ptr::read(dest);   //result中的buffer(String)，实际上跟dest中的buffer指向共同一块区域
-    ::std::ptr::write(dest, src);
-    result
-}
-```
-
 不能通过 &amp;/&amp;mut 来转移 move 对象：
 
--   一般的解决办法是使用 std::mem::replace(&amp;dest, src) 将 src 值替换 dest，同时返回 dest 的值：
+-   解决办法是使用 std::mem::replace(&amp;dest, src) 将 src 值替换 dest，同时返回 dest 的值：
 
 <!--listend-->
 
@@ -2620,8 +2486,30 @@ fn main() {
 // std::mem::replace
 use std::mem::replace
 fn update_buffer(& mut self, buf : String) {
-  self.current_buffer = replace(&mut self.next_buffer, Buffer{buffer : buf});
+    self.current_buffer = replace(&mut self.next_buffer, Buffer{buffer : buf});
 }
+
+// 也可以使用 std::ptr::read/write 来临时转义借用对象的内容
+self.current_buffer = std::mem::replace(&mut self.next_buffer, Buffer { buffer: buf });
+
+/* ptr::read(src: *const T) -> T会从src指针处获取要复制的内容（假定是T类型实例），然后通过**”浅复制“**的方式，复制一份新实例，并返回。
+
+ptr::read(src: *const Buffer)会从src指针copy Buffer结构体内容 到tmp(*mut Buffer)处；而Buffer内部buffer是String类型，非copy类型，此时tmp内的buffer与src内 */
+unsafe {
+    let result = ::std::ptr::read(dest);   //result中的buffer(String)，实际上跟dest中的buffer指向共同一块区域
+    ::std::ptr::write(dest, src);
+    result
+}
+```
+
+如果 struct 位于 Vec 中，则 struct field 也不能被 move out：
+
+```rust
+struct Person { name: Option<String>, birth: i32 }
+let mut composers = Vec::new();
+composers.push(Person { name: Some("Palestrina".to_string()), birth: 1525 });
+// 报错
+let first_name = composers[0].name;
 ```
 
 Reborrow：如果以前的 &amp;mut 变量 r 不再使用，则可以使用 &amp;\*r 来获取新的 reborrow;
@@ -2874,7 +2762,7 @@ assert!(ptr::eq(five_ref, same_five_ref)); // 比较地址
 assert!(!ptr::eq(five_ref, other_five_ref));
 ```
 
-Rust 引用操作可以是任意表达式，如字面量，rust 会自动进行转换（coercion）
+Rust 引用操作可以是任意表达式，如字面量，Rust 会自动进行转换（coercion）
 
 -   [Type coercions - The Rust Reference](https://doc.rust-lang.org/stable/reference/type-coercions.html#coercion-sites)
 
@@ -2952,23 +2840,21 @@ fn main() {
 ```
 
 
-## <span class="section-num">14</span> lifetime {#lifetime}
+## <span class="section-num">13</span> lifetime {#lifetime}
 
-Rust 给每一个 `引用类型` 对象设置一个 lifetime（自动或手动），如函数的输入和输出参数，函数内的变量，全局变量，struct/enum 成员等。
-
-设置 lifetime 的目的是指导 Rust borrow checker 对程序各部分借用的对象的引用的生命周期进行检查，发现异常时编译报错。lifetime 只是一个编译时的注解， `没有运行时代表` ，也不能在表达式中使用：
+Rust 给每一个 `引用类型` 对象设置一个 lifetime（自动或手动），如函数的输入和输出参数，函数内的变量，全局变量，struct/enum 成员等。设置 lifetime 的目的是指导 Rust borrow checker 对程序各部分借用的对象的引用的生命周期进行检查，发现异常时编译报错。
 
 ```rust
 let b = &'a dyn MyTrait + Send + 'static; // error: expected expression, found keyword `dyn`
 let b = &'a(dyn MyTrait + Send + 'static); // error: borrow expressions cannot be annotated with lifetimes
 ```
 
-lifetime 表达的是一个 `相对的概念` 和约束， `Rust borrow checker` 根据 lifetime anno 来检查引用是否有效：
+lifetime 只是一个编译时的注解, `没有运行时代表` ，也不能在表达式中使用. lifetime 表达的是一个 `相对的概念` 和约束， `Rust borrow checker` 根据 lifetime anno 来检查引用是否有效：
 
 1.  &lt;T: 'b&gt; ：表示 T 的引用的生命周期比 'b 长。
     -   &amp;'b T 隐式表示 T: 'b, 即 T 的生命周期要比 'b 长。
 2.  &lt;T: Trait + 'b&gt; ：表示 T 要实现 Trait 且 T 的生命周期比 'b 长。
-3.  &lt;'a: 'b, 'b&gt;： 表示 'a 的生命周期比 'b 长；
+3.  &lt;'a: 'b, 'b&gt;：表示 'a 的生命周期比 'b 长；
     -   注意上面 'a 和 'b 的顺序和语法，错误的情况：&lt;'a, 'b, 'a: 'b&gt;;
 4.  struct foo&lt;'a: 'b, 'b，T: 'b&gt; (val1: &amp;'a String, val2: &amp;'a String, val3: &amp;'b String, val4: &amp;T):
     -   val1 和 val2 的生命周期一样长, 且比 val3 的生命周期长；
@@ -3069,10 +2955,10 @@ fn main() {
 
 函数 lifetime:
 
-1.  所有 ref 必须有 lifetime anno:
-    -   如果没有明确指定，Rust 编译器自动加 lifetime anno，规则参考: [14.3](#org-target--lifetime-elision-rules)
+1.  所有 ref 必须有 lifetime anno, 如果没有明确指定，Rust 编译器自动加 lifetime anno，规则参考:
+    [13.3](#org-target--lifetime-elision-rules)
 2.  所有返回值的 ref 的 lifetime 必须和某些输入的值的 lifetime 一致或者是 'static;
-3.  如果自动推断后，还是不能确定返回值 ref 和输入值 lifetime 的关系，则编译报错，需要手动加 lifetime：
+3.  如果自动推断后还是不能确定返回值 ref 和输入值 lifetime 的关系，则编译报错，需要手动加 lifetime：
 
 <!--listend-->
 
@@ -3163,7 +3049,7 @@ fn order_string(s1 : &str, s2 : &str) -> (&str, &str) {
 
 ```
 
-闭包 lifetime：闭包函数返回引用时可能会遇到 lifetime 问题（[14.3](#org-target--lifetime-elision-rules) 并不适合闭包）：
+闭包 lifetime：闭包函数返回引用时可能会遇到 lifetime 问题（[13.3](#org-target--lifetime-elision-rules) 并不适合闭包）：
 
 ```rust
 fn fn_elision(x: &i32) -> &i32 { x } // OK
@@ -3174,9 +3060,6 @@ let closure_elision = |x: &i32| -> &i32 { x }; // Error
 |                       |        |
 |                       |        let's call the lifetime of this reference `'2`
 |                       let's call the lifetime of this reference `'1`
-
-
-
 ```
 
 解决办法：
@@ -3288,6 +3171,9 @@ fn main() {
 
 -   'a: 'b 表示 'a lifetime 至少要比 'b 长，这样在返回 'b 的引用时，可以返回 'a 的 lifetime 对象；
 -   类似的 T: 'a 表示，T 的 ref 的 lifetime 至少要比 'a 长；
+-   'static 可以被 coerced 到任意的其他 lifetime 'a;
+-   A &amp;'long T coerces to a &amp;'short T， T 也可以协变到 U；参考：[14.2](#org-target--variances)
+-   A &amp;'long mut T coerces to a &amp;'short mut T， 虽然 T 不可变；
 
 <!--listend-->
 
@@ -3318,9 +3204,7 @@ fn main() {
 trait MyTrait<'a> {
     fn say_hello(&'a self) -> &'a String;
 }
-
 struct MyStruct(String);
-
 impl<'a> MyTrait<'a> for MyStruct {
     fn say_hello(&'a self) -> &'a String {
         println!("hello {}", self.0);
@@ -3341,8 +3225,50 @@ where
 }
 ```
 
+隐式 liftime bound 的场景： &amp;'a T 隐式表示 T: 'a, 即 T 的生命周期比 'a 长；
 
-### <span class="section-num">14.1</span> Higher-Rank Trait Bounds (HRTBs) {#higher-rank-trait-bounds--hrtbs}
+```rust
+fn requires_t_outlives_a_not_implied<'a, T: 'a>() {}
+
+fn requires_t_outlives_a<'a, T>(x: &'a T) {
+    // This compiles, because `T: 'a` is implied by
+    // the reference type `&'a T`.
+    requires_t_outlives_a_not_implied::<'a, T>();
+}
+
+fn not_implied<'a, T>() {
+    // This errors, because `T: 'a` is not implied by the function signature.
+    requires_t_outlives_a_not_implied::<'a, T>();
+}
+
+struct Struct<'a, T> {
+    // This requires `T: 'a` to be well-formed
+    // which is inferred by the compiler.
+    field: &'a T,
+}
+
+enum Enum<'a, T> {
+    // This requires `T: 'a` to be well-formed,
+    // which is inferred by the compiler.
+    //
+    // Note that `T: 'a` is required even when only
+    // using `Enum::OtherVariant`.
+    SomeVariant(&'a T),
+    OtherVariant,
+}
+
+trait Trait<'a, T: 'a> {}
+
+// This would error because `T: 'a` is not implied by any type
+// in the impl header.
+//     impl<'a, T> Trait<'a, T> for () {}
+
+// This compiles as `T: 'a` is implied by the self type `&'a T`.
+impl<'a, T> Trait<'a, T> for &'a T {}
+```
+
+
+### <span class="section-num">13.1</span> Higher-Rank Trait Bounds (HRTBs) {#higher-rank-trait-bounds--hrtbs}
 
 HRTB 一般只会在 Fn 作为 Bound 时会使用到, 下面没有加 lifetime 的代码是可以正常编译的：
 
@@ -3459,7 +3385,7 @@ where for <'a> F: Fn(&'a (u8, u16)) -> &'a u8,
 ```
 
 
-### <span class="section-num">14.2</span> 'static {#static}
+### <span class="section-num">13.2</span> 'static {#static}
 
 'static 是 Rust 内置的特殊 lifetime anno，在 &amp;str 和函数泛型参数的 Bound 中广泛使用。&amp;'static 表示借用的对象的声明周期和程序的执行时间一样长，也就是在程序运行期间一直存在的对象。'static 值在程序整个运行期间有效 `指的是在 main 函数返回还有效` ，例如全局的 const 变量，全局 static 变量，字符串字面量等，它们都保存在程序二进制的 read-only 部分。
 
@@ -3507,10 +3433,10 @@ fn main() {
 }
 ```
 
-'static 也可以作为函数泛型参数的 Bound 约束，表示不能包含 non-static refer。
+'static 也可以作为函数泛型参数的 Bound 约束，表示不能包含 non-static refer， 并不一定表示它的生命周期一定要持续到整个程序运行期间，也不表示不能 drop 他。
 
-注意：当 receiver hold value 直到 drop 它才失效时，相当于声明了 'static lifetime bound。但是
-ref to owned data 不满足该 'static 要求。
+当 receiver hold value 直到 drop 它才失效时，相当于声明了 'static lifetime bound。但是ref to owned
+data 不满足该 'static 要求。
 
 ```rust
 use std::fmt::Debug;
@@ -3549,7 +3475,7 @@ Box&lt;dyn Trait&gt; 等效于 Box&lt;dyn Trait + 'static&gt;， &amp;'a Box &lt
 <https://doc.rust-lang.org/reference/lifetime-elision.html#default-trait-object-lifetimes>
 
 
-### <span class="section-num">14.3</span> lifetime elision {#lifetime-elision}
+### <span class="section-num">13.3</span> lifetime elision {#lifetime-elision}
 
 Rust borrow checker 使用 lifetime annotation 来检查所有 borrow，确保所有的 borrow 都是有效的。一般情况下，一个变量的 lifetime 开始于它创建，结束于它被销毁。
 
@@ -3643,6 +3569,17 @@ fn first_word<'a>(s: &'a str) -> &'a str {
 fn longest(x: &str, y: &str) -> &str { // 错误
 // 经过  rule 后：
 fn longest<'a, 'b>(x: &'a str, y: &'b str) -> &str { // 输出引用 lifetime 不明确，报错
+
+// Cannot infer, because there are no parameters to infer from.
+fn get_str() -> &str;                                 // ILLEGAL
+```
+
+通过给类型指定 '\_ lifetime 可以强制使用上面的 lifetime elision 规则，特别是位于 path 中的 lifetime，优选 '_:
+
+```rust
+fn new1(buf: &mut [u8]) -> Thing<'_>;                 // elided - preferred
+fn new2(buf: &mut [u8]) -> Thing;                     // elided
+fn new3<'a>(buf: &'a mut [u8]) -> Thing<'a>;          // expanded
 ```
 
 其他函数参数或结果中可以消除 lifetime 的情况：
@@ -3668,7 +3605,7 @@ struct IsDebug<T: Debug>(T);
 fn doesnt_specify_t_debug<T>(x: IsDebug<T>) {}
 ```
 
-对于 trait object 有特殊的 lifetime bound。参考：[18.5](#org-target--trait-object)
+trait object 有特殊的 lifetime bound。参考：[18.5](#org-target--trait-object)
 
 1.  Box&lt;dyn Trait&gt; 默认等效于 `Box<dyn Trait + 'static>` ;
 2.  &amp;'x Box&lt;dyn Trait&gt; 等效于 &amp;'x Box&lt;dyn Trait + 'static&gt;;
@@ -3676,6 +3613,828 @@ fn doesnt_specify_t_debug<T>(x: IsDebug<T>) {}
 3.  &amp;'r Ref&lt;'q, dyn Trait&gt; 等效于 &amp;'r Ref&lt;'q, dyn Trait+'q&gt;;
 
 <https://doc.rust-lang.org/reference/lifetime-elision.html#default-trait-object-lifetimes>
+
+
+## <span class="section-num">14</span> type/subtype/type coercions {#type-subtype-type-coercions}
+
+
+### <span class="section-num">14.1</span> type {#type}
+
+Rust 基本类型: Integer, Float, bool, char,Unit type (), array [T; N], tuple, pointer.
+
+-   struct/enum/union 等属于自定义类型；
+
+type alias 只是原样替换，并没有引入新类型，所以可以按照本来的方式使用别名，它可以提升代码的可读性。
+
+```rust
+type Thunk = Box<dyn Fn() + Send + 'static>;
+let f: Thunk = Box::new(|| println!("hi"));
+fn takes_long_type(f: Thunk) {
+    // --snip--
+}
+fn returns_long_type() -> Thunk {
+    // --snip--
+}
+
+type Result<T> = std::result::Result<T, std::io::Error>;
+
+type Meters = u32;
+let x: u32 = 5;
+let y: Meters = 5;
+println!("x + y = {}", x + y);  // Meters 是 u32 的 alias，还具有 u32 的所有操作。
+```
+
+rust 不对 primitive 类型提供隐式的转换（coercion），但是可以通过 as 关键字做显式的类型转换（casting），转换规则和 C 类似。
+
+as 可用于如下类型转换：
+
+1.  primitive 类型；
+2.  trait object 类型；
+3.  裸指针类型
+4.  [类型协变 type coercions](https://doc.rust-lang.org/reference/type-coercions.html#type-coercions)支持的转换场景；
+
+<!--listend-->
+
+```rust
+let circle = Box::new(circle) as Box<dyn Circle>; // circle 可以 usized 协变到 dyn Circle 所以 OK；
+let nonsense = circle.radius() * circle.area();
+
+let a = *const [u16] as *const [u8]
+
+#![allow(overflowing_literals)]
+
+fn main() {
+    let decimal = 65.4321_f32;
+
+    // Error! No implicit conversion
+    let integer: u8 = decimal;
+
+    // Explicit conversion
+    let integer = decimal as u8;
+    let character = integer as char;
+
+    // Error! There are limitations in conversion rules.  A float cannot be directly converted to a
+    // char.
+    let character = decimal as char;
+
+    println!("Casting: {} -> {} -> {}", decimal, integer, character);
+
+    // when casting any value to an unsigned type, T,
+    // T::MAX + 1 is added or subtracted until the value
+    // fits into the new type
+
+    // 1000 already fits in a u16
+    println!("1000 as a u16 is: {}", 1000 as u16);
+
+    // 1000 - 256 - 256 - 256 = 232
+    // Under the hood, the first 8 least significant bits (LSB) are kept,
+    // while the rest towards the most significant bit (MSB) get truncated.
+    println!("1000 as a u8 is : {}", 1000 as u8);
+    // -1 + 256 = 255
+    println!("  -1 as a u8 is : {}", (-1i8) as u8);
+
+    // For positive numbers, this is the same as the modulus
+    println!("1000 mod 256 is : {}", 1000 % 256);
+
+    // When casting to a signed type, the (bitwise) result is the same as
+    // first casting to the corresponding unsigned type. If the most significant
+    // bit of that value is 1, then the value is negative.
+
+    // Unless it already fits, of course.
+    println!(" 128 as a i16 is: {}", 128 as i16);
+
+    // In boundary case 128 value in 8-bit two's complement representation is -128
+    println!(" 128 as a i8 is : {}", 128 as i8);
+
+    // repeating the example above
+    // 1000 as u8 -> 232
+    println!("1000 as a u8 is : {}", 1000 as u8);
+    // and the value of 232 in 8-bit two's complement representation is -24
+    println!(" 232 as a i8 is : {}", 232 as i8);
+
+    // Since Rust 1.45, the `as` keyword performs a *saturating cast*
+    // when casting from float to int. If the floating point value exceeds
+    // the upper bound or is less than the lower bound, the returned value
+    // will be equal to the bound crossed.
+
+    // 300.0 as u8 is 255
+    println!(" 300.0 as u8 is : {}", 300.0_f32 as u8);
+    // -100.0 as u8 is 0
+    println!("-100.0 as u8 is : {}", -100.0_f32 as u8);
+    // nan as u8 is 0
+    println!("   nan as u8 is : {}", f32::NAN as u8);
+
+    // This behavior incurs a small runtime cost and can be avoided with unsafe methods, however the
+    // results might overflow and return **unsound values**. Use these methods wisely:
+    unsafe {
+        // 300.0 as u8 is 44
+        println!(" 300.0 as u8 is : {}", 300.0_f32.to_int_unchecked::<u8>());
+        // -100.0 as u8 is 156
+        println!("-100.0 as u8 is : {}", (-100.0_f32).to_int_unchecked::<u8>());
+        // nan as u8 is 0
+        println!("   nan as u8 is : {}", f32::NAN.to_int_unchecked::<u8>());
+    }
+}
+```
+
+其他对于自定义类型，如 struct/enum，需要使用 From/Into 等 trait 的方法来转换。
+
+栈变量类型：
+
+1.  原始值；
+2.  array/struct/tuple/enum/union
+
+堆变量类型：
+
+1.  字符串：String
+2.  容器：Vec/HashMap/HashSet
+3.  Slice
+4.  智能指针：Box/Rc/Arc/
+
+
+### <span class="section-num">14.2</span> Subtyping and Variance {#subtyping-and-variance}
+
+<https://doc.rust-lang.org/reference/subtyping.html>
+
+<https://doc.rust-lang.org/nomicon/subtyping.html>
+
+Subtyping is the idea that `one type can be used in place of another`. What this is suggesting to us
+is that the set of requirements `that Super defines are completely satisfied by Sub`. Sub may then
+have more requirements.
+
+如果用 `'long <: 'short` 来表示两个 lifetime 间的 subtype 关系的话，含义是： if and only if 'long
+defines a region of code that `completely contains` 'short.
+
+we can say that `'static <: 'world` . For now, let's also accept the idea that `subtypes of lifetimes
+can be passed through references` (more on this in Variance), e.g. `&'static str is a subtype of
+&'world str` , then we can "downgrade" &amp;'static str into a &amp;'world str. With that, the example above
+will compile:
+
+-   we glossed over the fact that `'static <: 'b` implied that `&'static T <: &'b T`.
+
+<!--listend-->
+
+```rust
+fn debug<'a>(a: &'a str, b: &'a str) {
+    println!("a = {a:?} b = {b:?}");
+}
+fn main() {
+    let hello: &'static str = "hello";
+    {
+        let world = String::from("world");
+        let world = &world; // 'world has a shorter lifetime than 'static
+        debug(hello, world); // hello silently downgrades from `&'static str` into `&'world str`
+    }
+}
+```
+
+Subtyping 是 Rust 进行的隐式操作（类似的隐式操作还有 type coercion）, 用于 type checking 和
+infrerence, 他们都和 lifetime 有关系，只有两种情况: variance with respect to lifetimes and between
+types with higher ranked lifetimes.
+
+-   基于 liftime 的子类型: 生命周期更长的 lifetime 是更短的子类型;
+-   基于 Higher-ranked lifetime 的 fp/trait object 子类型;
+
+Sbytyping/Variance 都是 `指 lifetime 之间的关系` ，Rust 的类型之间是没有 subtype 的语义的。
+
+-   supertrait 也只是用于约束 Self 必须实现多个 trait + 'lifetime, 并不表示 trait 之间的 subtype 关系。
+
+例如, &amp;str 总是带有 'static lifetime, 但是可以赋值给 &amp;'a str 类型的 t:
+
+-   因为 'static 总是比其他任意 'a 长, 所以 `&'static str 是 &'a str 的子类型(subtyping)` ;
+
+<!--listend-->
+
+```rust
+fn bar<'a>() {
+    let s: &'static str = "hi";
+    let t: &'a str = s;
+}
+```
+
+`Higher-ranked 的 fp 和 trait object 也是一种 subtype`, 他们是去掉了 higher-ranked lifetimes 后的其他类型的 subtype:
+
+-   因为 Higher-ranked lifetime, 如 for&lt;'a&gt; fn(&amp;'a i32) -&gt; &amp;'a i32) = &amp;((|x| x) as fn(&amp;_) -&gt; &amp;\_ 的含义就是 `fn/Fn 满足任意的 'a lifetime` , 所以后续可以赋值给任意的 lifetime 声明的类型.
+
+<!--listend-->
+
+```rust
+// Here 'a is substituted for 'static
+let subtype: &(for<'a> fn(&'a i32) -> &'a i32) = &((|x| x) as fn(&_) -> &_);
+let supertype: &(fn(&'static i32) -> &'static i32) = subtype;
+
+// This works similarly for trait objects
+let subtype: &(dyn for<'a> Fn(&'a i32) -> &'a i32) = &|x| x;
+let supertype: &(dyn Fn(&'static i32) -> &'static i32) = subtype;
+
+// We can also substitute one higher-ranked lifetime for another
+let subtype: &(for<'a, 'b> fn(&'a i32, &'b i32))= &((|x, y| {}) as fn(&_, &_));
+let supertype: &for<'c> fn(&'c i32, &'c i32) = subtype;
+```
+
+`Variance` 指的是在传参和赋值时，类型之间支持的 subtype 场景:
+
+-   F&lt;T&gt; is `covariant` over T if T being a subtype of U implies that F&lt;T&gt; is a subtype of F&lt;U&gt;
+    (subtyping "passes through")
+    -   covariant 协变: 如果 T 是 U 的 subtype, 则 F&lt;T&gt; 是 F&lt;U&gt; 的子类型;
+-   F&lt;T&gt; is `contravariant` over T if T being a subtype of U implies that F&lt;U&gt; is a subtype of F&lt;T&gt;
+    -   contravariant 逆变: 如果 T 是 U 的 subtype, 则 F&lt;U&gt; 是 F&lt;T&gt; 的子类型;
+-   F&lt;T&gt; is `invariant` over T otherwise (no subtyping relation can be derived)
+    -   invariant 不可变: 没有子类型的关系.
+
+Variance of types is automatically determined as follows: <span class="org-target" id="org-target--variances"></span>
+
+| Type                              | Variance in 'a       | Variance in T              |
+|-----------------------------------|----------------------|----------------------------|
+| &amp;'a T                         | covariant, 'a 可以有子类型 | covariant                  |
+| &amp;'a mut T                     | covariant, 'a 可以有子类型 | invariant, T 不可变        |
+| \*const T                         |                      | covariant                  |
+| \*mut T                           |                      | invariant                  |
+| [T] and [T; n]                    |                      | covariant, T 可以有子类型  |
+| fn() -&gt; T                      |                      | covariant, T 可以有子类型  |
+| fn(T) -&gt; ()                    |                      | contravariant, 可以传入 T 的子类型 |
+| std::cell::UnsafeCell&lt;T&gt;    |                      | invariant                  |
+| std::marker::PhantomData&lt;T&gt; |                      | covariant                  |
+| dyn Trait&lt;T&gt; + 'a           | covariant, 'a 可以有子类型 | invariant, T 不可以变      |
+
+注意:
+
+-   上面的 T 是一个类型代表，实际可能包含 lifetime, 比如 fn() -&gt; T 中的 T 可能是 &amp;'a String, 这时可以使用 &amp;'static String, 因为 'static 是 'a 的子类型；
+-   fn(T) -&gt; () 中的 T 是逆变， 所以如果 fn(&amp;'static String) 则可以传入 fn(&amp;'a String)， 一般使用场景比较少；
+-   Vec&lt;T&gt; and all other owning pointers and collections follow the same logic as Box&lt;T&gt;， T 可变；
+    -   表格中没提，但是 Box&lt;T&gt; 和 Vec&lt;T&gt; 都是 covariant， Cell&lt;T&gt; 都是 invariant；
+-   Cell&lt;T&gt; and all other interior mutability types follow the same logic as UnsafeCell&lt;T&gt;， T 不可变；
+-   UnsafeCell&lt;T&gt; having interior mutability gives it the same variance properties as &amp;mut T， T 不可变；
+-   \*const T follows the logic of &amp;T
+-   \*mut T follows the logic of &amp;mut T (or UnsafeCell&lt;T&gt;)
+
+示例：
+
+-   A &amp;'long T coerces to a &amp;'short T， T 也可以协变到 U；
+-   A &amp;'long mut T coerces to a &amp;'short mut T， 虽然 T 不可变；
+-   A &amp;'medium &amp;'long U coerces to a &amp;'short &amp;'short U
+-   A &amp;'medium mut &amp;'long mut U coerces to a &amp;'short mut &amp;'long mut U..., but not to a &amp;'short mut
+    &amp;'short mut U
+-   Cell&lt;T&gt; and RefCell&lt;T&gt; are also invariant in T.
+-   Additionally, if you have a bound like `T: dyn Trait<U> 或 T: Trait<U>` , U becomes invariant
+    because it's a type parameter of the trait. If your U resolves to `&'x V`, the lifetime `'x` will be
+    invariant too.
+
+<!--listend-->
+
+```rust
+// 由于输入参数是 &mut T 类型，所以在赋值时，val 对应 T 的类型是不可变的，必须和 input 的 T 类型一致。
+fn assign<T>(input: &mut T, val: T) {
+    *input = val;
+}
+
+fn main() {
+    let mut hello: &'static str = "hello";
+    {
+        let world = String::from("world");
+        // 传入的参数类型是 &mut &'static str， 所以 T 的类型必须是 &'static str, 但是 &world 的类型是 &'world str,
+        // 所以编译错误。
+        assign(&mut hello, &world);
+    }
+    println!("{hello}");
+}
+
+// error[E0597]: `world` does not live long enough
+//   --> src/main.rs:9:28
+//    |
+// 6  |     let mut hello: &'static str = "hello";
+//    |                    ------------ type annotation requires that `world` is borrowed for `'static`
+// ...
+// 9  |         assign(&mut hello, &world);
+//    |                            ^^^^^^ borrowed value does not live long enough
+// 10 |     }
+//    |     - `world` dropped here while still borrowed
+```
+
+但是下面的 code 却 OK，这是由于 Box&lt;T&gt; 中的 T 是协变的，&amp;'static 是 &amp;'b 的 subtype，所以可以赋值：
+
+```rust
+let hello: Box<&'static str> = Box::new("hello");
+let mut world: Box<&'b str>;
+world = hello;
+
+
+fn get_str() -> &'a str;
+// 可以用如下函数指针赋值 get_str
+fn get_static() -> &'static str;
+
+
+fn store_ref(&'a str);
+// 错误：Covariance doesn't work here.， 但是如果交换下位置则 OK
+fn store_static(&'static str);
+
+// 示例：
+thread_local! {
+    pub static StaticVecs: RefCell<Vec<&'static str>> = RefCell::new(Vec::new());
+}
+
+/// saves the input given into a thread local `Vec<&'static str>`
+fn store(input: &'static str) {
+    StaticVecs.with_borrow_mut(|v| v.push(input));
+}
+
+/// Calls the function with it's input (must have the same lifetime!)
+fn demo<'a>(input: &'a str, f: fn(&'a str)) {
+    f(input);
+}
+
+fn main() {
+    demo("hello", store); // "hello" is 'static. Can call `store` fine
+
+    {
+        let smuggle = String::from("smuggle");
+
+        // `&smuggle` is not static. If we were to call `store` with `&smuggle`,
+        // we would have pushed an invalid lifetime into the `StaticVecs`.
+        // Therefore, `fn(&'static str)` cannot be a subtype of `fn(&'a str)`
+        demo(&smuggle, store);
+    }
+
+    // use after free 😿
+    StaticVecs.with_borrow(|v| println!("{v:?}"));
+}
+```
+
+对于自定义的 struct/enum/union 的 variance 取决于他的各个 field 的 variance:
+
+-   如果 parameter A 在个 field 的使用都是 covariant， 则整体对 A 是 covariant；
+-   如果 parameter A 在个 field 的使用都是 contravariant， 则整体对 A 是 contravariant；
+-   否则，整体对 A 是  invariant；
+
+比如下面的 struct 的 'a 和 T 是 covariant 可变的, 而 'b, 'c 和 U 是 invariant 不可变的:
+
+```rust
+use std::cell::UnsafeCell;
+struct Variance<'a, 'b, 'c, T, U: 'a> {
+    x: &'a U,               // This makes `Variance` covariant in 'a, and would make it covariant in
+                            // U, but U is used later, 由于 U 在多个 field 中使用, 所以 U 是不可变的
+
+    y: *const T,            // Covariant in T
+
+    z: UnsafeCell<&'b f64>, // Invariant in 'b, 因为 std::cell::UnsafeCell<T> 中的 T 是不可变的.
+
+    w: *mut U,              // Invariant in U, makes the whole struct invariant, 部分字段不可变时, 整个 struct 不可变.
+
+    f: fn(&'c ()) -> &'c () // Both co- and contravariant, makes 'c invariant in the struct.
+}
+```
+
+在 struct/enum/uion filed 之外, variance 是单独计算的, 所以:
+
+1.  长的 lifetime 类型值可以赋值给短的 liftime 类型值, 因为 liftime 间有 subtype 关系;
+
+<!--listend-->
+
+```rust
+fn generic_tuple<'short, 'long: 'short>(
+    // 'long is used inside of a tuple in both a co- and invariant position.
+    x: (&'long u32, UnsafeCell<&'long u32>),
+) {
+    // As the variance at these positions is computed separately, we can freely shrink 'long in the
+    // covariant position.
+    let _: (&'short u32, UnsafeCell<&'long u32>) = x;
+}
+
+fn takes_fn_ptr<'short, 'middle: 'short>(
+    // 'middle is used in both a co- and contravariant position.
+    f: fn(&'middle ()) -> &'middle (),
+) {
+
+    // As the variance at these positions is computed separately, we can freely shrink 'middle in
+    // the covariant position and extend it in the contravariant position.
+
+    // 函数输入参数是逆变，返回结果是协变。
+    let _: fn(&'static ()) -> &'short () = f;
+}
+```
+
+
+### <span class="section-num">14.3</span> type-coercions {#type-coercions}
+
+<https://doc.rust-lang.org/reference/type-coercions.html#type-coercions>
+
+类型协变是 Rust 的隐式行为（类似的还有 subtyping），用于改变一个 value 的 type，Rust 只在一些特定的位置（场景）才会使用类型协变。
+
+注意：在函数传参匹配 trait bound 时不会进行协变，例如虽然 &amp;mut i32 可以协变到 &amp;i32, 但是不会协变：
+
+```rust
+trait Trait {}
+
+fn foo<X: Trait>(t: X) {}
+
+impl<'a> Trait for &'a i32 {}
+
+fn main() {
+    let t: &mut i32 = &mut 0;
+    foo(t);
+}
+
+// error[E0277]: the trait bound `&mut i32: Trait` is not satisfied
+//  --> src/main.rs:9:9
+//   |
+// 3 | fn foo<X: Trait>(t: X) {}
+//   |           ----- required by this bound in `foo`
+// ...
+// 9 |     foo(t);
+//   |         ^ the trait `Trait` is not implemented for `&mut i32`
+//   |
+//   = help: the following implementations were found:
+//             <&'a i32 as Trait>
+//   = note: `Trait` is implemented for `&i32`, but not for `&mut i32`
+```
+
+类型协变支持的转换 `都可以使用 as 转换运算符` 。
+
+1.  `let statements where an explicit type is given`. For example, &amp;mut 42 is coerced to have type &amp;i8
+    in the following： let \_: &amp;i8 = &amp;mut 42;
+2.  `static and const` item declarations (similar to let statements).
+3.  `Arguments` for function calls.
+
+     The value being coerced is the actual parameter, and it is coerced to the type of the formal
+    parameter. For example, &amp;mut 42 is coerced to have type &amp;i8 in the following:
+    ```rust
+        fn bar(_: &i8) { }
+        fn main() {
+            bar(&mut 42);
+        }
+    ```
+    For method calls, the receiver (self parameter) type is coerced differently, see the documentation
+    on method-call expressions for details.
+
+4.  `Instantiations of struct, union, or enum variant fields`
+
+    For example, &amp;mut 42 is coerced to have type &amp;i8 in the following:
+    ```rust
+        struct Foo<'a> { x: &'a i8 }
+        fn main() {
+            Foo { x: &mut 42 };
+        }
+    ```
+
+5.  `Function results` —either the final line of a block if it is not semicolon-terminated or any
+    expression in a return statement
+
+    For example, x is coerced to have type &amp;dyn Display in the following:
+    ```rust
+            use std::fmt::Display;
+            fn foo(x: &u32) -> &dyn Display {
+                x
+            }
+    ```
+
+If the expression in one of these coercion sites is a `coercion-propagating expression`, then the
+relevant `sub-expressions` in that expression are also coercion sites. Propagation recurses from these
+new coercion sites. Propagating expressions and their relevant sub-expressions are:
+
+1.  `Array literals`, where the array has type [U; n]. Each sub-expression in the array literal is a
+    coercion site for coercion to type U.
+2.  `Array literals with repeating syntax`, where the array has type [U; n]. The repeated
+    sub-expression is a coercion site for coercion to type U.
+3.  `Tuples`, where a tuple is a coercion site to type (U_0, U_1, ..., U_n). Each sub-expression is a
+    coercion site to the respective type, e.g. the zeroth sub-expression is a coercion site to type
+    U_0.
+4.  `Parenthesized sub-expressions ((e))`: if the expression has type U, then the sub-expression is a
+    coercion site to U.
+    1.  `Blocks`: if a block has type U, then the last expression in the block (if it is not
+        semicolon-terminated) is a coercion site to U. This includes blocks which are part of control
+        flow statements, such as if/else, if the block has a known type.
+
+
+### <span class="section-num">14.4</span> Coercion types: {#coercion-types}
+
+Coercion is allowed between the following types:
+
+1.  T to U if T is a `subtype` of U (`reflexive case`)
+2.  T_1 to T_3 where T_1 coerces to T_2 and T_2 coerces to T_3 (`transitive case`): Note that this is
+    not fully supported yet.
+3.  `&mut T to &T`
+4.  `*mut T to *const T`
+5.  `&T to *const T`
+6.  `&mut T to *mut T`
+7.  `&T or &mut T to &U` if T implements Deref&lt;Target = U&gt;. For example:
+    ```rust
+        use std::ops::Deref;
+
+        struct CharContainer {
+            value: char,
+        }
+
+        impl Deref for CharContainer {
+            type Target = char;
+
+            fn deref<'a>(&'a self) -> &'a char {
+                &self.value
+            }
+        }
+
+        fn foo(arg: &char) {}
+
+        fn main() {
+            let x = &mut CharContainer { value: 'y' };
+            foo(x); //&mut CharContainer is coerced to &char.
+        }
+    ```
+
+8.  `&mut T to &mut U` if T implements DerefMut&lt;Target = U&gt;.
+9.  TyCtor(T) to TyCtor(U), where TyCtor(T) is one of
+
+    -   &amp;T
+    -   &amp;mut T
+    -   \*const T
+    -   \*mut T
+    -   Box&lt;T&gt;
+
+    and where U can be obtained from T by `unsized coercion`.
+10. Function item types to `fn pointers`
+11. Non capturing closures to `fn pointers`
+12. `! to any T`
+
+
+### <span class="section-num">14.5</span> Unsized Coercions {#unsized-coercions}
+
+<span class="org-target" id="org-target--unsized-coercions"></span>
+
+The following coercions are called `unsized coercions`, since they relate to `converting sized types to
+unsized types`, and are permitted in a few cases where other coercions are not, as described
+above. They can still happen anywhere else a coercion can occur.
+
+Two traits, `Unsize and CoerceUnsized`, are used to assist in this process and expose it for library
+use. The following coercions are built-ins and, if T can be coerced to U with one of them, then an
+implementation of `Unsize<U> for T` will be provided:
+
+1.  `[T; n] to [T].`
+2.  `T to dyn U`, when T implements U + Sized, and U is object safe.
+3.  Foo&lt;..., T, ...&gt; to Foo&lt;..., U, ...&gt;, when:
+    -   Foo is a struct.
+    -   T implements Unsize&lt;U&gt;.
+    -   The last field of Foo has a type involving T.
+    -   If that field has type Bar&lt;T&gt;, then Bar&lt;T&gt; implements Unsized&lt;Bar&lt;U&gt;&gt;.
+    -   T is not part of the type of any other fields.
+
+Additionally, a type `Foo<T>` can implement `CoerceUnsized<Foo<U>>` when `T implements Unsize<U> or
+CoerceUnsized<Foo<U>>`. This allows it to provide `a unsized coercion to Foo<U>`.
+
+Note: While the definition of the unsized coercions and their implementation has been
+stabilized, the traits themselves are not yet stable and therefore can't be used directly in
+stable Rust.
+
+
+### <span class="section-num">14.6</span> Least upper bound coercions {#least-upper-bound-coercions}
+
+In some contexts, the compiler must `coerce together multiple types` to try and find the most general
+type. This is called a `"Least Upper Bound" coercion`. LUB coercion is used and only used in the
+following situations:
+
+-   To find the common type for a series of if branches.
+-   To find the common type for a series of match arms.
+-   To find the common type for array elements.
+-   To find the type for the return type of a closure with multiple return statements.
+-   To check the type for the return type of a function with multiple return statements.
+
+In each such case, there are a set of types T0..Tn to be mutually coerced to some target type T_t,
+which is unknown to start. Computing the LUB coercion is `done iteratively`. The target type T_t
+begins as the type T0. For each new type Ti, we consider whether
+
+1.  If Ti can be coerced to the current target type T_t, then no change is made.
+2.  Otherwise, check whether T_t can be coerced to Ti; if so, the T_t is changed to Ti. (This check
+    is also conditioned on whether all of the source expressions considered thus far have implicit
+    coercions.)
+3.  If not, try to compute a mutual supertype of T_t and Ti, which will become the new target type.
+
+Examples:
+
+```rust
+// For if branches
+let bar = if true {
+    a
+} else if false {
+    b
+} else {
+    c
+};
+
+// For match arms
+let baw = match 42 {
+    0 => a,
+    1 => b,
+    _ => c,
+};
+
+// For array elements
+let bax = [a, b, c];
+
+// For closure with multiple return statements
+let clo = || {
+    if true {
+        a
+    } else if false {
+        b
+    } else {
+        c
+    }
+};
+let baz = clo();
+
+// For type checking of function with multiple return statements
+fn foo() -> i32 {
+    let (a, b, c) = (0, 1, 2);
+    match 42 {
+        0 => a,
+        1 => b,
+        _ => c,
+    }
+}
+```
+
+In these examples, `types of the ba* are found by LUB coercion`. And the compiler checks whether LUB
+coercion result of a, b, c is i32 in the processing of the function foo.
+
+Caveat: This description is obviously informal. Making it more precise is expected to proceed as
+part of a general effort to specify the Rust type checker more precisely.
+
+
+### <span class="section-num">14.7</span> Unsize trait {#unsize-trait}
+
+<https://doc.rust-lang.org/std/marker/trait.Unsize.html>
+
+```rust
+pub trait Unsize<T>
+where
+    T: ?Sized,
+{ }
+```
+
+Unsized 是一个 marker trait, 都只能是编译器自动实现， 日常主要用到的是两种:
+
+1.  数组 [T; N] 实现了 Unsize&lt;[T]&gt;, 这意味着 &amp;[T;N] 可以赋值给 &amp;[T] 类型;
+2.  trait object: 如果 value 的类型实现了 Trait, 则可以将 `value` 赋值给 `dyn Trait`, &amp;value 赋值给 &amp;dyn Trait;
+
+Types that can be “unsized” to `a dynamically-sized type.`
+
+For example, the sized array type `[i8; 2]` implements `Unsize<[i8]>` and `Unsize<dyn fmt::Debug>` .
+
+All implementations of Unsize are `provided automatically` by the compiler. Those implementations are:
+
+1.  Arrays [T; N] implement Unsize&lt;[T]&gt;.
+2.  A type implements Unsize&lt;dyn Trait + 'a&gt; if all of these conditions are met:
+    -   The type implements Trait.
+    -   Trait is object safe.
+    -   The type is sized.
+    -   The type outlives 'a.
+3.  Structs Foo&lt;..., T1, ..., Tn, ...&gt; implement Unsize&lt;Foo&lt;..., U1, ..., Un, ...&gt;&gt; where any number
+    of (type and const) parameters may be changed if all of these conditions are met:
+    -   Only the last field of Foo has a type involving the parameters T1, …, Tn.
+    -   All other parameters of the struct are equal.
+    -   Field&lt;T1, ..., Tn&gt;: Unsize&lt;Field&lt;U1, ..., Un&gt;&gt;, where Field&lt;...&gt; stands for the actual
+        type of the struct’s last field.
+
+Unsize is used along with `ops::CoerceUnsized` to allow `“user-defined” containers such as Rc to
+contain dynamically-sized types` . See the DST coercion RFC and the nomicon entry on coercion for
+more details.
+
+
+### <span class="section-num">14.8</span> CoerceUnsized trait {#coerceunsized-trait}
+
+<https://doc.rust-lang.org/std/ops/trait.CoerceUnsized.html>
+
+```rust
+pub trait CoerceUnsized<T>
+where
+    T: ?Sized,
+{ }
+```
+
+CoerceUnsized 是 marker trait， 主要为编译器提供指针类型(含智能指针），如 &amp;T/&amp;mutT/\*const T/\*mut
+T/Box&lt;T&gt;/Rc&lt;T&gt;/Arc&lt;T&gt; ，以及 wrapper 类型，如 Cell&lt;T&gt;/RefCell&lt;T&gt;/Pin&lt;T&gt;， 到另一个类型 unsized 类型
+U 提供 unsized coerce 。
+
+-   &amp;T 可以 unsized coerce 到 &amp;U 或 \*const U；
+-   &amp;mut T 可以 unsized coerce 到 &amp;mut U 或 \*mut U 或 &amp;U 或 \*const U；
+-   裸指针间 unsized 转换；
+-   智能指针间转换， 如 Box/Rc/Arc&lt;T&gt; 到 Box/Rc/Arc&lt;U&gt;;
+-   智能指针的包装器类型，如 Cell/Pin&lt;Box&lt;T&gt;&gt; 到 Cell/Pin&lt;Box&lt;U&gt;&gt;;
+
+常见的 unsized 类型转变由 Unsized trait 标记， `而且只能有编译器实现` ，只有两个，：
+
+1.  slice [T], 如 arrary [T; N] 到 [T] 的 unsized 转变；
+2.  trait object， 如 value 实现了 trait，则可以 unsized 转变为 Box&lt;dyn trait&gt; 或 dyn trait；
+
+自定义类型可以通过实现 CoerceUnsized trait 来提供自身的指针、指针指针或 wrapper 类型到 unsized 类型的转变；
+
+Trait that indicates that this is a pointer or a wrapper for one, where unsizing can be performed on
+the pointee.
+
+See the DST coercion RFC and the nomicon entry on coercion for more details.
+
+For builtin pointer types, `pointers to T will coerce to pointers to U if T: Unsize<U>` by converting
+from a thin pointer to a fat pointer.
+
+For `custom types`, the coercion here works by coercing `Foo<T> to Foo<U>` provided an impl of
+`CoerceUnsized<Foo<U>> for Foo<T>` exists.
+
+Such an impl can only be written if Foo&lt;T&gt; has only a single non-phantomdata field involving T. If
+the type of that field is Bar&lt;T&gt;, an implementation of CoerceUnsized&lt;Bar&lt;U&gt;&gt; for Bar&lt;T&gt; must
+exist. The coercion will work by coercing the Bar&lt;T&gt; field into Bar&lt;U&gt; and filling in the rest of
+the fields from Foo&lt;T&gt; to create a Foo&lt;U&gt;. This will effectively drill down to a pointer field and
+coerce that.
+
+Generally, for `smart pointers` you will implement `CoerceUnsized<Ptr<U>> for Ptr<T> where T:
+Unsize<U>, U: ?Sized` , with an optional ?Sized bound on T itself.
+
+For wrapper types that directly embed T like Cell&lt;T&gt; and RefCell&lt;T&gt;, you can directly implement
+`CoerceUnsized<Wrap<U>> for Wrap<T> where T: CoerceUnsized<U>`. This will let coercions of types like
+`Cell<Box<T>>` work.
+
+Unsize is used to mark types which can be coerced to DSTs if behind pointers. It is implemented
+automatically by the compiler.
+
+```rust
+// &T 可以 unsized coerce 到 &U 或 *const U
+impl<'a, 'b, T, U> CoerceUnsized<&'a U> for &'b T where 'b: 'a, T: Unsize<U> + ?Sized, U: ?Sized,
+impl<'a, T, U> CoerceUnsized<*const U> for &'a T where T: Unsize<U> + ?Sized, U: ?Sized,
+
+// &mut T 可以 unsized coerce 到 &mut U 或 *mut U 或 &U 或 *const U
+impl<'a, T, U> CoerceUnsized<*mut U> for &'a mut T where T: Unsize<U> + ?Sized, U: ?Sized,
+impl<'a, T, U> CoerceUnsized<&'a mut U> for &'a mut T where T: Unsize<U> + ?Sized, U: ?Sized,
+impl<'a, 'b, T, U> CoerceUnsized<&'a U> for &'b mut T where 'b: 'a, T: Unsize<U> + ?Sized, U: ?Sized,
+impl<'a, T, U> CoerceUnsized<*const U> for &'a mut T where T: Unsize<U> + ?Sized, U: ?Sized,
+
+// 裸指针间转换
+impl<T, U> CoerceUnsized<*const U> for *const T where T: Unsize<U> + ?Sized, U: ?Sized,
+impl<T, U> CoerceUnsized<*const U> for *mut T where T: Unsize<U> + ?Sized, U: ?Sized,
+impl<T, U> CoerceUnsized<*mut U> for *mut T where T: Unsize<U> + ?Sized, U: ?Sized,
+
+// 智能指针间转换， 如 Box<T> 到 Box<U>.
+// Ref 是 RefCell.borrow() 返回的类型， RefMut 是 RefCell.borrow_mut() 返回的类型；
+impl<'b, T, U> CoerceUnsized<Ref<'b, U>> for Ref<'b, T> where T: Unsize<U> + ?Sized, U: ?Sized,
+impl<'b, T, U> CoerceUnsized<RefMut<'b, U>> for RefMut<'b, T> where T: Unsize<U> + ?Sized, U: ?Sized,
+impl<T, U, A> CoerceUnsized<Box<U, A>> for Box<T, A> where T: Unsize<U> + ?Sized, A: Allocator, U: ?Sized,
+impl<T, U, A> CoerceUnsized<Rc<U, A>> for Rc<T, A> where T: Unsize<U> + ?Sized, A: Allocator, U: ?Sized,
+impl<T, U, A> CoerceUnsized<Arc<U, A>> for Arc<T, A> where T: Unsize<U> + ?Sized, A: Allocator, U: ?Sized,
+impl<T, U> CoerceUnsized<NonNull<U>> for NonNull<T> where T: Unsize<U> + ?Sized, U: ?Sized,
+
+// 智能指针的包装器类型，如 Cell<Box<T>> 到 Cell<Box<U>>.
+impl<Ptr, U> CoerceUnsized<Pin<U>> for Pin<Ptr> where Ptr: CoerceUnsized<U>,
+impl<T, U> CoerceUnsized<Cell<U>> for Cell<T> where T: CoerceUnsized<U>,
+impl<T, U> CoerceUnsized<RefCell<U>> for RefCell<T> where T: CoerceUnsized<U>,
+impl<T, U> CoerceUnsized<SyncUnsafeCell<U>> for SyncUnsafeCell<T> where T: CoerceUnsized<U>,
+impl<T, U> CoerceUnsized<UnsafeCell<U>> for UnsafeCell<T> where T: CoerceUnsized<U>,
+
+impl<T, U, A> CoerceUnsized<Weak<U, A>> for std::rc::Weak<T, A> where T: Unsize<U> + ?Sized, A: Allocator, U: ?Sized,
+impl<T, U, A> CoerceUnsized<Weak<U, A>> for std::sync::Weak<T, A> where T: Unsize<U> + ?Sized, A: Allocator, U: ?Sized,
+```
+
+注意：Option 没有实现 CoerceUnsized，所以不能实现 Option&lt;T&gt; 到 Option&lt;U&gt; 的转换：
+
+```rust
+trait X {
+    fn x(&mut self);
+}
+
+struct XX;
+
+impl X for XX {
+    fn x(&mut self) {
+        todo!()
+    }
+}
+
+struct C<'a> {
+    mut_ref: Option<&'a mut dyn X>,
+}
+
+fn main() {
+    //  Box <dyn X > 等效于 Box <dyn X + 'static>,所以 b 的实际类型是 Option<Box<dyn X + 'static>>
+    let mut b: Option<Box<dyn X>> = Some(Box::new(XX));
+
+    // as_deref_mut() 的签名是: pub fn as_deref_mut(&mut self) -> Option<&mut <T as Deref>::Target>
+    // where T: DerefMut,所以 b.as_deref_mut() 的结果类型是 Option<&'a mut(dyn X + 'static)>.
+
+    // 重点来了: Option<T> 是不支持协变到 Option<U> 的, 所以 Option<&'a mut(dyn X + 'static)> 不能协
+    // 变到 mut_ref 要求的 Option<&'a mut(dyn X + 'a).
+
+    // match 匹配 Some(x) 之所以 OK, 是因为 x 此时的类型已经是 &'a mut(dyn X + 'static) 了,而标准库
+    // 实现了 impl<'a, T, U> CoerceUnsized<&'a mut U> for &'a mut T where T: Unsize<U> + ?Sized, U:
+    // ?Sized,当 T 是 unsized 的 dyn X + 'static 且 U 是 dyn X + 'a 时, 满足上面的 where 约束, 所以
+    // 支持 &'a mut(dyn X + 'static) 到 &'a mut(dyn X + 'a) 的 unsized 协变, 所以下面的 match 表达式
+    // 可以执行成功.
+
+    // error[E0597]: `b` does not live long enough
+    // let c = C {
+    //     mut_ref: b.as_deref_mut(),
+    // };
+
+    let c = match b.as_deref_mut() {
+        None => C { mut_ref: None },
+        Some(x) => C { mut_ref: Some(x) },
+    };
+}
+```
 
 
 ## <span class="section-num">15</span> flow control {#flow-control}
@@ -3735,8 +4494,7 @@ let result = loop {
 };
 ```
 
-循环支持嵌套，可以使用 break 'label 来跳出循环：label 的格式和 lifetime 一样，都是 'label 格式；'label
-必须位于 loop/for/while 或 { 之前：
+循环支持嵌套，可以使用 break 'label 来跳出循环：label 的格式和 lifetime 一样，都是 'label 格式；'label必须位于 loop/for/while 或 { 之前：
 
 ```rust
 fn main() {
@@ -3767,6 +4525,19 @@ fn main() {
 }
 ```
 
+break 还可以返回值:
+
+```rust
+let answer = loop {
+    if let Some(line) = next_line() {
+        if line.starts_with("answer: ") {
+            break line; }
+    } else {
+        break "answer: nothing";
+    }
+};
+```
+
 if-let 和 while-let 支持模式匹配语法： if/while let pattern = expression {}：
 
 -   pattern 元素的数量必须与 expression 结果的元素数量一致；
@@ -3781,6 +4552,30 @@ fn main() {
     } else { // if let 不匹配的情况
         println!("not match!")
     }
+}
+
+// if-let 和 if 可以混合使用
+let x = Some(3);
+let a = if let Some(1) = x {
+    1
+} else if x == Some(2) {
+    2
+} else if let Some(y) = x {
+    y
+} else {
+    -1
+};
+assert_eq!(a, 3);
+
+// 多个 pattern 可以使用 | 分割
+enum E {
+    X(u8),
+    Y(u8),
+    Z(u8),
+}
+let v = E::Y(12);
+if let E::X(n) | E::Y(n) = v {
+    assert_eq!(n, 12);
 }
 ```
 
@@ -3863,6 +4658,11 @@ fn main() {
 while-let 主要用于消除 loop-match 循环模式，while-let 没有 else 子句：
 
 ```rust
+while let _ = 5 {
+    println!("Irrefutable patterns are always true");
+    break;
+}
+
 // Make `optional` of type `Option<i32>`
 let mut optional = Some(0);
 // Repeatedly try this test.
@@ -3967,11 +4767,11 @@ pub trait Try: FromResidual {
 ```
 
 
-## <span class="section-num">16</span> match {#match}
+## <span class="section-num">16</span> match pattern {#match-pattern}
 
 match expression {} 结果是一个表达式，可以用于变量赋值(值类型必须相同）：
 
--   子句格式： pattern =&gt; {statements;},  如果是单条语句则可以省略大括号，如 pattern =&gt; expression,
+-   子句格式： pattern =&gt; {statements;}, 如果是单条语句则可以省略大括号，如 pattern =&gt; expression,
 -   match block 中各子句用逗号分割;（函数和闭包的返回值用 -&gt; 分割;）
 
 <!--listend-->
@@ -4027,13 +4827,32 @@ match pattern 支持的语法：
 4.  使用 _ 来匹配任意值；\_ 是一个特殊的模式，它匹配任何值，但不绑定到变量。
 5.  使用 @ 来匹配并定义一个变量，如 y@1..10, y@(1|2|3), y@.. 匹配后，y 是一个包含了匹配值的变量；
 6.  枚举：如 Some(value), None, Ok(value), Err(err);
-7.  变量：如 name, mut name, ref name, ref mut name, 这里的 mut/ref 是用来修饰生成的变量 name 的类型；
+7.  变量：如 name, mut name, ref name, ref mut name, 这里的 ref/mut 是用来修饰生成的变量 name 的类型；
 8.  tuple：(key, value), (r, g, b), (r, g, 12); // 12 为字面量匹配条件；
 9.  array：[a, b, c], [a, b, 1] // 1 为字面量匹配条件；
 10. slice：[a, b], [a, \_, b], [a, .., b]
 11. struct：必须列出每一个 field，但是可以使用 .. 来忽略部分 field；
 12. 匹配引用：&amp;value, &amp;(k, v); // &amp; 用于匹配表达式结果， value/k/v 都代表解了一层引用后的值；
 13. guard expression： x if x &lt; 2;
+
+<!--listend-->
+
+```rust
+let x = 9;
+let message = match x {
+    0 | 1  => "not many",
+    2 ..= 9 => "a few",
+    _      => "lots"
+};
+
+// Demonstration of pattern match order.
+struct S(i32, i32);
+
+match S(1, 2) {
+    S(z @ 1, _) | S(_, z @ 2) => assert_eq!(z, 1),
+    _ => panic!(),
+}
+```
 
 pattern .. 的用法:
 
@@ -4241,6 +5060,7 @@ pattern .. 的用法:
 模式除了用于 if let/while let/match/match! 匹配场景，也用于 tuple/slice/struct/enum 等复杂数据类型值的 `赋值解构` 场景：
 
 -   赋值析构的变量 scope 是所在 block，对于被析构的对象，新的变量 by-ref/by-mov/by-copy 对应的值。
+-   pattern 也用于函数，方法，闭包的形参定义场景；
 
 <!--listend-->
 
@@ -4257,6 +5077,14 @@ impl Inches {
         Centimeters(inches as f64 * 2.54)
     }
 }
+```
+
+在进行解构时， _ 表达式用于占位，表示匹配所有：
+
+```rust
+let p = (1, 2);
+let mut a = 0;
+(_, a) = p;
 ```
 
 模式匹配中, &amp; 引用匹配 reference, 而 ref/ref mut 不是用来匹配而是表示绑定的变量类型.
@@ -4423,6 +5251,10 @@ fn main() {
 
     // `person` cannot be used but `person.age` can be used as it is not moved
     println!("The person's age from person struct is {}", person.age);
+}
+
+// `name` is moved from person and `age` referenced
+let Person { name, ref age } = person;
 ```
 
 Vec 等容器不支持 partial move（如果元素实现了 Copy，则不是 move），解决办法：
@@ -4488,6 +5320,150 @@ fn add(a: i32, b: i32) -> i32 {
 }
 ```
 
+函数的标准语法如下：
+
+-   FunctionQualifiers：fn 前函数限定符：const，async，unsafe，extern;
+-   self 参数支持两种格式：
+    1.  ShorthandSelf: (&amp; | &amp; Lifetime)? mut? self, 例如 self, mut self, &amp;self, &amp;mut self, &amp;'a mut self;
+    2.  TypedSelf: mut? self : Type, 例如 self: Type, mut self: Type;
+        -   该格式不支持借用，传入的是 self 或 mut self；
+
+<!--listend-->
+
+```text
+# https://doc.rust-lang.org/reference/items/functions.html
+
+    Syntax
+    Function :
+       FunctionQualifiers fn IDENTIFIER GenericParams?
+          ( FunctionParameters? )
+          FunctionReturnType? WhereClause?
+          ( BlockExpression | ; )
+
+    FunctionQualifiers :
+       const? async1? unsafe? (extern Abi?)?
+
+    Abi :
+       STRING_LITERAL | RAW_STRING_LITERAL
+
+    FunctionParameters :
+          SelfParam ,?
+       | (SelfParam ,)? FunctionParam (, FunctionParam)* ,?
+
+    SelfParam :
+       OuterAttribute* ( ShorthandSelf | TypedSelf )
+
+    ShorthandSelf :
+       (& | & Lifetime)? mut? self
+
+    TypedSelf :
+       mut? self : Type
+
+    FunctionParam :
+       OuterAttribute* ( FunctionParamPattern | ... | Type 2 )
+
+    FunctionParamPattern :
+       PatternNoTopAlt : ( Type | ... )
+
+    FunctionReturnType :
+       -> Type
+    1 The async qualifier is not allowed in the 2015 edition.
+    2 Function parameters with only a type are only allowed in an associated function of a trait item in the 2015 edition.
+```
+
+函数的泛型参数 Generic parameters 定义如下：
+
+1.  泛型参数有三种类型：lifetime，type，const；
+2.  lifetime 示例：
+    -   'a
+    -   'a: 'b + 'c
+    -   'a: 'static
+    -   'a: '\_
+3.  type 示例：
+    -   T
+    -   T: 'a + Trait
+    -   T = MyType
+    -   T: 'a + TraitA + for &lt;'a&gt; Fn(&amp;'a i32) -&gt; i32
+    -   T: for &lt;'a&gt; Fn(&amp;'a i32) -&gt; i32 + 'b + TraitA
+    -   T: (for &lt;'a&gt; Fn(&amp;'a i32) -&gt; i32) + 'b + TraitA
+    -   T: 'a + TraitA + std::ops::Index&lt;std::ops::Range&lt;usize&gt;&gt;
+
+<!--listend-->
+
+```text
+    Syntax
+    GenericParams :
+          < >
+       | < (GenericParam ,)* GenericParam ,? >
+
+    GenericParam :
+       OuterAttribute* ( LifetimeParam | TypeParam | ConstParam )
+
+    LifetimeParam :
+       LIFETIME_OR_LABEL ( : LifetimeBounds )?
+
+    TypeParam :
+       IDENTIFIER( : TypeParamBounds? )? ( = Type )?
+
+    ConstParam:
+       const IDENTIFIER : Type ( = Block | IDENTIFIER | -?LITERAL )?
+
+TypeParamBounds :
+   TypeParamBound ( + TypeParamBound )* +?
+
+TypeParamBound :
+      Lifetime | TraitBound
+
+TraitBound :
+      ?? ForLifetimes? TypePath
+   | ( ?? ForLifetimes? TypePath )
+
+LifetimeBounds :
+   ( Lifetime + )* Lifetime?
+
+Lifetime :
+      LIFETIME_OR_LABEL
+   | 'static
+   | '_
+
+ForLifetimes :
+   for GenericParams
+
+TypePath :
+   ::? TypePathSegment (:: TypePathSegment)*
+
+TypePathSegment :
+   PathIdentSegment (::? (GenericArgs | TypePathFn))?
+
+TypePathFn :
+( TypePathFnInputs? ) (-> Type)?
+
+TypePathFnInputs :
+Type (, Type)* ,?
+```
+
+其中的 ForLifetimes 用于 Higher-ranked trait bounds， ForLifetimes 后面必须跟 TypePath，也就是 :: 分割的标识符 item， 如下面的 F 或 Fn：
+
+```rust
+// 语法：
+TraitBound :
+      ?? ForLifetimes? TypePath
+   | ( ?? ForLifetimes? TypePath )
+
+ForLifetimes：
+  for GenericParams
+
+fn call_on_ref_zero<F>(f: F) where for<'a> F: Fn(&'a i32) {
+    let zero = 0;
+    f(&zero);
+}
+
+fn call_on_ref_zero<F>(f: F) where F: for<'a> Fn(&'a i32) {
+    let zero = 0;
+    f(&zero);
+}
+```
+
 函数使用 fn 关键字声明, 使用 -&gt; 来指定返回值类型(没有指定的默认为 unit type ()), 函数体中最后一个表达式(不以分号结尾)作为函数的返回值, 也可以使用 return 语句提前返回.
 
 ```rust
@@ -4536,6 +5512,63 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 代码逻辑
     Ok(())
 }
+```
+
+函数的参数可以使用 Pattern match 语法来解构传入的参数：
+
+```rust
+/*
+FunctionParam :
+   OuterAttribute* ( FunctionParamPattern | ... | Type 2 )
+
+FunctionParamPattern :
+   PatternNoTopAlt : ( Type | ... )
+*/
+
+// 示例
+fn first((value, _): (i32, i32)) -> i32 { value }
+// 函数的最后一个参数可以是 ..., 表示可变参数函数 variadic function
+fn variadic_fn(input: int32, input2: ...) -> i32 { value }
+```
+
+可以给函数参数指定 attribute 来实现条件编译：
+
+```rust
+fn len(
+    #[cfg(windows)] slice: &[u16],
+    #[cfg(not(windows))] slice: &[u8],
+) -> usize {
+    slice.len()
+}
+```
+
+extern fn 表示使用特定的 ABI 来调用函数，常用在 extern block 和 unsafe 中：
+
+-   未指定 extern 时，默认为 extern "Rust";
+-   指定 extern 但是未指定 ABI 时，默认为 "C";
+
+<!--listend-->
+
+```rust
+extern "ABI" fn foo() { /* ... */ }
+
+extern "ABI" {
+  fn foo(); /* no body */
+}
+unsafe { foo() }
+
+// Declares a function with the "C" ABI
+extern "C" fn new_i32() -> i32 { 0 }
+
+fn foo() {}
+// 等效于
+extern "Rust" fn foo() {}
+
+extern fn new_i32() -> i32 { 0 }
+let fptr: extern fn() -> i32 = new_i32;
+// 等效于
+extern "C" fn new_i32() -> i32 { 0 }
+let fptr: extern "C" fn() -> i32 = new_i32;
 ```
 
 struct/enum/union 等自定义类型内部不能定义函数，但是可以实现方法，Associated functions 和 Method 都是和类型相关的函数，都需要在类型的 impl 中声明：
@@ -4682,66 +5715,65 @@ fully-qualified syntax to be more clear about exactly which type we are calling 
        call`. `再看 T 的 &T 和 &mut T 类型是否实现了方法 foo();`
 3.  If none of these candidates worked, it `dereferences T and tries again`. This uses the `Deref
        trait` - if T: Deref&lt;Target = U&gt; then it tries again with type U instead of T.
-    -   如果 T 是引用类型, 则解引用它;
-    -   如果 T 不是引用类型, 但是实现了 Deref trait, 则 \* 解引用它获得 U 类型, 然后对 U 重新执行 1-2 步骤.
+    -   如果 T 不是引用类型, 但是实现了 Deref trait, 则 \* 解引用它获得 U 类型, 然后对 U 重新执行 1-2
+        步骤.
+4.  最后尝试 unsized coercion 到类型 U，然后重新执行 1-2 步骤。Rust 目前支持的 unsized coercion 参考：
+    [14.5](#org-target--unsized-coercions)
+    1.  `[T; n] to [T].` 所以 array 对象可以调用 slice 的方法。
+    2.  `T to dyn U`, when T implements U + Sized, and U is object safe.
+    3.  实现了 CoerceUnsized&lt;Foo&lt;U&gt;&gt; 的 &amp;T，&amp;mut T 和智能指针类型；
 
-例如：标准库为所有 &amp;T 或 &amp;mut T 实现了 Deref&lt;Target = T&gt; trait, 这意味 &amp;T 可以调用 T 上定义的方法：
+总结：The first step is to `build a list of candidate receiver types`. Obtain these by `repeatedly
+dereferencing the receiver expression's type`, adding each type encountered to the list, then finally
+attempting `an unsized coercion at the end`, and adding the result type if that is successful. Then,
+for each candidate T, `add &T and &mut T to the list immediately after T`.
 
-```rust
-// https://doc.rust-lang.org/src/core/ops/deref.rs.html#84
-#[stable(feature = "rust1", since = "1.0.0")]
-impl<T: ?Sized> Deref for &T {
-    type Target = T;
+For instance, if the receiver has type Box&lt;[i32;2]&gt;, then the candidate types will be：
 
-    #[rustc_diagnostic_item = "noop_method_deref"]
-    fn deref(&self) -> &T {
-        *self
-    }
-}
+1.  Box&lt;[i32;2]&gt;, &amp;Box&lt;[i32;2]&gt;, &amp;mut Box&lt;[i32;2]&gt;
+2.  [i32; 2] (by dereferencing), &amp;[i32; 2], &amp;mut [i32; 2],
+3.  [i32] (byunsized coercion), &amp;[i32], and finally &amp;mut [i32].
 
-#[stable(feature = "rust1", since = "1.0.0")]
-impl<T: ?Sized> !DerefMut for &T {}
-
-#[stable(feature = "rust1", since = "1.0.0")]
-impl<T: ?Sized> Deref for &mut T {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        *self
-    }
-}
-```
-
-If it can't dereference T, it can also `try unsizing T`. This just means that if T has a size
-parameter known at compile time, it "forgets" it for the purpose of resolving methods. For instance,
-this unsizing step can `convert [i32; 2] into [i32]` by "forgetting" the size of the array.
-
--   unsize Trait 是 [rust 语言定义的](https://doc.rust-lang.org/stable/std/marker/trait.Unsize.html), 用于将 size 类型转换为 unsize 类型, 例如：[i32; 2] into [i32]，
-    myType into dyn Display。
--   Rust array [T; N] 会被 unsizing 转换为 [T]（非 Deref 转换）, 所以 slice 上定义的方法都可以被
-    arrary 使用！
-
-<!--listend-->
+注意：上面的 method lookup 过程不会考虑可变性，lifetime 和 unsafe。如果类型实现的多个 trait 有相同的方法，而且这些 trait 都在作用域，则需要使用完全限定语法来指定要调用那个 trait 的方法实现。
 
 ```rust
-trait Tst {
-    fn tst(&self);
+trait Pretty {
+    fn print(&self);
 }
 
-impl Tst for &str {
-    fn tst(&self) {
-        println!("receiver_type=&&str {{{}}}", self);
-    }
+trait Ugly {
+    fn print(&self);
 }
-// tst 方法的 self 类型是 &&str
+
+struct Foo;
+impl Pretty for Foo {
+    fn print(&self) {}
+}
+
+struct Bar;
+impl Pretty for Bar {
+    fn print(&self) {}
+}
+impl Ugly for Bar {
+    fn print(&self) {}
+}
 
 fn main() {
-    let x = "hello world";
-    x.tst(); // 根据 x 的类型来查找 self 匹配的 tst() 方法.(不止匹配 x 类型)
+    let f = Foo;
+    let b = Bar;
 
-   let y = String::from("hello world");
-   y.tst(); // 报错, 尝试了 self 的类型 String, &String, &mut String, str, &str, &mut str 都不匹配上面 tst() 的签名.
-   (&y).tst() // 正确
+    // we can do this because we only have one item called `print` for `Foo`s
+    f.print();
+    // more explicit, and, in the case of `Foo`, not necessary
+    Foo::print(&f);
+    // if you're not into the whole brevity thing
+    <Foo as Pretty>::print(&f);
+
+    // b.print(); // Error: multiple 'print' found
+    // Bar::print(&b); // Still an error: multiple `print` found
+
+    // necessary because of in-scope items defining `print`
+    <Bar as Pretty>::print(&b);
 }
 ```
 
@@ -4766,20 +5798,20 @@ let first_entry = array[0]; // 等效为 *array.index(0)
 
 Rust 中的闭包是一种匿名函数，可以将它们保存在变量中或作为参数传递给其他函数。闭包能够捕获并使用其定义作用域内的变量，这是它们名称的由来——它们"封闭"并包围了周围的环境。
 
-A closure expression produces a closure value with a unique, anonymous type that cannot be written out. A closure type is approximately equivalent to a struct which contains the captured variables. For instance, the following closure:
-
 闭包在定义时（而非调用时）capture 外围环境中的对象，这种 capture 是 closures 函数内部的行为，不体现在闭包的函数参数中。
 
 -   使用 || 而非 () 来定义输入参数；
 -   如果是单行表达式，可以忽略大括号，否则需要使用大括号；
 -   可以省略返回值声明，默认根据表达式自动推导；
+-   如果指定返回值类型,则必须使用大括号;
 -   闭包的输入和输出参数一旦被自动推导后，就不能再变化，后续多次调用时传的或返回的值类型必须相同；
--   对比：普通函数 fn 的参数类型必须指定，普通函数 fn 不能捕获上下文中的变量对象；
+-   对比：普通函数 fn 的参数类型必须指定，函数 fn 不能捕获上下文中的变量对象；
 
 <!--listend-->
 
 ```rust
-|val| val + x
+let is_even = |x: u64| -> bool x % 2 == 0; // error
+let is_even = |x: u64| -> bool { x % 2 == 0 }; // ok
 
 fn main() {
     let outer_var = 42;
@@ -4881,13 +5913,15 @@ fn call_with_different_values() {
 }
 ```
 
-在闭包函数中使用外部环境的对象时，Rust 编译器会分析闭包使用的方式来确定如何捕获该对象：
+在闭包函数中使用外部环境的对象时，Rust 编译器会分析闭包使用的方式来确定如何捕获该对象（复合类型
+struct/tuple/enum 也是被作为一个整体来捕获的，可以使用临时变量来捕获某个 field）：
 
 1.  Imut Refer：不可变引用外围环境中的对象，优先选择该类型。
 2.  Mut Refer：可变引用外围环境中的对象；
 3.  Move：外围对象的所有权移动到闭包函数中；
     -   例如闭包内部需要 drop() non-copy 对象或者需要返回对象（转移所有权到接收方）；
-    -   更常见的情况是多线程场景，使用 move || 来指示闭包获得上下文对象的所有权；
+    -   更常见的情况是多线程场景，因为多线程场景的闭包函数在另一个 thread 中运行，编译器不能推断闭包引用对象的声明周期是否有效，所以需要 move，这样确保闭包捕获的对象是一直有效的。
+    -   使用 move 后，闭包捕获了上下文对象，这些对象的生命周期完全由闭包内部的逻辑来控制，所以该闭包实现了 `'static` ;
 
 <!--listend-->
 
@@ -4985,14 +6019,9 @@ fn main() {
     consume();
     // consume();
 }
-```
 
-如果要明确的外围环境中的对象 ownership 移动到闭包中，需要使用 move，这时闭包相当于具有了 'static
-lifetime。这在多线程场景非常常见：因为多线程场景的闭包函数在另一个 thread 中运行，编译器不能推断闭包引用对象的声明周期是否有效，所以需要 move，这样确保闭包捕获的对象是一直有效的。
-
-```rust
+// move 闭包
 use std::thread;
-
 fn main() {
     let list = vec![1, 2, 3];
     println!("Before defining closure: {:?}", list);
@@ -5045,7 +6074,7 @@ fn take<T>(_v: T) {}
 
 外围对象被闭包捕获后，不允许再修改它的值：
 
--   实际上，一旦对象被借用（不管是共享还是可变借用），只要该借用还有效，对象都不能被修改或 move。
+-   实际上，一旦对象被借用（不管是共享还是可变借用），只要该借用还有效，对象都不能被修改或 move。《== 借用冻结
 
 <!--listend-->
 
@@ -5091,8 +6120,8 @@ f(|| {
 
 // generates a closure type roughly like the following:
 struct Closure<'a> {
-    s : String,
-    t : &'a String,
+    s : String, // 捕获
+    t : &'a String, // 借用
 }
 
 impl<'a> FnOnce<()> for Closure<'a> {
@@ -5107,7 +6136,7 @@ impl<'a> FnOnce<()> for Closure<'a> {
 f(Closure{s: s, t: &t});
 ```
 
-匿名闭包类型实现了哪一个 trait：Fn/FnMut/FnOnce，当闭包作为 `函数输入参数 或限界 Bound` 需要指定该类型。
+编译器自动为闭包类型实现 Fn/FnMut/FnOnce trait，当闭包作为 `函数输入参数 或限界 Bound` 时也需要指定该类型。
 
 1.  FnOnce 类型：只能调用一次，该闭包接管了外界环境中的值；
 2.  FnMut 类型：可以调用多次，该闭包使用 &amp;mut 来捕获外界值；
@@ -5203,7 +6232,7 @@ fn main() {
 }
 ```
 
-对于没有捕获环境中值的闭包，可以自动转换为 fn 指针：
+对于没有捕获环境中值的闭包，可以被被隐式或显式（as）为 fn 指针：
 
 ```rust
 let add = |x, y| x + y;
@@ -5251,7 +6280,7 @@ fn main() {
 }
 ```
 
-闭包 lifetime：闭包函数返回引用时可能会遇到 lifetime 问题（[14.3](#org-target--lifetime-elision-rules) 并不适合闭包）：
+闭包 lifetime：闭包函数返回引用时可能会遇到 lifetime 问题（[13.3](#org-target--lifetime-elision-rules) 并不适合闭包）：
 
 ```rust
 fn fn_elision(x: &i32) -> &i32 { x } // OK
@@ -6163,8 +7192,7 @@ impl Contains<i32, i32> for Container {
 
 ### <span class="section-num">18.2</span> supertrait {#supertrait}
 
-trait 可以定义父子关系，即一个 trait 可以有多个父 trait（称为 supertrait），某个类型在实现该 trait
-的同时也必须实现这些父 trait：
+trait 可以定义父子关系，即一个 trait 可以有多个父 trait（称为 supertrait），某个类型在实现该 trait 的同时也必须实现这些父 trait：
 
 -   In trait declarations as supertraits: `trait Circle : Shape {}` is equivalent to `trait Circle where
       Self : Shape {}` .
@@ -6191,6 +7219,21 @@ trait Programmer {
 trait CompSciStudent: Programmer + Student {
     fn git_username(&self) -> String;
 }
+```
+
+supertrait 也支持 lifetime bound：
+
+```rust
+trait Shape { fn area(&self) -> f64; }
+trait Circle : Shape { fn radius(&self) -> f64; }
+// 等效于：
+trait Circle where Self: Shape { fn radius(&self) -> f64; }
+
+trait Circle<'a> : Shape + 'a { fn radius(&self) -> f64; }
+
+// as 可用于 trait object 的类型转换
+let circle = Box::new(circle) as Box<dyn Circle>;
+let nonsense = circle.radius() * circle.area();
 ```
 
 
@@ -6647,15 +7690,20 @@ impl Foo for TraitObject {
 
 <span class="org-target" id="org-target--trait-object"></span>
 
-`dyn TraitName` 称为 trait object，可用于表示实现 TraitName 的任意对象类型。由于这些类型的 size 是不确定的，所以一般使用 `&dyn TraitName` 或 `Box<dyn TraitName>` 来转换为可以固定大小的类型。
+参考：<https://quinedot.github.io/rust-learning/dyn-trait.html>
 
+`dyn TraitName` 称为 trait object，可用于表示实现 TraitName 的任意对象类型。由于在编译时类型和大小不确定, 所以一般使用 `&dyn TraitName` 或 `Box<dyn TraitName>` 来表示, 它们都是胖指针，包含两个字段：指向动态对象内存的指针 + 该对象实现 trait 定义的各种方法的虚表（vtable) 的指针。&lt;= 运行时动态派发
+
+-   `&dyn TraitName` 使用实现 TraitName 的对象引用赋值： `let n: &dyn TraitName = &value` ;
+-   `Box<dyn TraitName>` 使用对象来创建 Box, 如 Box::new(value): `let b: Box<dyn TraitName> =
+      Box::new(value)` ;
 -   特殊的 trait Any 一般用于 downcase() 到具体的类型.
 
-dyn 语法：dyn TypeParamBounds，其中 TypeParamBounds 是一系列具有如下限制的 trait bound：
+dyn 语法: `dyn TypeParamBounds` , TypeParamBounds 是一系列具有如下限制的 trait bound：
 
-1.  All traits except the first trait must be auto traits；
+1.  All traits except the first trait must be `auto traits` ；
     -   [auto trait](https://doc.rust-lang.org/reference/special-types-and-traits.html#auto-traits) 包括：Send, Sync, Unpin, UnwindSafe 和  RefUnwindSafe。
-2.  there may not be more than one lifetime
+2.  there may not be more than `one lifetime`
 3.  opt-out bounds (e.g. ?Sized) are not allowed
 4.  paths to traits may be parenthesized.
 
@@ -6682,9 +7730,6 @@ dyn eviction::EvictionManager + Sync  // 可以使用 path 来完整指定 trait
 两个 dyn trait 的 trait、lifetime 如果相同的话，则类型互为别名，例如：dyn Trait + Send + UnwindSafe
 is the same as dyn Trait + UnwindSafe + Send.
 
-dyn trait 是编译时未知大小，故一般和指针联合使用，如 &amp;dyn TraitName 或 Box&lt;dyn TraitName&gt;。它们都是胖指针，包含两个字段：指向动态对象内存的指针 + 该对象实现 trait 定义的各种方法的虚表（vtable) 的指针。
-&lt;= 运行时动态派发
-
 当使用 &amp;dyn Trait 时，如果要指定 Send/lifetime 等，则需要使用 `&(dyn Trait + Send + 'a) 格式` ，否则
 Rust 报错 + 号有歧义：
 
@@ -6692,7 +7737,6 @@ Rust 报错 + 号有歧义：
 -   当参数类型是 &amp;Box&lt;dyn Trait&gt; 时，不能传入 &amp;Box::new(my_struct)， Rust 报错类型不匹配，两个解决办法：
     -   将参数类型修改为 Box&lt;dyn Trait&gt;, 后续可以直接传入 Box::new(my_struct)；
     -   或者，先创建一个 Box&lt;dyn Triat&gt; 的对象 b，然后再传入 &amp;b;
--   lifetime 都是在声明时指定，在实际 borrow 时不需要指定 lifetime，否则 Rust 报错。
 
 <!--listend-->
 
@@ -6750,74 +7794,6 @@ fn printf_hellov3(say_hello: Option<Box<dyn MyTrait + Send + 'static>>) {
 }
 ```
 
-dyn Trait 的 lifetime 规则:
-
-1.  `Box<dyn Trait>` 等效于 `Box<dyn Trait + 'static>` ;
-2.  `&'x Box<dyn Trait>` 等效于 `&'x Box<dyn Trait + 'static>`;
-3.  `&'a dyn Foo` 等效于 `&'a (dyn Foo + 'a)` ;
-    -   因为 &amp;'a T 隐式声明了 T: 'a;
-    -   &amp;'a (dyn Foo + 'a) 表示 dyn Foo 的 trait object 的 lifetime 要比 'a 长，同时它的引用也要比'a
-        长；
-4.  &amp;'r Ref&lt;'q, dyn Trait&gt; 等效于 &amp;'r Ref&lt;'q, dyn Trait+'q&gt;;
-
-<https://doc.rust-lang.org/reference/lifetime-elision.html#default-trait-object-lifetimes>
-
-```rust
-// For the following trait...
-trait Foo { }
-
-// These two are the same because Box<T> has no lifetime bound on T
-type T1 = Box<dyn Foo>;
-type T2 = Box<dyn Foo + 'static>;
-
-// ...and so are these:
-impl dyn Foo {}
-impl dyn Foo + 'static {}
-
-// ...so are these, because &'a T requires T: 'a
-type T3<'a> = &'a dyn Foo;
-type T4<'a> = &'a (dyn Foo + 'a);
-
-// std::cell::Ref<'a, T> also requires T: 'a, so these are the same
-type T5<'a> = std::cell::Ref<'a, dyn Foo>;
-type T6<'a> = std::cell::Ref<'a, dyn Foo + 'a>;
-
-// This is an example of an error.
-struct TwoBounds<'a, 'b, T: ?Sized + 'a + 'b> {
-    f1: &'a i32,
-    f2: &'b i32,
-    f3: T,
-}
-type T7<'a, 'b> = TwoBounds<'a, 'b, dyn Foo>;
-//                                  ^^^^^^^
-// Error: the lifetime bound for this object type cannot be deduced from context
-
-
-// For the following trait...
-trait Bar<'a>: 'a { }
-// ...these two are the same:
-type T1<'a> = Box<dyn Bar<'a>>;
-type T2<'a> = Box<dyn Bar<'a> + 'a>;
-// ...and so are these:
-impl<'a> dyn Bar<'a> {}
-impl<'a> dyn Bar<'a> + 'a {}
-```
-
-理解： Box&lt;dyn Trait + 'static&gt;
-
-```rust
-// 表示 Parent 的生命周期可以任意长，但是当 parent 被 drop 时，child 也会被 drop，从而释放 dyn
-// OtherTrait 对象。
-struct Parent {
-   child: Box<dyn OtherTrait + 'static>,
-}
-```
-
-One thing to realize is that lifetimes in Rust are never talking about the lifetime of a value,
-instead they are `upper bounds on how long a value can live`. If a type is annotated with a lifetime,
-then it `must go out of scope before that lifetime ends`, but there's no requirement that it lives for
-the entire lifetime.
-
 trait object 和泛型参数的差别：
 
 1.  对于使用 Trait bound 的泛型参数，在编译阶段 Rust 编译器是可以推断出一种实际类型，所以不能实例化出一类实现 trait 的类型。例如 Vec&lt;T: Display&gt; , 在编译器间实例化后只能保存一种实现 Display trait 的实例；
@@ -6830,16 +7806,7 @@ trait object 和泛型参数的差别：
 -   Box&lt;dyn traitName + Send + 'static&gt;
 -   Box&lt;dyn traitName + Sync + Send + 'static&gt;
 
-当参数类型是 &amp;Box&lt;dyn Trait&gt; 时，不能传入 &amp;Box::new(my_struct)， Rust 报错类型不匹配，两个解决办法：
-
--   将参数类型修改为 Box&lt;dyn Trait&gt;, 后续可以直接传入 Box::new(my_struct)；
--   或者，先创建一个 Box&lt;dyn Triat&gt; 的对象 b，然后再传入 &amp;b;
-
-<!--listend-->
-
--   traitName 还可以是闭包函数 trait, 例如: Box&lt;dyn Fn(int32) -&gt; int32&gt;;
-
-<!--listend-->
+traitName 还可以是闭包函数 trait, 例如: Box&lt;dyn Fn(int32) -&gt; int32&gt;;
 
 ```rust
 struct Sheep {}
@@ -6905,42 +7872,6 @@ fn printf_hellov2(say_hello: Option<&Box<dyn MyTrait + Send + 'static>>) {
 }
 ```
 
-当将一个对象被转移给函数时，该对象满足函数的 'static 要求（因为转移给函数后，函数可以自由决定对象的生命周期）：
-
--   如果对象有借用，则不能转移给函数，
-
-<!--listend-->
-
-```rust
-use std::collections::HashMap;
-
-trait App {}
-
-struct AppRegistry {
-    apps: HashMap<String, Box<dyn App>>,
-}
-
-impl AppRegistry {
-    fn new() -> AppRegistry {
-        Self { apps: HashMap::new() }
-    }
-
-    fn add(&mut self, name: &str, app: impl App + 'static) {
-        self.apps.insert(name.to_string(), Box::new(app));
-    }
-}
-
-struct MyApp {}
-
-impl App for MyApp {}
-
-fn main() {
-    let mut registry = AppRegistry::new();
-    registry.add("thing", MyApp {}); // paas by value 传递对象，这时 add 方法相当于拥有了这个对象，所以满足 'static
-    println!("apps: {}", registry.apps.len());
-}
-```
-
 On-Stack Dynamic Dispatch: We can dynamically dispatch over multiple values, however, to do so, we
 need to declare multiple variables to bind differently-typed objects. `To extend the lifetime as
 necessary` , we can use deferred conditional initialization, as seen below:
@@ -6976,7 +7907,203 @@ let readable: Box<dyn io::Read> = if arg == "-" {
 ```
 
 
-### <span class="section-num">18.6</span> impl trait {#impl-trait}
+### <span class="section-num">18.6</span> Default trait object lifetimes {#default-trait-object-lifetimes}
+
+dyn Trait 的 lifetime 规则:
+
+1.  `Box<dyn Trait>` 等效于 `Box<dyn Trait + 'static>` ;
+2.  `&'x Box<dyn Trait>` 等效于 `&'x Box<dyn Trait + 'static>`;
+3.  `&'a dyn Foo` 等效于 `&'a (dyn Foo + 'a)` ;
+    -   因为 &amp;'a T 隐式声明了 T: 'a;
+    -   &amp;'a (dyn Foo + 'a) 表示 dyn Foo 的 trait object 的 lifetime 要比 'a 长，同时它的引用也要比'a
+        长；
+4.  `&'r Ref<'q, dyn Trait>` 等效于 `&'r Ref<'q, dyn Trait+'q>` ;
+
+<https://doc.rust-lang.org/reference/lifetime-elision.html#default-trait-object-lifetimes>
+
+```rust
+// For the following trait...
+trait Foo { }
+
+// These two are the same because Box<T> has no lifetime bound on T
+type T1 = Box<dyn Foo>;
+type T2 = Box<dyn Foo + 'static>;
+
+// ...and so are these:
+impl dyn Foo {}
+impl dyn Foo + 'static {}
+
+// ...so are these, because &'a T requires T: 'a
+type T3<'a> = &'a dyn Foo;
+type T4<'a> = &'a (dyn Foo + 'a);
+
+// std::cell::Ref<'a, T> also requires T: 'a, so these are the same
+type T5<'a> = std::cell::Ref<'a, dyn Foo>;
+type T6<'a> = std::cell::Ref<'a, dyn Foo + 'a>;
+
+// This is an example of an error.
+struct TwoBounds<'a, 'b, T: ?Sized + 'a + 'b> {
+    f1: &'a i32,
+    f2: &'b i32,
+    f3: T,
+}
+type T7<'a, 'b> = TwoBounds<'a, 'b, dyn Foo>;
+//                                  ^^^^^^^
+// Error: the lifetime bound for this object type cannot be deduced from context
+
+
+// For the following trait...
+trait Bar<'a>: 'a { }
+// ...these two are the same:
+type T1<'a> = Box<dyn Bar<'a>>;
+type T2<'a> = Box<dyn Bar<'a> + 'a>;
+// ...and so are these:
+impl<'a> dyn Bar<'a> {}
+impl<'a> dyn Bar<'a> + 'a {}
+```
+
+理解 `Box<dyn Trait>` 等效于 `Box<dyn Trait + 'static>`:
+
+-   使用 Box::new(value) 来赋值, 其中 value 的类型实现了 Trait. value 所有权被转移到 Box 中, 所以相当于 Box 可以随意决定 value 的生命周期, 相当于具有了 'static 语义.
+-   当将一个对象被转移给函数时，该对象满足函数的 'static 要求（因为转移给函数后，函数可以自由决定对象的
+
+生命周期）. 如果对象有借用，则不能转移给函数;
+
+```rust
+
+let Box<dyn Trait> = Box::new(value);
+
+// 表示 Parent 的生命周期可以任意长，但是当 parent 被 drop 时，child 也会被 drop，从而释放 dyn
+// OtherTrait 对象。
+struct Parent {
+   child: Box<dyn OtherTrait + 'static>,
+}
+
+// 另一个例子
+use std::collections::HashMap;
+
+trait App {}
+
+struct AppRegistry {
+    apps: HashMap<String, Box<dyn App>>,
+}
+
+impl AppRegistry {
+    fn new() -> AppRegistry {
+        Self { apps: HashMap::new() }
+    }
+
+    fn add(&mut self, name: &str, app: impl App + 'static) {
+        self.apps.insert(name.to_string(), Box::new(app));
+    }
+}
+
+struct MyApp {}
+
+impl App for MyApp {}
+
+fn main() {
+    let mut registry = AppRegistry::new();
+    registry.add("thing", MyApp {}); // paas by value 传递对象，这时 add 方法相当于拥有了这个对象，所以满足 'static
+    println!("apps: {}", registry.apps.len());
+}
+```
+
+One thing to realize is that lifetimes in Rust are never talking about the lifetime of a value,
+instead they are `upper bounds on how long a value can live`. If a type is annotated with a lifetime,
+then it `must go out of scope before that lifetime ends`, but there's no requirement that it lives for
+the entire lifetime.
+
+---
+
+<https://doc.rust-lang.org/reference/lifetime-elision.html>
+
+The assumed lifetime of references held by a trait object is called its `default object lifetime
+bound` . These were defined in RFC 599 and amended in RFC 1156.
+
+These default object lifetime bounds are used instead of the lifetime parameter elision rules
+defined above when `the lifetime bound is omitted entirely`. If '\_ is used as the lifetime bound then
+the bound `follows the usual elision rules`.
+
+如果 trait object 作为 trait bound， 且没有指定 lifetime bound， 则使用这里说明的 defualt trait
+object lifetime bound.
+
+如果为 trait object 指定 '\_ liftime bound， 则使用 lifetime elide rule 来自动添加 lifetime。
+
+If the trait object is used as a type argument of a generic type then `the containing type is first
+used to try to infer a bound`.
+
+1.  If there is `a unique bound` from the containing type then that is the default
+2.  If there is more than one bound from the containing type then an explicit bound `must be specified`
+
+If neither of those rules apply, then `the bounds on the trait are used`:
+
+1.  If the trait is defined with `a single lifetime bound` then that bound is used.
+2.  If 'static is used for any lifetime bound then `'static` is used.
+3.  If the trait has no lifetime bounds, then the lifetime is `inferred in expressions and is 'static
+       outside of expressions` .
+
+<!--listend-->
+
+```rust
+// For the following trait...
+trait Foo { }
+
+// 下面这些 T1 到 T7 都是将 trait object 用作 type argument， 所以先检查对应 containing type 的
+// lifetime 来推导 trait object 的 lifetime。主要是 3 条规则：
+// 1. 如果 containing type 没有 lifetime，如 T1/T2 则使用 'static；
+// 2. 如果 containing type 只指定了一个 lifetime， 则使用对应的 lifetime， 如 T3/T4/T5/T6；
+// 3. 如果 containing type 有多个 lifetime，则必须为 trit object 明确指定 liftime
+
+// These two are the same because Box<T> has no lifetime bound on T
+type T1 = Box<dyn Foo>;
+type T2 = Box<dyn Foo + 'static>;
+// ...and so are these:
+impl dyn Foo {}
+impl dyn Foo + 'static {}
+// ...so are these, because &'a T requires T: 'a
+// 首先检查 containing type 是否有 lifetime，如果有的话且唯一，则使用它。
+// 这里的 containing type 指的是 &'a dyn Foo 中的 &'a.
+type T3<'a> = &'a dyn Foo;
+type T4<'a> = &'a (dyn Foo + 'a);
+// std::cell::Ref<'a, T> also requires T: 'a, so these are the same
+type T5<'a> = std::cell::Ref<'a, dyn Foo>;
+type T6<'a> = std::cell::Ref<'a, dyn Foo + 'a>;
+// This is an example of an error.
+struct TwoBounds<'a, 'b, T: ?Sized + 'a + 'b> {
+    f1: &'a i32,
+    f2: &'b i32,
+    f3: T,
+}
+type T7<'a, 'b> = TwoBounds<'a, 'b, dyn Foo>;
+//                                  ^^^^^^^
+// Error: the lifetime bound for this object type cannot be deduced from context
+
+
+
+// 如果 trait object 不是作为 type argument，而是用于赋值，则使用对应目标类型的 trait bound 来决定 trait object 的 lifetime：
+// 1. 如果目标 trait 只有一个 lifetime， 则使用它；
+// 2. 如果目标没有 lifetime，则使用 'static 或从 expression 推导；
+```
+
+Note that the innermost object sets the bound, so `&'a Box<dyn Foo>` is still `&'a Box<dyn Foo +
+'static>` .
+
+```rust
+// For the following trait...
+trait Bar<'a>: 'a { }
+
+// ...these two are the same:
+type T1<'a> = Box<dyn Bar<'a>>;
+type T2<'a> = Box<dyn Bar<'a> + 'a>;
+
+// ...and so are these:
+impl<'a> dyn Bar<'a> {}
+impl<'a> dyn Bar<'a> + 'a {}
+```
+
+
+### <span class="section-num">18.7</span> impl trait {#impl-trait}
 
 `impl TraitName（注意：impl 前能加 &）` 和泛型参数类似, 也是在编译时实例化为一种特定类型, 不支持运行时动态派发。impl trait 可以作为泛型参数 Bound、函数输入参数和返回值类型；
 
@@ -7052,7 +8179,7 @@ fn returns_closure() -> impl Fn(i32) -> i32 {
 ```
 
 
-### <span class="section-num">18.7</span> 运算符重载 {#运算符重载}
+### <span class="section-num">18.8</span> 运算符重载 {#运算符重载}
 
 类型实现 std::ops 下的各 trait， 以实现运算符重载：
 
@@ -7099,7 +8226,7 @@ fn main() {
 ```
 
 
-### <span class="section-num">18.8</span> PhantomData {#phantomdata}
+### <span class="section-num">18.9</span> PhantomData {#phantomdata}
 
 A phantom type parameter is one that doesn't show up at runtime, but is `checked statically (and
 only) at compile time` .
@@ -7231,7 +8358,7 @@ fn main() {
 ```
 
 
-### <span class="section-num">18.9</span> Copy/Clone {#copy-clone}
+### <span class="section-num">18.10</span> Copy/Clone {#copy-clone}
 
 Copy 是 Clone 的 子 trait, 所以在实现 Copy 的同时也必须实现 Clone. 另外 Copy 是一个 marker trait, 不需要实现特定的方法.
 
@@ -7295,7 +8422,7 @@ impl Clone for MyStruct {
 ```
 
 
-### <span class="section-num">18.10</span> Default {#default}
+### <span class="section-num">18.11</span> Default {#default}
 
 <https://doc.rust-lang.org/stable/std/default/trait.Default.html>
 
@@ -7420,7 +8547,7 @@ assert_eq!(y.unwrap_or_default(), 12);
 ```
 
 
-### <span class="section-num">18.11</span> Drop {#drop}
+### <span class="section-num">18.12</span> Drop {#drop}
 
 Drop trait 为对象提供了自定义析构能力， 一般在对象离开 scope 时由编译器自动调用来释放资源：
 
@@ -7454,7 +8581,7 @@ Drop 在程序 panic 时也会被执行: Code in destructors will (nearly) alway
 early returns, etc.
 
 
-### <span class="section-num">18.12</span> From/Into： {#from-into}
+### <span class="section-num">18.13</span> From/Into： {#from-into}
 
 自定义类型一般只需实现 From，rust 会自动生成相反方向的 Into。
 
@@ -7582,7 +8709,7 @@ Unlike `From/Into`, `TryFrom` and `TryInto` are used for fallible conversions an
 of a plain value.
 
 
-### <span class="section-num">18.13</span> FromStr/ToString {#fromstr-tostring}
+### <span class="section-num">18.14</span> FromStr/ToString {#fromstr-tostring}
 
 从 string 来生成各种类型的值：
 
@@ -7649,7 +8776,7 @@ fn main() {
 ```
 
 
-### <span class="section-num">18.14</span> FromIterator/IntoIterator {#fromiterator-intoiterator}
+### <span class="section-num">18.15</span> FromIterator/IntoIterator {#fromiterator-intoiterator}
 
 FromIterator: 从一个实现了 IntoIterator&lt;Item=A&gt; 的迭代器创建一个 Self 类型对象：
 
@@ -7677,7 +8804,7 @@ pub trait IntoIterator {
 ```
 
 
-### <span class="section-num">18.15</span> Try {#try}
+### <span class="section-num">18.16</span> Try {#try}
 
 ? 运算法可以用于 Result/Option, 它可以使用 std::ops::Try trait 来自定义:
 
@@ -7697,7 +8824,7 @@ pub trait Try: FromResidual {
 ```
 
 
-### <span class="section-num">18.16</span> AsRef/AsMut {#asref-asmut}
+### <span class="section-num">18.17</span> AsRef/AsMut {#asref-asmut}
 
 例如 std::fs:<:open> 函数的声明：open 的实现依赖于 &amp;Path，通过限定 P 实现了 AsRef&lt;Path&gt;，在 open
 内部就可以通过 P.as_ref() 方法调用返回 &amp;Path 的类型对象。
@@ -7720,7 +8847,7 @@ impl AsRef<Path> for String {
 ```
 
 
-### <span class="section-num">18.17</span> Index/IndexMut {#index-indexmut}
+### <span class="section-num">18.18</span> Index/IndexMut {#index-indexmut}
 
 a 可以实现 Index trait 和 IndexMutt trait, 前者的 index() 返回 &amp;Self::Output, 后者的 index_mut() 返回 &amp;mut Self::Output;
 
@@ -7781,7 +8908,7 @@ type Output = str
 ```
 
 
-### <span class="section-num">18.18</span> Borrow/ToOwned/Cow {#borrow-toowned-cow}
+### <span class="section-num">18.19</span> Borrow/ToOwned/Cow {#borrow-toowned-cow}
 
 Borrow 和 BorrowMut 和 AsRef/AsMut 类似，Borrow&lt;T&gt; 是从自身创建一个 &amp;T 的借用，但是它要求 &amp;T 必须和
 Self 能以相同的方式进行哈希和比较时，Self 才应该实现 Borrow&lt;T&gt;
@@ -8161,7 +9288,7 @@ where
 ```
 
 
-### <span class="section-num">18.19</span> Deref/DerefMut {#deref-derefmut}
+### <span class="section-num">18.20</span> Deref/DerefMut {#deref-derefmut}
 
 Deref 从 &amp;self 引用返回一个 Targe 对象的不可变引用：
 
@@ -8185,10 +9312,8 @@ Defer 主要使用场景是智能指针，因为智能指针类型如 t=Box&lt;U
 2.  &amp;t 返回 &amp;U, 等效于 Deref.deref(&amp;t);
 3.  t 实现了 U 的所有非可变方法；
 
-在需要获取对象的 &amp;mut 引用时，如方法调用或变量赋值场景，Rust 会看对象是否实现了 DerefMut trait，如果实现了则 `自动调用(被称为 mutable deref coercion) 它来实现转换` ：
-
-`所以，*v 作为左值的场景，rust 使用 DerefMut<Target=U> 来对 * 操作符进行了重载，相当于用生成 Target U
-对象来进行赋值。`
+在需要获取对象的 &amp;mut 引用时，如方法调用或变量赋值场景，Rust 会看对象是否实现了 DerefMut trait，如果实现了则 `自动调用(被称为 mutable deref coercion) 它来实现转换` , `所以，*v 作为左值的场景，rust 使用
+DerefMut<Target=U> 来对 * 操作符进行了重载，相当于用生成 Target U对象来进行赋值。`
 
 对于实现了 Deref&lt;Target=U&gt; 的类型 T 值, `&*T 返回 &U`:
 
@@ -8253,11 +9378,41 @@ impl ops::Deref for String {
 }
 ```
 
-可以通过 &amp;\*V 来得到 &amp;str 类型：
+Rust 不会自动隐式解引用来满足泛型参数的限界:
 
 ```rust
-let addr_string = "192.168.0.1:3000".to_string();
-let addr_ref: &str = &*addr_string; // *addr_string = str，再加上外面的 & 即为 &str
+use std::ops::{Deref, DerefMut};
+
+impl<T> Deref for Selector<T> {
+    type Target = T;
+    fn deref(&self) -> &T { &self.elements[self.current] }
+}
+impl<T> DerefMut for Selector<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.elements[self.current] }
+}
+
+// OK: 在函数传参时, rust 会自动隐式解引用, &Selector -> &str
+let s = Selector { elements: vec!["good", "bad", "ugly"], current: 2 };
+fn show_it(thing: &str) { println!("{}", thing); }
+show_it(&s);
+
+// Error: 当使用 Trait 作为泛型参数的限界时, rust 不会自动解引用到 &str 类型来满足类型限界的要求
+use std::fmt::Display;
+fn show_it_generic<T: Display>(thing: T) { println!("{}", thing); }
+show_it_generic(&s);
+```
+
+解决办法:
+
+1.  使用 as 类型转换;
+2.  手动解引用 &amp;\*V 来得到 &amp;str 类型：
+
+<!--listend-->
+
+```rust
+show_it_generic(&s as &str);
+show_it_generic(&*s)
 ```
 
 类型自动转化是 Rust 为了追求语言简洁，使用 Deref/DerefMut 实现的另一种隐式操作，比如下面的赋值都是正确的：
@@ -8287,7 +9442,7 @@ impl<T: ?Sized> const Deref for &T {
 ```
 
 
-### <span class="section-num">18.20</span> smart pointer {#smart-pointer}
+### <span class="section-num">18.21</span> smart pointer {#smart-pointer}
 
 实际上只要实现了 Deref trait 的类型都可以称为 smart pointer。Deref 文档列出了标准库中实现 Deref
 trait 的所有类型列表：<https://doc.rust-lang.org/std/ops/trait.Deref.html>
@@ -8391,7 +9546,7 @@ Box/Rc/Arc 的 lifetime 规则:
 3.  &amp;'r Ref&lt;'q, Trait&gt; 等效于 &amp;'r Ref&lt;'q, Trait+'q&gt;;
 
 
-### <span class="section-num">18.21</span> Box&lt;T&gt; {#box-t}
+### <span class="section-num">18.22</span> Box&lt;T&gt; {#box-t}
 
 Rust 值默认在 stack 上分配. 可以使用 Box&lt;T&gt; 将 T 值在 heap 上分配, Box 是一个 hold T 值的智能指针,在离开 Box scope 时, T 值的解构被调用, heap 上内存被释放.
 
@@ -8539,7 +9694,7 @@ fn main() {
 Box&lt;T&gt; 默认没有实现 Copy，在赋值时会被移动。其他智能指针，如 Rc/Arc/Cell/RefCell 类似。
 
 
-### <span class="section-num">18.22</span> Rc/Arc&lt;T&gt; {#rc-arc-t}
+### <span class="section-num">18.23</span> Rc/Arc&lt;T&gt; {#rc-arc-t}
 
 Rc&lt;T&gt; 和 Box&lt;T&gt; 类似, a = Rc::new(T) 都是在堆上为 T 分配内存，并 ownership 它，但是：
 
@@ -8703,7 +9858,7 @@ assert_eq!(five, 5);
 ```
 
 
-### <span class="section-num">18.23</span> Cell&lt;T&gt;/RefCell&lt;T&gt; {#cell-t-refcell-t}
+### <span class="section-num">18.24</span> Cell&lt;T&gt;/RefCell&lt;T&gt; {#cell-t-refcell-t}
 
 内部可变性（Interior Mutability）
 
@@ -8842,7 +9997,7 @@ mod tests {
 ```
 
 
-### <span class="section-num">18.24</span> Pin/UnPin {#pin-unpin}
+### <span class="section-num">18.25</span> Pin/UnPin {#pin-unpin}
 
 由于 move 机制的存在，导致在 Rust 很难去正确表达『自引用』的结构，比如链表、树等。主要问题：move 只会进行值本身的拷贝，指针的指向则不变。如果被 move 的结构有指向其他字段的指针，那么这个指向被 move 后就是非法的，因为原始指向已经换地址了。
 
@@ -8873,6 +10028,25 @@ let mut cx = task::Context::from_waker(&waker);
 let mut future = Box::pin(async { 10 });
 assert_eq!(future.as_mut().poll(&mut cx), task::Poll::Ready(10));
 ```
+
+
+### <span class="section-num">18.26</span> Send/Sync {#send-sync}
+
+-   Send：对象可以在多个线程中转移 move （也就是对象在多线程间转移具有原子性）；
+-   Sync：可以在多个线程中共享引用对象；
+
+对于 thread closure 而言，一般使用 move 来转移引用的对象，所以对象类型必须实现 Send。但是对于 scope
+thread 的闭包函数不使用 move，它们可以共享引用父 thread 的 stack 变量，所以要求这些对象必须实现 Sync。
+
+由于 thread closure 要求使用 move 来将外部环境中的对象所有权转义到闭包函数内，所以转义的对象必须要实现 Send trait。绝大部分 rust 类型，如 Vec/Map/Array 等实现了 Send/Sync，可以自由地被 move 到 thread
+closure 中。自定义类型的各成员如果实现了 Send/Sync，则该类型也自动实现了 Send/Sync。
+
+特殊情况：
+
+1.  Rc&lt;T&gt; 没有实现 Send 和 Sync（多线程转移 Rc 对象时，不能保证原子性），不能被 move 到 thread
+    closure 中。多线程环境中需要使用 Arc&lt;T&gt; 和它的clone()对象；
+2.  Cell/RefCell/mpsc:Receiver 没有实现 Sync，不能在多个线程中共享引用；
+3.  std::sync::MutexGurad 没实现 Send。
 
 
 ## <span class="section-num">19</span> iterator {#iterator}
@@ -9216,7 +10390,25 @@ for logician in logicians.iter().chain(turing.iter()) {
 ```
 
 
-### <span class="section-num">19.1</span> 迭代器方法 {#迭代器方法}
+### <span class="section-num">19.1</span> range {#range}
+
+Rust 支持的 range 表达式其实是 RangeXX struct 类型的语法糖：
+
+```rust
+1..2;   // std::ops::Range
+3..;    // std::ops::RangeFrom
+..4;    // std::ops::RangeTo
+..;     // std::ops::RangeFull
+5..=6;  // std::ops::RangeInclusive
+..=7;   // std::ops::RangeToInclusive
+
+let x = std::ops::Range {start: 0, end: 10};
+let y = 0..10;
+assert_eq!(x, y);
+```
+
+
+### <span class="section-num">19.2</span> 迭代器方法 {#迭代器方法}
 
 ```rust
 pub trait Iterator {
@@ -9553,7 +10745,7 @@ let result: Result<Vec<_>, &str> = results.iter().cloned().collect();
 assert_eq!(Ok(vec![1, 3]), result);
 
 // 允许失败的 collect，主要用于将迭代元素是 Option<T> 转换为 Option<Collector<T>> 类型
-fn try_collect<B>( &mut self ) -> <<Self::Item as Try>::Residual as Residual<B>>::TryType where Self: Sized, Self::Item: Try, <Self::Item as Try>::Residual: Residual<B>, B: FromIterator<<Self::Item as Try>::Output> { ... }
+fn try_collect<B>( &mut self ) -> ::TryType where Self: Sized, Self::Item: Try, <Self::Item as Try>::Residual: Residual<B>, B: FromIterator<<Self::Item as Try>::Output> { ... }
 #![feature(iterator_try_collect)]
 let u = vec![Some(1), Some(2), Some(3)];
 let v = u.into_iter().try_collect::<Vec<i32>>();
@@ -9611,7 +10803,7 @@ assert_eq!(reduced, 45);
 let folded: i32 = (1..10).fold(0, |acc, e| acc + e);
 assert_eq!(reduced, folded);
 
-fn try_reduce<F, R>( &mut self, f: F ) -> <<R as Try>::Residual as Residual<Option<<R as Try>::Output>>>::TryType where Self: Sized, F: FnMut(Self::Item, Self::Item) -> R, R: Try<Output = Self::Item>, <R as Try>::Residual: Residual<Option<Self::Item>> { ... }
+fn try_reduce<F, R>( &mut self, f: F ) -> >::TryType where Self: Sized, F: FnMut(Self::Item, Self::Item) -> R, R: Try<Output = Self::Item>, <R as Try>::Residual: Residual<Option<Self::Item>> { ... }
 
 // 迭代的所有元素满足 f
 fn all<F>(&mut self, f: F) -> bool where Self: Sized, F: FnMut(Self::Item) -> bool { ... }
@@ -9633,7 +10825,7 @@ let a = ["lol", "NaN", "2", "5"];
 let first_number = a.iter().find_map(|s| s.parse().ok());
 assert_eq!(first_number, Some(2));
 
-fn try_find<F, R>( &mut self, f: F ) -> <<R as Try>::Residual as Residual<Option<Self::Item>>>::TryType where Self: Sized, F: FnMut(&Self::Item) -> R, R: Try<Output = bool>, <R as Try>::Residual: Residual<Option<Self::Item>> { ... }
+fn try_find<F, R>( &mut self, f: F ) -> >::TryType where Self: Sized, F: FnMut(&Self::Item) -> R, R: Try<Output = bool>, <R as Try>::Residual: Residual<Option<Self::Item>> { ... }
 
 // 查找满足 predicate 的元素，返回他的 index。对比： find() 返回元素本身。
 fn position<P>(&mut self, predicate: P) -> Option<usize> where Self: Sized, P: FnMut(Self::Item) -> bool { ... }
@@ -9767,7 +10959,7 @@ fn is_sorted_by_key<F, K>(self, f: F) -> bool where Self: Sized, F: FnMut(Self::
 ```
 
 
-### <span class="section-num">19.2</span> std::iter::IntoIterator {#std-iter-intoiterator}
+### <span class="section-num">19.3</span> std::iter::IntoIterator {#std-iter-intoiterator}
 
 实现该 trait 的对象，它的 into_iter() 方法返回一个迭代器 Iterator：
 
@@ -9786,7 +10978,7 @@ pub trait IntoIterator {
 ```
 
 
-### <span class="section-num">19.3</span> for-in 迭代 {#for-in-迭代}
+### <span class="section-num">19.4</span> for-in 迭代 {#for-in-迭代}
 
 标准库的如下类型支持 for-in 迭代：
 
@@ -9922,7 +11114,7 @@ for i in vec.iter() {println!("{i}")};
     -   pub fn matches&lt;'a, P&gt;(&amp;'a self, pat: P) -&gt; Matches&lt;'a, P&gt;
 
 
-### <span class="section-num">19.4</span> std::iter::FromIterator {#std-iter-fromiterator}
+### <span class="section-num">19.5</span> std::iter::FromIterator {#std-iter-fromiterator}
 
 从输入的迭代器 iter 创建一个 Self 对象（取决于实现该 Fromiterator 的对象类型）
 
@@ -10034,9 +11226,9 @@ impl FromIterator<TokenTree> for TokenStream
 
 ## <span class="section-num">20</span> crate/module/pakckage {#crate-module-pakckage}
 
-crate 是 rust 的编译单元: rustc some_file.rs 中的 some_file.rs 是 crate file.
+crate 是 rust 的编译、发布、版本化、加载的单元: rustc some_file.rs 中的 some_file.rs 是 crate file.
 
--   crate 可以被编译为 binary 或 library, 可以通过 --crate-type=lib/bin 来定义;
+-   crate 可以被编译为 binary 或 library, 可以通过 --crate-type=lib/bin/procedure_macro 来定义;
 
 <!--listend-->
 
@@ -10077,16 +11269,35 @@ foo
 ```
 
 crate file 可以使用 mod 声明来引用其他 mod 中 item 对象, 该 mod 可以是单独的文件或当前文件中定义,
-mod 可以嵌套.
+mod 可以嵌套。
 
-父 module 中的元素, 不管是否 public, 都可以在自身和子 module 中使用. 但是不能在父 module(递归向上)
-和其它非子 module 中使用.
+父 module 中的元素, 不管是否 public, 都可以在自身和子 module 中使用， 但是不能在父 module(递归向上)
+和其它非子 module 中使用。
 
-在 Rust 2015 以后版本, 基本上不需要再使用 extern crate xx 了, 因为 rustc 会从 Cargo.toml 中获得外部依赖的 crate.
+在 Rust 2015 以后版本, 基本上不需要再使用 extern crate xx 了, 因为 rustc 会从 Cargo.toml 中获得外部依赖的 crate。
+
+-   rustc 自带的 crate 如 alloc/test/proc_macro 只能 extern crate 来声明：
+
+<!--listend-->
+
+```rust
+extern crate alloc;
+use alloc::rc::Rc;
+```
+
+crate 名称是不允许有短横杠的，但是 Cargo package 可能会使用他们，所以 Cargo.toml 中指定的并不是
+crate name，Cargo 会自动将短横杠替换为下划线：
+
+```rust
+// Importing the Cargo package hello-world
+extern crate hello_world; // hyphen replaced with an underscore
+
+extern crate foo as _ // 表示不使用 foo crate 中的 item，只做链接
+```
 
 module 引入了一级 namespace, 其中的 item 需要使用 module::item 来访问.
 
-module 中 item 的可见性
+module 中 item 的可见性：
 
 -   pub fn
 -   pub (in path): pub(in crate::my_mod), 对指定的 crate 开放;
@@ -10097,101 +11308,129 @@ module 中 item 的可见性
 <!--listend-->
 
 ```rust
-  // A module named `my_mod`
-  mod my_mod {
-      // Items in modules default to private visibility.
-      fn private_function() {
-          println!("called `my_mod::private_function()`");
-      }
+// A module named `my_mod`
+mod my_mod {
+    // Items in modules default to private visibility.
+    fn private_function() {
+        println!("called `my_mod::private_function()`");
+    }
 
-      // Use the `pub` modifier to override default visibility.
-      pub fn function() {
-          println!("called `my_mod::function()`");
-      }
+    // Use the `pub` modifier to override default visibility.
+    pub fn function() {
+        println!("called `my_mod::function()`");
+    }
 
-      // Items can access other items in the same module, even when private.
-      pub fn indirect_access() {
-          print!("called `my_mod::indirect_access()`, that\n> ");
-          private_function();
-      }
+    // Items can access other items in the same module, even when private.
+    pub fn indirect_access() {
+        print!("called `my_mod::indirect_access()`, that\n> ");
+        private_function();
+    }
 
-      // Modules can also be nested
-      pub mod nested {
-          pub fn function() {
-              println!("called `my_mod::nested::function()`");
-          }
+    // Modules can also be nested
+    pub mod nested {
+        pub fn function() {
+            println!("called `my_mod::nested::function()`");
+        }
 
-          #[allow(dead_code)]
-          fn private_function() {
-              println!("called `my_mod::nested::private_function()`");
-          }
+        #[allow(dead_code)]
+        fn private_function() {
+            println!("called `my_mod::nested::private_function()`");
+        }
 
-          // Functions declared using `pub(in path)` syntax are only visible within the given
-          // path. `path` must be a parent or ancestor module
-          pub(in crate::my_mod) fn public_function_in_my_mod() {
-              print!("called `my_mod::nested::public_function_in_my_mod()`, that\n> ");
-              public_function_in_nested();
-          }
+        // Functions declared using `pub(in path)` syntax are only visible within the given
+        // path. `path` must be a parent or ancestor module
+        pub(in crate::my_mod) fn public_function_in_my_mod() {
+            print!("called `my_mod::nested::public_function_in_my_mod()`, that\n> ");
+            public_function_in_nested();
+        }
 
-          // Functions declared using `pub(self)` syntax are only visible within the current module,
-          // which is the same as leaving them private
-          pub(self) fn public_function_in_nested() {
-              println!("called `my_mod::nested::public_function_in_nested()`");
-          }
+        // Functions declared using `pub(self)` syntax are only visible within the current module,
+        // which is the same as leaving them private
+        pub(self) fn public_function_in_nested() {
+            println!("called `my_mod::nested::public_function_in_nested()`");
+        }
 
-          // Functions declared using `pub(super)` syntax are only visible within
-          // the parent module
-          pub(super) fn public_function_in_super_mod() {
-              println!("called `my_mod::nested::public_function_in_super_mod()`");
-          }
-      }
+        // Functions declared using `pub(super)` syntax are only visible within
+        // the parent module
+        pub(super) fn public_function_in_super_mod() {
+            println!("called `my_mod::nested::public_function_in_super_mod()`");
+        }
+    }
 
-      pub fn call_public_function_in_my_mod() {
-          print!("called `my_mod::call_public_function_in_my_mod()`, that\n> ");
-          nested::public_function_in_my_mod();
-          print!("> ");
-          nested::public_function_in_super_mod();
-      }
+    pub fn call_public_function_in_my_mod() {
+        print!("called `my_mod::call_public_function_in_my_mod()`, that\n> ");
+        nested::public_function_in_my_mod();
+        print!("> ");
+        nested::public_function_in_super_mod();
+    }
 
-      // pub(crate) makes functions visible only within the current crate
-      pub(crate) fn public_function_in_crate() {
-          println!("called `my_mod::public_function_in_crate()`");
-      }
+    // pub(crate) makes functions visible only within the current crate
+    pub(crate) fn public_function_in_crate() {
+        println!("called `my_mod::public_function_in_crate()`");
+    }
 
-      // Nested modules follow the same rules for visibility
-      mod private_nested {
-          #[allow(dead_code)]
-          pub fn function() {
-              println!("called `my_mod::private_nested::function()`");
-          }
+    // Nested modules follow the same rules for visibility
+    mod private_nested {
+        #[allow(dead_code)]
+        pub fn function() {
+            println!("called `my_mod::private_nested::function()`");
+        }
 
-          // Private parent items will still restrict the visibility of a child item,
-          // even if it is declared as visible within a bigger scope.
-          #[allow(dead_code)]
-          pub(crate) fn restricted_function() {
-              println!("called `my_mod::private_nested::restricted_function()`");
-          }
-      }
-  }
+        // Private parent items will still restrict the visibility of a child item,
+        // even if it is declared as visible within a bigger scope.
+        #[allow(dead_code)]
+        pub(crate) fn restricted_function() {
+            println!("called `my_mod::private_nested::restricted_function()`");
+        }
+    }
+}
 
-  fn function() {
-      println!("called `function()`");
-  }
+fn function() {
+    println!("called `function()`");
+}
 
-  fn main() {
-      // Modules allow disambiguation between items that have the same name.
-      function();
-      my_mod::function();
+fn main() {
+    // Modules allow disambiguation between items that have the same name.
+    function();
+    my_mod::function();
 
-      // Public items, including those inside nested modules, can be
-      // accessed from outside the parent module.
-      my_mod::indirect_access();
-      my_mod::nested::function();
-      my_mod::call_public_function_in_my_mod();
+    // Public items, including those inside nested modules, can be
+    // accessed from outside the parent module.
+    my_mod::indirect_access();
+    my_mod::nested::function();
+    my_mod::call_public_function_in_my_mod();
 
-      // pub(crate) items can be called from anywhere in the same crate
-      my_mod::public_function_in_crate();
-  }
+    // pub(crate) items can be called from anywhere in the same crate
+    my_mod::public_function_in_crate();
+}
+```
+
+module 可以通过 #[path] attribute 来指定它的文件路径：
+
+```rust
+#[path = "thread_files"]
+mod thread {
+    // Load the `local_data` module from `thread_files/tls.rs` relative to this source file's
+    // directory.
+    #[path = "tls.rs"]
+    mod local_data;
+}
+```
+
+module 也可以使用 #[cfg_attr] 来指定在 match 条件的情况下，为 module 添加一些 attr：
+
+```rust
+#[cfg_attr(target_os = "linux", path = "linux.rs")]
+#[cfg_attr(target_os = "linux", cfg_attr(feature = "multithreaded", some_other_attribute))]
+#[cfg_attr(windows, path = "windows.rs")]
+mod os;
+
+#[cfg_attr(feature = "magic", sparkles, crackles)]
+fn bewitched() {}
+// When the `magic` feature flag is enabled, the above will expand to:
+#[sparkles]
+#[crackles]
+fn bewitched() {}
 ```
 
 package 目录结构：
@@ -10283,54 +11522,114 @@ use 语句: 将某个标识符和一个 full path 绑定, 后续可以直接使�
 <!--listend-->
 
 ```rust
-  use crate::deeply::nested::{
-      my_first_function,
-      my_second_function,
-      AndATraitType
-  };
+use crate::deeply::nested::{
+    my_first_function,
+    my_second_function,
+    AndATraitType
+};
 
-  fn main() {
-      my_first_function();
-  }
-
-
-  // 使用 use..as 对绑定重命名
-
-  // Bind the `deeply::nested::function` path to `other_function`.
-  use deeply::nested::function as other_function;
-  fn function() {
-      println!("called `function()`");
-  }
-  mod deeply {
-      pub mod nested {
-          pub fn function() {
-              println!("called `deeply::nested::function()`");
-          }
-      }
-  }
-  fn main() {
-      // Easier access to `deeply::nested::function`
-      other_function();
-
-      println!("Entering block");
-      {
-          // This is equivalent to `use deeply::nested::function as function`.
-          // This `function()` will shadow the outer one.
-          use crate::deeply::nested::function;
-
-          // `use` bindings have a local scope. In this case, the
-          // shadowing of `function()` is only in this block.
-          function();
-
-          println!("Leaving block");
-      }
-
-      function();
-  }
+fn main() {
+    my_first_function();
+}
 
 
-  // 使用 pub use 将绑定在当前 create module 重新 export
-  pub use deeply::nested::function as other_function;
+// 使用 use..as 对绑定重命名
+
+// Bind the `deeply::nested::function` path to `other_function`.
+use deeply::nested::function as other_function;
+fn function() {
+    println!("called `function()`");
+}
+mod deeply {
+    pub mod nested {
+        pub fn function() {
+            println!("called `deeply::nested::function()`");
+        }
+    }
+}
+fn main() {
+    // Easier access to `deeply::nested::function`
+    other_function();
+
+    println!("Entering block");
+    {
+        // This is equivalent to `use deeply::nested::function as function`.
+        // This `function()` will shadow the outer one.
+        use crate::deeply::nested::function;
+
+        // `use` bindings have a local scope. In this case, the
+        // shadowing of `function()` is only in this block.
+        function();
+
+        println!("Leaving block");
+    }
+
+    function();
+}
+
+
+// 使用 pub use 将绑定在当前 create module 重新 export
+pub use deeply::nested::function as other_function;
+```
+
+pub use 可以将当前导入的 item 在本 moudule 中重新导出, 这样其他 crate 导入该 module 时也可以使用这些
+item.
+
+缺省情况下 rust 标准库被自动导入到 crate root module，可以使用 std 来引用它中的 item。同时隐式的为
+std 使用 macro_use attribute 来导入 std 库中 macro_export 的所有宏。同时 core 也被导入到 create root
+module。
+
+通过在 crate level 添加 #\![no_std] attr 可以避免上面隐式自动导入 std 和它的 macro，而只会导入 core
+create 以及他的 macro。
+
+-   使用 #\![no_std] attr 只是关闭了自动导入 std 和他的 macro，代码还是可以使用 extern crate std; 来显示导入和链接的。
+
+注：可以使用 <https://github.com/dtolnay/cargo-expand> 来展开 macro 代码：
+
+-   也可以使用 `cargo build --verbose` 来看到展开的代码:
+
+<!--listend-->
+
+```rust
+// cat src/main.rs
+#[derive(Debug)]
+struct S;
+
+fn main() {
+    println!("{:?}", S);
+}
+
+// 展开：$ cargo expand
+// 可见：编译器自动导入了 std crate 和 std prelude
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::v1::*;
+#[macro_use]
+extern crate std;
+
+struct S;
+#[automatically_derived]
+#[allow(unused_qualifications)]
+impl ::core::fmt::Debug for S {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        match *self {
+            S => {
+                let mut debug_trait_builder = f.debug_tuple("S");
+                debug_trait_builder.finish()
+            }
+        }
+    }
+}
+fn main() {
+    {
+        ::std::io::_print(::core::fmt::Arguments::new_v1(
+            &["", "\n"],
+            &match (&S,) {
+                (arg0,) => [::core::fmt::ArgumentV1::new(arg0, ::core::fmt::Debug::fmt)],
+            },
+        ));
+    };
+}
 ```
 
 
@@ -10364,8 +11663,7 @@ attribute 可以带参数:
 -   \#[attribute(value, value2)]
 -   \#[attribute(value, value2, value3, value4, value5)]
 
-
-### <span class="section-num">21.1</span> 常见 attribute {#常见-attribute}
+常见 attribute：
 
 1.  nightly-only experimental API： 需要使用 #\![feature(API_NAME)] 来启用 nightly 实验性 APIs：
     -   需要安装 nightly toolchain；
@@ -10373,17 +11671,17 @@ attribute 可以带参数:
 <!--listend-->
 
 ```rust
-  #![feature(iter_next_chunk)]
-  let mut iter = "lorem".chars();
-  assert_eq!(iter.next_chunk().unwrap(), ['l', 'o']);              // N is inferred as 2
-  assert_eq!(iter.next_chunk().unwrap(), ['r', 'e', 'm']);         // N is inferred as 3
-  assert_eq!(iter.next_chunk::<4>().unwrap_err().as_slice(), &[]); // N is explicitly 4
+#![feature(iter_next_chunk)]
+let mut iter = "lorem".chars();
+assert_eq!(iter.next_chunk().unwrap(), ['l', 'o']);              // N is inferred as 2
+assert_eq!(iter.next_chunk().unwrap(), ['r', 'e', 'm']);         // N is inferred as 3
+assert_eq!(iter.next_chunk::<4>().unwrap_err().as_slice(), &[]); // N is explicitly 4
 
-  let quote = "not all those who wander are lost";
-  let [first, second, third] = quote.split_whitespace().next_chunk().unwrap();
-  assert_eq!(first, "not");
-  assert_eq!(second, "all");
-  assert_eq!(third, "those");
+let quote = "not all those who wander are lost";
+let [first, second, third] = quote.split_whitespace().next_chunk().unwrap();
+assert_eq!(first, "not");
+assert_eq!(second, "all");
+assert_eq!(third, "those");
 ```
 
 1.  \#[allow(dead_code)]: 运行未使用的代码(如变量声明, 函数定义).
@@ -10391,13 +11689,13 @@ attribute 可以带参数:
 <!--listend-->
 
 ```rust
-  // Nested modules follow the same rules for visibility
-  mod private_nested {
-      #[allow(dead_code)]
-      pub fn function() {
-          println!("called `my_mod::private_nested::function()`");
-      }
-  }
+// Nested modules follow the same rules for visibility
+mod private_nested {
+    #[allow(dead_code)]
+    pub fn function() {
+        println!("called `my_mod::private_nested::function()`");
+    }
+}
 ```
 
 1.  \#\![allow(unused_variables)]:
@@ -10412,365 +11710,1048 @@ fn main() {
 ```
 
 1.  \#[cfg(...)] 条件编译:
+    -   unix, windows, target_arch = "x86_64", target_os = "linux", feature = "robots" (自定义 feature);
 
 <!--listend-->
 
 ```rust
-  // This function only gets compiled if the target OS is linux
-  #[cfg(target_os = "linux")]
-  fn are_you_on_linux() {
-      println!("You are running linux!");
-  }
-
-  // And this function only gets compiled if the target OS is *not* linux
-  #[cfg(not(target_os = "linux"))]
-  fn are_you_on_linux() {
-      println!("You are *not* running linux!");
-  }
-
-  fn main() {
-      are_you_on_linux();
-
-      println!("Are you sure?");
-      if cfg!(target_os = "linux") {
-          println!("Yes. It's definitely linux!");
-      } else {
-          println!("Yes. It's definitely *not* linux!");
-      }
-  }
-
-  // rustc --cfg some_condition custom.rs && ./custom
-  #[cfg(some_condition)]  // 自定义 cfg
-  fn conditional_function() {
-      println!("condition met!");
-  }
-
-  fn main() {
-      conditional_function();
-  }
-```
-
-
-## <span class="section-num">22</span> panic! {#panic}
-
-panic 是最简单的异常处理机制，它打印 error message，然后开始 unwinding stack，最后退出当前 thread：
-
-1.  如果是 main thread panic，则程序退出；
-2.  否则，如果是 spawned thread panic，则该 thread 会终止，程序不退出。
-
-unwinding stack 过程中，rust 会回溯调用栈，drop 所有的对象和资源。也可以在 Cargo.toml 里设置 panic
-时不 unwiding stack 而是直接 abort 退出：
-
-```toml
-[profile.release]
-panic = 'abort'
-```
-
-
-## <span class="section-num">23</span> 常见方法和 trait {#常见方法和-trait}
-
-
-### <span class="section-num">23.1</span> make_mut {#make-mut}
-
-`pub fn make_mut(this: &mut Arc<T, A>) -> &mut T`
-
-Makes a mutable reference into the given Arc.
-
-If there are other Arc pointers to the same allocation, then make_mut will `clone the inner value` to
-a new allocation to `ensure unique ownership`. This is also referred to as `clone-on-write`.
-
-However, if there are no other Arc pointers to this allocation, but some Weak pointers, then the
-Weak pointers will be dissociated and the inner value will not be cloned.
-
-See also `get_mut`, which will fail rather than cloning the inner value or dissociating Weak pointers.
-
-```rust
-use std::sync::Arc;
-
-let mut data = Arc::new(5);
-
-*Arc::make_mut(&mut data) += 1;         // Won't clone anything
-let mut other_data = Arc::clone(&data); // Won't clone inner data
-*Arc::make_mut(&mut data) += 1;         // Clones inner data
-*Arc::make_mut(&mut data) += 1;         // Won't clone anything
-*Arc::make_mut(&mut other_data) *= 2;   // Won't clone anything
-
-// Now `data` and `other_data` point to different allocations.
-assert_eq!(*data, 8);
-assert_eq!(*other_data, 12);
-```
-
-
-### <span class="section-num">23.2</span> get_mut {#get-mut}
-
-`pub fn get_mut(this: &mut Arc<T, A>) -> Option<&mut T>`
-
-get_mut 一般返回 Option.
-
-Returns a mutable reference into the given Arc, if there are no other Arc or Weak pointers to the
-same allocation.
-
-Returns `None` otherwise, because it is not safe to mutate a shared value.
-
-See also make_mut, which will clone the inner value when there are other Arc pointers.
-
-Examples
-
-```rust
-use std::sync::Arc;
-
-let mut x = Arc::new(3);
-*Arc::get_mut(&mut x).unwrap() = 4;
-assert_eq!(*x, 4);
-
-let _y = Arc::clone(&x);
-assert!(Arc::get_mut(&mut x).is_none());
-```
-
-
-### <span class="section-num">23.3</span> into_inner {#into-inner}
-
-```text
-pub fn into_inner(this: Arc<T, A>) -> Option<T>
-```
-
-Returns the inner value, if the Arc has exactly one strong reference.
-
-Otherwise, `None is returned and the Arc is dropped`.
-
-This will succeed even if there are outstanding weak references.
-
-If Arc::into_inner is called on every clone of this Arc, it is guaranteed that `exactly one` of the
-calls returns the inner value. This means in particular that the inner value is not dropped.
-
-The similar expression Arc::try_unwrap(this).ok() does not offer such a guarantee. See the last
-example below and the documentation of Arc::try_unwrap.
-
-Examples
-
-Minimal example demonstrating the guarantee that Arc::into_inner gives.
-
-```rust
-use std::sync::Arc;
-
-let x = Arc::new(3);
-let y = Arc::clone(&x);
-
-// Two threads calling `Arc::into_inner` on both clones of an `Arc`:
-let x_thread = std::thread::spawn(|| Arc::into_inner(x));
-let y_thread = std::thread::spawn(|| Arc::into_inner(y));
-
-let x_inner_value = x_thread.join().unwrap();
-let y_inner_value = y_thread.join().unwrap();
-
-// One of the threads is guaranteed to receive the inner value:
-assert!(matches!(
-    (x_inner_value, y_inner_value),
-    (None, Some(3)) | (Some(3), None)
-));
-// The result could also be `(None, None)` if the threads called
-// `Arc::try_unwrap(x).ok()` and `Arc::try_unwrap(y).ok()` instead.
-```
-
-实现 into_inner() 函数的类型还有:
-
--   std::boxed::Box  pub fn into_inner(boxed: Box&lt;T, A&gt;) -&gt; T
--
-
-
-### <span class="section-num">23.4</span> downcase {#downcase}
-
-一般是 `dyn Any` 的智能指针,如 Arc/Rc/Box 等实现了 downcase 方法, 将 trait object 转换为具体的类型:
-
-trait object 的标准定义一般有 3 种形式, 主要是看是否有 Send/Sync 约束. 以 Box 为例:
-
--   pub fn downcast&lt;T&gt;(self) -&gt; Result&lt;Box&lt;T, A&gt;, Box&lt;dyn Any, A&gt;&gt;
--   pub fn downcast&lt;T&gt;(self) -&gt; Result&lt;Box&lt;T, A&gt;, Box&lt;dyn Any + Send, A&gt;&gt;
--   pub fn downcast&lt;T&gt;(self) -&gt; Result&lt;Box&lt;T, A&gt;, Box&lt;dyn Any + Sync + Send, A&gt;&gt;
-
-<!--listend-->
-
-```rust
-impl<A> Box<dyn Any, A>
-where
-    A: Allocator,
-pub fn downcast<T>(self) -> Result<Box<T, A>, Box<dyn Any, A>>
-where
-    T: Any,
-
-
-impl<A> Box<dyn Any + Send, A>
-where
-    A: Allocator,
-pub fn downcast<T>(self) -> Result<Box<T, A>, Box<dyn Any + Send, A>>
-where
-    T: Any,
-
-
-impl<A> Box<dyn Any + Sync + Send, A>
-where
-    A: Allocator,
-pub fn downcast<T>(self) -> Result<Box<T, A>, Box<dyn Any + Sync + Send, A>>
-where
-    T: Any,
-```
-
-Rc/Arc/Cell/RefCell 等智能指针类型, 均具有这三种类型的 downcase 方法:
-
-```rust
-impl<A> Arc<dyn Any + Sync + Send, A>
-where
-    A: Allocator + Clone,
-
-pub fn downcast<T>(self) -> Result<Arc<T, A>, Arc<dyn Any + Sync + Send, A>>
-where
-    T: Any + Send + Sync,
-```
-
-Attempt to downcast the Arc&lt;dyn Any + Send + Sync&gt; to a concrete type.
-
-Examples
-
-```rust
-use std::any::Any;
-use std::sync::Arc;
-
-// downcast 方法有自己的类型参数,所以需要使用 比目鱼语法 来指定调用.
-fn print_if_string(value: Arc<dyn Any + Send + Sync>) {
-    if let Ok(string) = value.downcast::<String>() { // string 类型是 Arc<String>
-        println!("String ({}): {}", string.len(), string);
+// This function only gets compiled if the target OS is linux
+#[cfg(target_os = "linux")]
+fn are_you_on_linux() {
+    println!("You are running linux!");
+}
+
+// And this function only gets compiled if the target OS is *not* linux
+#[cfg(not(target_os = "linux"))]
+fn are_you_on_linux() {
+    println!("You are *not* running linux!");
+}
+
+fn main() {
+    are_you_on_linux();
+
+    println!("Are you sure?");
+    if cfg!(target_os = "linux") {
+        println!("Yes. It's definitely linux!");
+    } else {
+        println!("Yes. It's definitely *not* linux!");
     }
 }
 
-let my_string = "Hello World".to_string();
-print_if_string(Arc::new(my_string));
-print_if_string(Arc::new(0i8));
+// rustc --cfg some_condition custom.rs && ./custom
+#[cfg(some_condition)]  // 自定义 cfg
+fn conditional_function() {
+    println!("condition met!");
+}
+
+fn main() {
+    conditional_function();
+}
+```
+
+1.  \#[test]
+
+<!--listend-->
+
+```rust
+// 在 mod 前添加 cfg test attr, 表明这一个 module 中的代码只在 test 时编译使用, 可以避免编译器未使用代码的警告.
+#[cfg(test)] // include this module only when testing
+mod tests
+{
+    fn roughly_equal(a: f64, b: f64) -> bool { (a - b).abs() < 1e-6
+    }
+    #[test]
+    fn trig_works() {
+        use std::f64::consts::PI; assert!(roughly_equal(PI.sin(), 0.0));
+    }
+}
+
+#[test]
+#[allow(unconditional_panic, unused_must_use)]
+#[should_panic(expected="divide by zero")]
+fn test_divide_by_zero_error() { 1 / 0; // should panic!
+}
 ```
 
 
-## <span class="section-num">24</span> macro {#macro}
+## <span class="section-num">22</span> async {#async}
 
-宏可以用来简化重复的代码编写任务、实现特定的 DSL（领域特定语言）、或者进行编译时代码生成。 创建 Vec
-的 vec!宏、为数据结构添加各种 trait 支持的 #[derive(Debug, Default, ...)]、条件编译时使用的
-\#[cfg(test)] 宏等。
+async fn 是异步函数，实际上是返回 impl Feature 的语法糖，而且可以和 unsafe 连用：
 
-rust macro 可以实现 metaprogramming 范式， 有用的特性：
+-   async block {} 也是 impl Feature 的语法糖。
+-   async fn 内部可以使用 async block 和 await 表达式；
+
+<!--listend-->
+
+```rust
+// Source
+async fn example(x: &str) -> usize {
+    x.len()
+}
+// is roughly equivalent to:
+// Desugared
+fn example<'a>(x: &'a str) -> impl Future<Output = usize> + 'a {
+    async move { x.len() }
+}
+
+// Returns a future that, when awaited, dereferences `x`.
+//
+// Soundness condition: `x` must be safe to dereference until
+// the resulting future is complete.
+async unsafe fn unsafe_example(x: *const i32) -> i32 {
+    *x
+}
+
+async fn safe_example() {
+    // An `unsafe` block is required to invoke the function initially:
+    let p = 22;
+    let future = unsafe { unsafe_example(&p) };
+
+    // But no `unsafe` block required here. This will
+    // read the value of `p`:
+    let q = future.await;
+}
+```
+
+Rust 使用单线程或线程池来允许个 aysnc task：
+
+-   block_on(): 当前线程来允许异步任务；
+-   task::spawn_local(): 在 block_on() 所在的线程空闲时允许异步任务；
+-   task::spawn(): 在一个线程池中允许异步任务；
+-   task::spawn_blocking()： 立即创建一个线程来允许指定的同步函数；
+
+Future trait:
+
+-   poll 方法的 self 类型是 Pin&lt;&amp;mut Self&gt;，表示一旦开始 pool 时，Self 的地址必须是固定的，不能再被转移，这是为了方式 Future 对象内部保存的栈地址继续有效；
+-   cx 参数的 Context 封装了 waker，当 poll Pending 时，Future 的实现可以保存该 waker（一般是在一个辅助线程中），然后当条件满足时，调用 waker 来唤醒 async executor 来重新 poll 自己。
+
+<!--listend-->
+
+```rust
+trait Future {
+    type Output;
+    // For now, read `Pin<&mut Self>` as `&mut Self`.
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output>;
+}
+enum Poll<T> {
+    Ready(T),
+    Pending,
+}
+```
+
+同步函数可以返回 impl Future，执行该函数时只是返回一个 Future 对象，但是并没有实际执行：
+
+```rust
+fn read_to_string(&mut self, buf: &mut String) -> impl Future<Output = Result<usize>>;
+// 等效于
+fn read_to_string<'a>(&'a mut self, buf: &'a mut String) -> impl Future<Output = Result<usize>> + 'a;
+```
+
+为了方便实现异步函数，Rust 提供了 async fn：
+
+1.  async fn 内部可以使用 .await 表达式，但是普通函数不行；
+2.  async fn 的返回值会被封装为 Future；
+3.  执行该函数只会返回一个 Future，需要使用 await 表达式来 poll 结果。
+
+<!--listend-->
+
+```rust
+use async_std::io::prelude::*;
+use async_std::net;
+async fn cheapo_request(host: &str, port: u16, path: &str) -> std::io::Result<String>
+{
+    let mut socket = net::TcpStream::connect((host, port)).await?;
+    let request = format!("GET {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host);
+    socket.write_all(request.as_bytes()).await?;
+    socket.shutdown(net::Shutdown::Write)?;
+    let mut response = String::new(); socket.read_to_string(&mut response).await?;
+    Ok(response)
+}
+
+// 返回一个 Future
+//let response = cheapo_request(host, port, path);
+```
+
+async fn 内部可以通过 await poll 其他异步函数，所以async executor 在执行 async fn 的过程中，可能会多次暂停，暂停的位置是各 .await 表达式，每次暂停都会返回一个新的 Future 对象，他封装了暂停位置依赖的上下文对象：栈变量、函数参数等。
+
+Rust 也允许在 trait 中定义 async fn，但是一旦 trait 包含 async fn，就不能使用 trait object，解决办法是使用基于 macro 的 async-trait crate 解决方法。
+
+async_std::net::TcpListener::bind() 返回一个 Future，.await 用于 pull 该 Feature 直到返回 poll Ready，然后返回值：
+
+```rust
+use async_std::{net, task};
+let listener = net::TcpListener::bind(address).await?;
+let mut new_connections = listener.incoming(); // 返回一个 Stream
+while let Some(socket_result) = new_connections.next().await { // Stream 类似与迭代器，但是每一个元素需要 .await 返回
+    let socket = socket_result?;
+    let groups = chat_group_table.clone(); task::spawn(async {
+        log_error(serve(socket, groups).await);
+    });
+}
+```
+
+同步代码和异步代码的结合点是 block_on:
+
+-   block_on() 的输入是 Future 对象，如执行 async fn 返回的对象。
+-   block_on() 是一个同步函数（所以不能在 async fn 中调用 block_on(), 而是调用 .await），他在当前线程上 `poll 传入的 Future 对象` ，直到 Ready 返回值，如果是 Pending 且没有其他 aysnc task 可以 poll，则
+    block_on() 会 sleep。
+
+<!--listend-->
+
+```rust
+fn main() -> std::io::Result<()> {
+    use async_std::task;
+    let response = task::block_on(cheapo_request("example.com", 80, "/"))?;
+    println!("{}", response);
+    Ok(()) }
+```
+
+block_on() 是在当前线程 poll 传入的 Future 对象，为了能在该线程中同时 poll 其他 Future，可以使用
+spawn_local():
+
+-   可以多次调用 spawn_local，它将传入的 Future 添加到 block_on() 线程所处理的 task pool 中，当
+    block_on() 处理某个 task pending 时，会从该 pool 中获取下一个 Future task 进行 poll；
+-   spawn_local() 返回一个 JoinHandle 类型，可以进行 await 来获得最终值。
+-   如果一个 task 执行时间很长，会导致 block_on 没有机会执行其他 task，从而引起性能问题。
+
+<!--listend-->
+
+```rust
+//! Dependencies can be specified in the script file itself as follows:
+//!
+//! ```cargo
+//! [dependencies]
+//! async-std = { version = "1", features = ["unstable"] }
+//! ```
+
+fn main() {
+}
+
+pub async fn many_requests(requests: Vec<(String, u16, String)>) -> Vec<std::io::Result<String>>
+{
+    use async_std::task;
+    let mut handles = vec![];
+    for (host, port, path) in requests {
+        handles.push(task::spawn_local(cheapo_request(&host, port, &path))); // 这些 request 被单线程并发执行
+    }
+
+    let mut results = vec![]; for handle in handles {
+        results.push(handle.await); // 串行等待 handle 返回最终值
+    }
+    results
+}
+```
+
+编译上面的代码时报错，提示传给 spawn_local() 的 &amp;host, &amp;path 引用不是 'static 的：
+
+-   spawn_local() 要求传入的 Future 是 'static 的，这是由于该 Future 的执行时机是不确定的，如果不
+    await 它返回的 handle，则有可能 many_requests() 函数返回了，但是 Future 还没有被执行，从而导致引用失效。
+
+解决办法：传入一个 async 辅助函数，它拥有对应的参数值，这样该函数就实现了 'static:
+
+```rust
+async fn cheapo_owning_request(host: String, port: u16, path: String) -> std::io::Result<String> {
+    cheapo_request(&host, port, &path).await
+}
+
+for (host, port, path) in requests {
+    handles.push(task::spawn_local(cheapo_owning_request(host, port, path)));
+}
+
+// 在单线程中并发发起多个 request
+let requests = vec![
+    ("example.com".to_string(), 80, "/".to_string()),
+    ("www.red-bean.com".to_string(), 80, "/".to_string()),
+    ("en.wikipedia.org".to_string(), 80, "/".to_string()),
+];
+let results = async_std::task::block_on(many_requests(requests));
+for result in results {
+    match result {
+        Ok(response) => println!("{}", response),
+        Err(err) => eprintln!("error: {}", err),
+    }
+}
+```
+
+除了 async fn，Rust 还支持返回 Future 的 async block，可以在 async block 中使用 .await，也可以
+.await 他的返回值：
+
+-   serve_one 是一个 Future，只有当 .await 或 poll 它时，才会执行 async block 中的代码；
+-   在 async block 中使用 ? 来传播错误，或 return 来返回值时，都是 async block 的返回，而不是 block 所在的函数返回。
+-   async block 可以和闭包一样捕获环境中的对象（借用或 move），也可以指定 async move 来获得对象的所有权，这时 async block 返回的 Future 具有 'static lifetime。
+
+<!--listend-->
+
+```rust
+let serve_one = async {
+    use async_std::net;
+    // Listen for connections, and accept one.
+    let listener = net::TcpListener::bind("localhost:8087").await?;
+    let (mut socket, _addr) = listener.accept().await?;
+    // Talk to client on `socket`.
+    //...
+};
+
+
+pub async fn many_requests(requests: Vec<(String, u16, String)>) -> Vec<std::io::Result<String>>
+{
+    use async_std::task;
+    let mut handles = vec![];
+    for (host, port, path) in requests {
+        handles.push(task::spawn_local(async move { // 使用 async move 来获取 host、path 的所有权
+            cheapo_request(&host, port, &path).await
+        }
+        ));
+    }
+    //...
+}
+```
+
+aysnc block 没有指定返回值类型的机制，在编译时可能出错，解决办法是为 Ok 指定它所属的 Enum Result 类型：
+
+```rust
+let input = async_std::io::stdin();
+let future = async {
+    let mut line = String::new();
+    // This returns `std::io::Result<usize>`.
+    input.read_line(&mut line).await?;
+    println!("Read line: {}", line);
+    // Ok(()) // 错误
+    Ok::<(), std::io::Error>(()) // 正确，指定类型
+};
+```
+
+由于 async block 返回一个 Future，故可以使用他定义一个 aysnc fun：
+
+```rust
+use std::io;
+use std::future::Future;
+fn cheapo_request(host: &str, port: u16, path: &str) -> impl Future<Output = io::Result<String>> + 'static
+{
+    let host = host.to_string();
+    let path = path.to_string();
+    async move { // 捕获了 host、path 的所有权
+        //... use &*host, port, and path ...
+    } }
+```
+
+spawn_local() 是在 block_on() 所在的线程的 task pool 中添加 async task。 而 spawn() 是在一个专门pull
+Future 的线程池中并发运行 async task：
+
+-   spawn() 和 spawn_local() 一样，也是返回 JoinHandler，但是他不依赖调用 block_on() 来 poll，而是执行候该函数后立即开始被 poll；
+-   由于传给 spawn() 的 Future 可能被线程池中任意线程执行，而且在暂停恢复候可能会在另一个线程中运行，所以不能使用线程本地存储变量（解决办法是使用 task_local! 宏），同时 Future 捕获的对象必须具有
+    `Future + Send + 'static` 语义，这样这些变量才能安全的 move 到其他线程执行。（类似与
+    std::thread::spawn() 对闭包的要求）。
+
+<!--listend-->
+
+```rust
+use async_std::task;
+let mut handles = vec![];
+for (host, port, path) in requests {
+    handles.push(task::spawn(async move {
+        cheapo_request(&host, port, &path).await
+    }
+    ));
+}
+//...
+
+
+use async_std::task; use std::rc::Rc;
+async fn reluctant() -> String {
+    let string = Rc::new("ref-counted string".to_string());
+    some_asynchronous_thing().await; // string 跨 await
+    format!("Your splendid string: {}", string)
+}
+task::spawn(reluctant()); // 失败，reluctant() 返回的 Future 没有实现 Send。
+
+
+// 解决办法是将不支持 Send 的变量隔离在单独的 await 所在的 block。
+async fn reluctant() -> String {
+    let return_value = {
+        let string = Rc::new("ref-counted string".to_string());
+        format!("Your splendid string: {}", string)
+        // The `Rc<String>` goes out of scope here...
+    };
+    // ... and thus is not around when we suspend here.
+    some_asynchronous_thing().await;
+    return_value
+}
+```
+
+另一个常见的错误是 Box&lt;dyn std::error::Error&gt; 对象不支持 Send，比如 some_fallible_thing() 的返回值
+Result 有效性是整个 match 表达式，所以跨越了 Ok 分支的 await, 这时 Result 如果不是 Send 就报错：
+
+```rust
+// Not recommended!
+type GenericError = Box<dyn std::error::Error>;
+type GenericResult<T> = Result<T, GenericError>;
+
+fn some_fallible_thing() -> GenericResult<i32> {
+    //...
+}
+// This function's future is not `Send`...
+async fn unfortunate() {
+    // ... because this call's value ...
+    match some_fallible_thing() {
+        Err(error) => {
+            report_error(error);
+        }
+        Ok(output) => {
+            // ... is alive across this await ...
+            use_output(output).await;
+        }
+    } }
+// ... and thus this `spawn` is an error.
+async_std::task::spawn(unfortunate());
+```
+
+解决办法是：重新定义 Error, 添加 Send:
+
+-   'static 是 Box&lt;dyn Trait&gt; 默认的 lifetime，可以不添加。
+
+<!--listend-->
+
+```rust
+type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
+type GenericResult<T> = Result<T, GenericError>;
+```
+
+对于长时间消耗 CPU 的 task ，可以：
+
+1.  使用 yield_now() 主动让出 CPU 时间；
+2.  使用 spawn_blocking() 来运行一个 `同步闭包函数` ，他会立即创建一个 `新的线程来执行` ，同时返回一个
+    Future。
+
+<!--listend-->
+
+```rust
+while computation_not_done() {
+    // ... do one medium-sized step of computation ...
+    async_std::task::yield_now().await;
+}
+
+async fn verify_password(password: &str, hash: &str, key: &str) -> Result<bool, argonautica::Error>
+{
+    // Make copies of the arguments, so the closure can be 'static.
+    let password = password.to_string();
+    let hash = hash.to_string();
+    let key = key.to_string();
+    async_std::task::spawn_blocking(move || {
+        argonautica::Verifier::default()
+            .with_hash(hash)
+            .with_password(password)
+            .with_secret_key(key)
+            .verify()
+    }).await }
+```
+
+异步 Stream：
+
+```rust
+use async_chat::FromServer;
+async fn handle_replies(from_server: net::TcpStream) -> ChatResult<()> {
+    let buffered = io::BufReader::new(from_server);
+    let mut reply_stream = utils::receive_as_json(buffered); // 返回一个 Stream
+    while let Some(reply) = reply_stream.next().await { // 迭代 Stream，await poll 迭代的元素
+        match reply? {
+            FromServer::Message { group_name, message } => {
+                println!("message posted to {}: {}", group_name,
+                    message);
+            }
+            FromServer::Error(message) => {
+                println!("error from server: {}", message);
+            } }
+    }
+    Ok(()) }
+```
+
+async_std 为 Future 扩展的 .race() 方法可以同时运行两个 Future，当任意一个 Ready 时返回：
+
+```rust
+use async_std::task;
+fn main() -> ChatResult<()> {
+    let address = std::env::args().nth(1).expect("Usage: client ADDRESS:PORT");
+    task::block_on(async {
+        let socket = net::TcpStream::connect(address).await?;
+        socket.set_nodelay(true)?;
+        let to_server = send_commands(socket.clone());
+        let from_server = handle_replies(socket);
+        from_server.race(to_server).await?;
+        Ok(())
+    })
+}
+// 而不是这样
+let to_server = task::spawn(send_commands(socket.clone()));
+let from_server = task::spawn(handle_replies(socket));
+
+to_server.await?; // 会先等待 to_server 完成，再等待 form_server. 而不是等待任意一个完成
+from_server.await?;
+
+```
+
+如果在 async 中使用跨 await 的 Mutex，则应该使用异步 Mutex：
+
+```rust
+use async_std::sync::Mutex;
+pub struct Outbound(Mutex<TcpStream>);
+impl Outbound {
+    pub fn new(to_client: TcpStream) -> Outbound {
+        Outbound(Mutex::new(to_client))
+    }
+    pub async fn send(&self, packet: FromServer) -> ChatResult<()> {
+        let mut guard = self.0.lock().await;
+        utils::send_as_json(&mut *guard, &packet).await?;
+        guard.flush().await?;
+        Ok(())
+    } }
+```
+
+编译器为 async fn/async block 创建匿名 Future 实现类型，示例如下：
+
+```rust
+use std::task::Waker;
+struct MyPrimitiveFuture {
+    //...
+    waker: Option<Waker>,
+}
+
+impl Future for MyPrimitiveFuture {
+  type Output = ...;
+  fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<...> {
+     //    ...
+        if ... future is ready ... {
+            return Poll::Ready(final_value);
+            }
+
+            // Save the waker for later.
+            self.waker = Some(cx.waker().clone());
+            Poll::Pending
+        }
+        }
+
+// 当这个自定义 Future 可以被 Poll 时，会通过内部的 self.waker 来告知 async executor 再次 poll
+ // If we have a waker, invoke it, and clear `self.waker`.
+if let Some(waker) = self.waker.take() {
+    waker.wake();
+}
+```
+
+spawn_blocking() 的简单参考实现：
+
+-   传入的闭包是 `同步函数` ，必须实现 Send + 'static;
+-   内部创建一个线程来执行业务逻辑，结束候通过调用 waker 来通知 executor 完成；
+
+<!--listend-->
+
+```rust
+pub fn spawn_blocking<T, F>(closure: F) -> SpawnBlocking<T> where
+        F: FnOnce() -> T,
+        F: Send + 'static,
+        T: Send + 'static,
+{
+    let inner = Arc::new(Mutex::new(Shared { value: None, waker: None, }));
+    std::thread::spawn({
+        let inner = inner.clone();
+        move || {
+            let value = closure();
+            let maybe_waker = {
+                let mut guard = inner.lock().unwrap();
+                guard.value = Some(value);
+                guard.waker.take()
+            };
+            if let Some(waker) = maybe_waker {
+                waker.wake();
+            }
+        } });
+    SpawnBlocking(inner)
+}
+
+// 为自定义 SpawnBlocking 实现 Future
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+impl<T: Send> Future for SpawnBlocking<T> { type Output = T;
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<T> {
+        let mut guard = self.0.lock().unwrap(); if let Some(value) = guard.value.take() {
+            return Poll::Ready(value); }
+        guard.waker = Some(cx.waker().clone());
+        Poll::Pending
+    }
+}
+```
+
+block_on() 的实现：
+
+-   使用 Parker 机制来实现 waker；
+-   传入的 Future 在 loop poll 前，必须使用 pin!(future) 来转换为同名但类型为 Pin&lt;&amp;mut F&gt; 的对象，
+    pin!() 创建的 Pin 会获得 future 的所有权，而且确保该对象的栈内存地址不会再发生变化；
+-   future.poll() 会获得 Pin 对象的所有权，这样不能在 loop 中使用，使用 future.as_mut() 返回一个新的
+    Pin 对象来解决该问题。
+
+<!--listend-->
+
+```rust
+use waker_fn::waker_fn; // Cargo.toml: waker-fn = "1.1"
+use futures_lite::pin; // Cargo.toml: futures-lite = "1.11"
+use crossbeam::sync::Parker; // Cargo.toml: crossbeam = "0.8"
+use std::future::Future;
+use std::task::{Context, Poll};
+fn block_on<F: Future>(future: F) -> F::Output {
+    let parker = Parker::new();
+    let unparker = parker.unparker().clone();
+    let waker = waker_fn(move || unparker.unpark());
+    let mut context = Context::from_waker(&waker);
+    pin!(future);
+    loop {
+        match future.as_mut().poll(&mut context) {
+            Poll::Ready(value) => return value,
+            Poll::Pending => parker.park(),
+        }
+    } }
+```
+
+综合示例：
+
+```rust
+use async_std::prelude::*;
+use async_chat::utils::ChatResult; use std::sync::Arc;
+mod connection; mod group;
+mod group_table;
+use connection::serve;
+fn main() -> ChatResult<()> {
+    let address = std::env::args().nth(1).expect("Usage: server ADDRESS");
+    let chat_group_table = Arc::new(group_table::GroupTable::new());
+    async_std::task::block_on(async {
+        // This code was shown in the chapter introduction. use async_std::{net, task};
+        let listener = net::TcpListener::bind(address).await?;
+        let mut new_connections = listener.incoming();
+        while let Some(socket_result) = new_connections.next().await {
+            let socket = socket_result?;
+            let groups = chat_group_table.clone(); task::spawn(async {
+                log_error(serve(socket, groups).await);
+            });
+        }
+        Ok(()) })
+}
+fn log_error(result: ChatResult<()>) {
+    if let Err(error) = result {
+        eprintln!("Error: {}", error);
+    }
+}
+```
+
+
+### <span class="section-num">22.1</span> await {#await}
+
+.await 表达式只能在 async context 如 async fn，async block 中使用。它具有如下效果：
+
+1.  Create a future by calling `IntoFuture::into_future` on the future operand.
+2.  Evaluate the future to a `future` tmp;
+3.  Pin tmp using `Pin::new_unchecked`;
+4.  This pinned future is then polled by calling the `Future::poll` method and passing it the current
+    `task context` ;
+5.  If the call to poll returns `Poll::Pending`, then the future returns Poll::Pending, `suspending its
+       state` so that, when the surrounding async context is re-polled,execution returns to step 3;
+6.  Otherwise the call to poll must have returned `Poll::Ready`, in which case the value contained in
+    the Poll::Ready variant is used as the result of the await expression itself.
+
+<!--listend-->
+
+```rust
+// .await 是生成 IntoFuture 的语法糖
+pub trait IntoFuture {
+    type Output;
+    type IntoFuture: Future<Output = Self::Output>;
+
+    // Required method
+    fn into_future(self) -> Self::IntoFuture;
+}
+// 例子
+use std::future::IntoFuture;
+let v = async { "meow" };
+let mut fut = v.into_future();
+assert_eq!("meow", fut.await);
+```
+
+await 表达式的执行效果等效为：
+
+```rust
+match operand.into_future() {
+    mut pinned => loop {
+        let mut pin = unsafe { Pin::new_unchecked(&mut pinned) };
+        match Pin::future::poll(Pin::borrow(&mut pin), &mut current_context) {
+            Poll::Ready(r) => break r,
+            Poll::Pending => yield Poll::Pending,
+        }
+    }
+}
+```
+
+每个 await 都是 rust 执行异步 poll 的时间点，默认情况下 task 可以被 execeutor 调度到其他 thread 中执行，所以 async fn 中涉及跨 await 的对象，都需要是能 Send 的：
+
+```rust
+// https://tokio.rs/tokio/tutorial/shared-state
+use std::sync::{Mutex, MutexGuard};
+
+async fn increment_and_do_stuff(mutex: &Mutex<i32>) {
+    let mut lock: MutexGuard<i32> = mutex.lock().unwrap();
+    *lock += 1;
+
+    do_something_async().await;
+} // lock goes out of scope here
+```
+
+报错：
+
+```shell
+error: future cannot be sent between threads safely
+   --> src/lib.rs:13:5
+    |
+13  |     tokio::spawn(async move {
+    |     ^^^^^^^^^^^^ future created by async block is not `Send`
+    |
+   ::: /playground/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-0.2.21/src/task/spawn.rs:127:21
+    |
+127 |         T: Future + Send + 'static,
+    |                     ---- required by this bound in `tokio::task::spawn::spawn`
+    |
+    = help: within `impl std::future::Future`, the trait `std::marker::Send` is not implemented for `std::sync::MutexGuard<'_, i32>`
+note: future is not `Send` as this value is used across an await
+   --> src/lib.rs:7:5
+    |
+4   |     let mut lock: MutexGuard<i32> = mutex.lock().unwrap();
+    |         -------- has type `std::sync::MutexGuard<'_, i32>` which is not `Send`
+...
+7   |     do_something_async().await;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^ await occurs here, with `mut lock` maybe used later
+8   | }
+    | - `mut lock` is later dropped here
+```
+
+解决办法：
+
+```rust
+// This works!
+async fn increment_and_do_stuff(mutex: &Mutex<i32>) {
+    {
+        let mut lock: MutexGuard<i32> = mutex.lock().unwrap();
+        *lock += 1;
+    } // lock goes out of scope here
+
+    do_something_async().await;
+}
+
+
+// This fails too.
+use std::sync::{Mutex, MutexGuard};
+async fn increment_and_do_stuff(mutex: &Mutex<i32>) {
+    let mut lock: MutexGuard<i32> = mutex.lock().unwrap();
+    *lock += 1;
+    drop(lock); // rust 根据 scope block 来计算 Send，所以不会对 drop() 语义进行感知。
+
+    do_something_async().await;
+}
+```
+
+更好的解决办法：
+
+```rust
+use std::sync::Mutex;
+
+struct CanIncrement {
+    mutex: Mutex<i32>,
+}
+impl CanIncrement {
+    // This function is not marked async.
+    fn increment(&self) {
+        let mut lock = self.mutex.lock().unwrap();
+        *lock += 1;
+    }
+}
+
+async fn increment_and_do_stuff(can_incr: &CanIncrement) {
+    can_incr.increment();
+    do_something_async().await;
+}
+```
+
+或者使用 tokio 提供的支持跨 await 的 Mutex 版本：
+
+```rust
+use tokio::sync::Mutex; // note! This uses the Tokio mutex
+
+// This compiles!
+// (but restructuring the code would be better in this case)
+async fn increment_and_do_stuff(mutex: &Mutex<i32>) {
+    let mut lock = mutex.lock().await;
+    *lock += 1;
+
+    do_something_async().await;
+} // lock goes out of scope here
+```
+
+
+## <span class="section-num">23</span> macro {#macro}
+
+macro 可以用来简化重复的代码编写任务、实现特定的 DSL（领域特定语言）、或者进行编译时代码生成。例如：
+
+1.  创建 Vec 的 vec!宏；
+2.  为数据结构添加各种 trait 支持的 #[derive(Debug, Default, ...)]；
+3.  条件编译时使用的 #[cfg(test)] 宏等。
+
+macro 可以实现 metaprogramming 范式，有用的特性：
 
 -   Don't repeat yourself;
 -   DSL;
 -   Variadic interface： 实现一些普通函数不支持的特性，比如 println!() 的可变长参数列表；
 
-Rust 宏的定义有两类：
+macro 分为两类：
 
-1.  声明宏（macro_rules!）：对代码模版做简单替换，比如 vec!、println!等
-2.  过程宏（Procedural Macros）：定制并在编译期生成代码。Rust允许用户通过改写代码语法书改写原有逻辑，类似 Java 字节码增强。
+1.  声明宏（macro_rules!）：编译期间对代码模版做简单替换，比如 vec!、println! 等
+2.  过程宏（Procedural Macros）：编译期间生成代码，分为 function、attribute、drive 三种类型，类似
+    Java 字节码增强。
 
-声明宏(macro_rules): 宏可用模式匹配接收不同的输入参数，并生成相应的代码。
+marcro 调用有三种形式，他们之间都是等价的：marco!(xx), marcro\![xxx], macro!{xx}
 
--   macro_rules! 声明内部是一系列 `匹配模式` 和对应的生成代码;
+-   函数传参调用场景使用 () 形式，如 println!();
+-   字面量初始化使用 [] 形式，如 vec\![0; 4];
+
+调试宏：
+
+1.  使用 cargo build --verbose  来查看编译过程，比如 rustc 命令，然后将 rustc 命令复制出来，添加选项
+    -Z unstable-options -- pretty expanded 手动执行；这时会将 expanded code 打印出来，但是如果代码有语法错误，则不行；
+2.  使用 cargo-expand 工具命令；
+3.  开启 #\![feature(log_syntax)] ，然后使用 log_syntax!() 来打印传入的值；
+4.  开启 #\![feature(trace_macros)]，然后在需要打印 macro 的地方插入  trace_macros!(true); ，结束后插入  trace_macros!(false);
+
+宏是支持递归定义的，但是递归的层次有限制，默认是 64，可以通过 attr 来自定义：
+
+```rust
+#![recursion_limit = "256"]
+```
+
+在定义宏时，可能会出现宏实现的代码和宏上下文相互影响的情况：
+
+```rust
+// 比如，宏定义 body 中定义了一个 fields 临时变量
+({ $($key:tt : $value:tt),* }) => { {
+    let mut fields = Box::new(HashMap::new());
+    $( fields.insert($key.to_string(), json!($value)); )*
+        Json::Object(fields)
+} };
+
+// 在使用宏时，宏的参数中也使用了上下文中同名的变量
+let fields = "Fields, W.C.";
+let role = json!({
+    "name": "Larson E. Whipsnade",
+    "actor": fields
+}
+);
+
+// 直接做宏展开时就有问题
+let fields = "Fields, W.C.";
+let role = {
+    let mut fields = Box::new(HashMap::new());
+    fields.insert("name".to_string(), Json::from("Larson E. Whipsnade"));
+    fields.insert("actor".to_string(), Json::from(fields));
+    Json::Object(fields)
+};
+```
+
+Rust 对此的解决办法是：使用类似与颜色标记的方式将宏定义的代码和宏参数的变量区分开来，并对宏定义内部的变量自动重命名从而防止和宏参数内部的变量冲突。如果在宏定义代码中确实要使用外部的变量，则需要通过宏参数传递的形式传到宏内部。《--- 被称为：hygienic macro
+
+-   hygienic 仅限于宏定义中的 local variable 和 arguments，对于宏定义中使用其他对象类型，如Box/HashMap
+    等，宏不会重命名。
+
+hygienic 带来的问题：宏定义 body 不能直接使用上下文中的变量：
+
+```rust
+macro_rules! setup_req {
+    () => {
+        let req = ServerRequest::new(server_socket.session()); }
+}
+
+fn handle_http_request(server_socket: &ServerSocket) {
+    setup_req!(); // declares `req`, uses `server_socket`
+    // ... // code that uses `req`
+}
+```
+
+解决办法是：将依赖的上下文变量通过参数的形式传递到宏定义中：
+
+```rust
+macro_rules! setup_req {
+    ($req:ident, $server_socket:ident) => {
+        let $req = ServerRequest::new($server_socket.session());
+    }
+}
+fn handle_http_request(server_socket: &ServerSocket) {
+    setup_req!(req, server_socket);
+    // ... // code that uses `req`
+}
+```
+
+
+### <span class="section-num">23.1</span> 声明宏(macro_rules!) {#声明宏--macro-rules}
+
+声明宏使用一系列模式来对输入参数进行匹配，生产相应代码，语法规则如下：
+
+-   宏名称后面可以使用 (xx), [xx], {xx} 三种格式来定义 body，三种方式是等价的；
+-   body 中各 rule 使用分号分割；
+-   rule 格式：MacroMatcher =&gt; MacroTranscriber，MacroMatcher 有三种等价格式: (xx), [xx], {xx}；
+-   MacroMatch 主要的两种格式：
+    1.  $(IDENTIFIER): MacroFragSpec; 例如 $expression:expr；
+    2.  $(IDENTIFIER) MacroRepSep? MacroRepOp, 表示重复匹配，其中为可选的 MacroRepSep 重复分隔符，
+        MacroRepOp 为重复类型字符，例如 $($expression:expr),+
 
 <!--listend-->
 
-```rust
-  macro_rules! say_what {
-      ($expression:expr) => {
-          println!("You said: {}", $expression);
-      };
-  }
+```text
+# https://doc.rust-lang.org/reference/macros-by-example.html
 
-  fn main() {
-      say_what!("I'm learning macros");
-  }
+    Syntax
+    MacroRulesDefinition :
+       macro_rules ! IDENTIFIER MacroRulesDef
 
-  macro_rules! create_function {
-      // This macro takes an argument of designator `ident` and
-      // creates a function named `$func_name`.
-      // The `ident` designator is used for variable/function names.
-      ($func_name:ident) => {
-          fn $func_name() {
-              // The `stringify!` macro converts an `ident` into a string.
-              println!("You called {:?}()",
-                  stringify!($func_name));
-          }
-      };
-  }
+    MacroRulesDef :
+          ( MacroRules ) ;
+       | [ MacroRules ] ;
+       | { MacroRules }
 
-  // Create functions named `foo` and `bar` with the above macro.
-  create_function!(foo);
-  create_function!(bar);
+    MacroRules :
+       MacroRule ( ; MacroRule )* ;?
 
-  macro_rules! print_result {
-      // This macro takes an expression of type `expr` and prints
-      // it as a string along with its result.
-      // The `expr` designator is used for expressions.
-      ($expression:expr) => {
-          // `stringify!` will convert the expression *as it is* into a string.
-          println!("{:?} = {:?}",
-              stringify!($expression),
-              $expression);
-      };
-  }
+    MacroRule :
+       MacroMatcher => MacroTranscriber
 
-  fn main() {
-      foo();
-      bar();
+    MacroMatcher :
+          ( MacroMatch* )
+       | [ MacroMatch* ]
+       | { MacroMatch* }
 
-      print_result!(1u32 + 1);
+    MacroMatch :
+          Token except $ and delimiters
+       | MacroMatcher
+       | $ ( IDENTIFIER_OR_KEYWORD except crate | RAW_IDENTIFIER | _ ) : MacroFragSpec
+       | $ ( MacroMatch+ ) MacroRepSep? MacroRepOp
 
-      // Recall that blocks are expressions too!
-      print_result!({
-          let x = 1u32;
+    MacroFragSpec :
+          block | expr | ident | item | lifetime | literal
+       | meta | pat | pat_param | path | stmt | tt | ty | vis
 
-          x * x + 2 * x - 1
-      });
-  }
+    MacroRepSep :
+       Token except delimiters and MacroRepOp
+
+    MacroRepOp :
+       * | + | ?
+
+    MacroTranscriber :
+       DelimTokenTree
 ```
 
-这里的 $expression:expr 是一个捕获表达式，它匹配任何 Rust 表达式，并将其作为参数传递给宏。expr 的类型如下：
+macro_rules! 示例：
 
--   block
--   expr is used for expressions
--   ident is used for variable/function names
--   item
--   literal is used for literal constants
--   pat (pattern)
--   path
--   stmt (statement)
--   tt (token tree)
--   ty (type)
--   vis (visibility qualifier)
+```rust
+macro_rules! say_what {
+    ($expression:expr) => {
+        println!("You said: {}", $expression);
+    };
+}
+fn main() {
+    say_what!("I'm learning macros");
+}
+
+macro_rules! create_function {
+    // This macro takes an argument of designator `ident` and creates a function named `$func_name`.
+    // The `ident` designator is used for variable/function names.
+    ($func_name:ident) => {
+        fn $func_name() {
+            // The `stringify!` macro converts an `ident` into a string.
+            println!("You called {:?}()", stringify!($func_name));
+        }
+    };
+}
+// Create functions named `foo` and `bar` with the above macro.
+create_function!(foo);
+create_function!(bar);
+
+macro_rules! print_result {
+    // This macro takes an expression of type `expr` and prints it as a string along with its
+    // result.  The `expr` designator is used for expressions.
+    ($expression:expr) => {
+        // `stringify!` will convert the expression *as it is* into a string.
+        println!("{:?} = {:?}", stringify!($expression), $expression);
+    };
+}
+
+fn main() {
+    foo();
+    bar();
+
+    print_result!(1u32 + 1);
+
+    // Recall that blocks are expressions too!
+    print_result!({
+        let x = 1u32;
+        x * x + 2 * x - 1
+    });
+}
+```
+
+这里的 `$expression:expr` 是一个捕获表达式，它匹配任何 Rust 表达式，并将其作为参数传递给宏。expr 的类型如下：
+
+-   item: an Item
+-   block: a BlockExpression
+-   stmt: a Statement without the trailing semicolon (except for item statements that require semicolons)
+-   pat_param: a PatternNoTopAlt
+-   pat: at least any PatternNoTopAlt, and possibly more depending on edition
+-   expr: an Expression
+-   ty: a Type
+-   ident: an IDENTIFIER_OR_KEYWORD or RAW_IDENTIFIER
+-   path: a TypePath style path
+-   tt: a TokenTree (a single token or tokens in matching delimiters (), [], or {})
+-   meta: an Attr, the contents of an attribute
+-   lifetime: a LIFETIME_TOKEN
+-   vis: a possibly empty Visibility qualifier
+-   literal: matches -?LiteralExpression
 
 可以定义多个 pattern 来实现 overload：
 
 ```rust
-  // `test!` will compare `$left` and `$right`
-  // in different ways depending on how you invoke it:
-  macro_rules! test {
-      // Arguments don't need to be separated by a comma.
-      // Any template can be used!
-      ($left:expr; and $right:expr) => {
-          println!("{:?} and {:?} is {:?}",
-              stringify!($left),
-              stringify!($right),
-              $left && $right)
-      };
+// `test!` will compare `$left` and `$right` in different ways depending on how you invoke it:
+macro_rules! test {
+    // Arguments don't need to be separated by a comma.  Any template can be used!
+    ($left:expr; and $right:expr) => {
+        println!("{:?} and {:?} is {:?}",
+            stringify!($left),
+            stringify!($right),
+            $left && $right)
+    };
 
-      // ^ each arm must end with a semicolon.
-      ($left:expr; or $right:expr) => {
-          println!("{:?} or {:?} is {:?}",
-              stringify!($left),
-              stringify!($right),
-              $left || $right)
-      };
-  }
+    // ^ each arm must end with a semicolon.
+    ($left:expr; or $right:expr) => {
+        println!("{:?} or {:?} is {:?}",
+            stringify!($left),
+            stringify!($right),
+            $left || $right)
+    };
+}
 
-  fn main() {
-      test!(1i32 + 1 == 2i32; and 2i32 * 2 == 4i32);
-      test!(true; or false);
-  }
+fn main() {
+    test!(1i32 + 1 == 2i32; and 2i32 * 2 == 4i32);
+    test!(true; or false);
+}
 ```
 
-在参数列表中 macro 使用 $(...),+ 语法来表示重复，在 body 中使用 $($xx),+ 来引用匹配的重复。
+在参数列表中 macro 使用 $(...),+ 语法来表示重复匹配其中的逗号为可选的分隔符，在 body 中使用 $($xx),+
+来引用匹配的重复。
+
+-   \* — indicates any number of repetitions.
+-   + — indicates any number but at least one.
+-   ? — indicates an optional fragment with zero or one occurrence.
+
+<!--listend-->
 
 ```rust
 // `find_min!` will calculate the minimum of any number of arguments.
@@ -10791,66 +12772,78 @@ fn main() {
 }
 ```
 
+定义 macro 时一般使用引用来捕获对象，否则调用该宏时会转移对象所有权：
+
+```rust
+macro_rules! assert_eq {
+    ($left:expr, $right:expr) => ({ // 匹配对象，这里的 $left 只是匹配，不是实际的变量值（没有赋值的过程）
+        match (&$left, &$right) { // 对象引用
+            (left_val, right_val) => {
+                if !(left_val == right_val) {
+                    panic!("assertion failed" /* ... */);
+                } }
+        } });
+}
+```
+
 使用 macro 来减少重复的例子（DRY）：
 
 ```rust
-  use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Sub};
 
-  macro_rules! assert_equal_len {
-      // The `tt` (token tree) designator is used for
-      // operators and tokens.
-      ($a:expr, $b:expr, $func:ident, $op:tt) => {
-          assert!($a.len() == $b.len(),
-              "{:?}: dimension mismatch: {:?} {:?} {:?}",
-              stringify!($func),
-              ($a.len(),),
-              stringify!($op),
-              ($b.len(),));
-      };
-  }
+macro_rules! assert_equal_len {
+    // The `tt` (token tree) designator is used for operators and tokens.
+    ($a:expr, $b:expr, $func:ident, $op:tt) => {
+        assert!($a.len() == $b.len(),
+            "{:?}: dimension mismatch: {:?} {:?} {:?}",
+            stringify!($func),
+            ($a.len(),),
+            stringify!($op),
+            ($b.len(),));
+    };
+}
 
-  macro_rules! op {
-      ($func:ident, $bound:ident, $op:tt, $method:ident) => {
-          fn $func<T: $bound<T, Output=T> + Copy>(xs: &mut Vec<T>, ys: &Vec<T>) {
-              assert_equal_len!(xs, ys, $func, $op);
+macro_rules! op {
+    ($func:ident, $bound:ident, $op:tt, $method:ident) => {
+        fn $func<T: $bound<T, Output=T> + Copy>(xs: &mut Vec<T>, ys: &Vec<T>) {
+            assert_equal_len!(xs, ys, $func, $op);
+            for (x, y) in xs.iter_mut().zip(ys.iter()) {
+                *x = $bound::$method(*x, *y);
+                // *x = x.$method(*y);
+            }
+        }
+    };
+}
 
-              for (x, y) in xs.iter_mut().zip(ys.iter()) {
-                  *x = $bound::$method(*x, *y);
-                  // *x = x.$method(*y);
-              }
-          }
-      };
-  }
+// Implement `add_assign`, `mul_assign`, and `sub_assign` functions.
+op!(add_assign, Add, +=, add);
+op!(mul_assign, Mul, *=, mul);
+op!(sub_assign, Sub, -=, sub);
 
-  // Implement `add_assign`, `mul_assign`, and `sub_assign` functions.
-  op!(add_assign, Add, +=, add);
-  op!(mul_assign, Mul, *=, mul);
-  op!(sub_assign, Sub, -=, sub);
+mod test {
+    use std::iter;
+    macro_rules! test {
+        ($func:ident, $x:expr, $y:expr, $z:expr) => {
+            #[test]
+            fn $func() {
+                for size in 0usize..10 {
+                    let mut x: Vec<_> = iter::repeat($x).take(size).collect();
+                    let y: Vec<_> = iter::repeat($y).take(size).collect();
+                    let z: Vec<_> = iter::repeat($z).take(size).collect();
 
-  mod test {
-      use std::iter;
-      macro_rules! test {
-          ($func:ident, $x:expr, $y:expr, $z:expr) => {
-              #[test]
-              fn $func() {
-                  for size in 0usize..10 {
-                      let mut x: Vec<_> = iter::repeat($x).take(size).collect();
-                      let y: Vec<_> = iter::repeat($y).take(size).collect();
-                      let z: Vec<_> = iter::repeat($z).take(size).collect();
+                    super::$func(&mut x, &y);
 
-                      super::$func(&mut x, &y);
+                    assert_eq!(x, z);
+                }
+            }
+        };
+    }
 
-                      assert_eq!(x, z);
-                  }
-              }
-          };
-      }
-
-      // Test `add_assign`, `mul_assign`, and `sub_assign`.
-      test!(add_assign, 1u32, 2u32, 3u32);
-      test!(mul_assign, 2u32, 3u32, 6u32);
-      test!(sub_assign, 3u32, 2u32, 1u32);
-  }
+    // Test `add_assign`, `mul_assign`, and `sub_assign`.
+    test!(add_assign, 1u32, 2u32, 3u32);
+    test!(mul_assign, 2u32, 3u32, 6u32);
+    test!(sub_assign, 3u32, 2u32, 1u32);
+}
 ```
 
 使用 macro 实现 DSL：
@@ -10869,7 +12862,6 @@ fn main() {
     calculate! {
         eval 1 + 2 // hehehe `eval` is _not_ a Rust keyword!
     }
-
     calculate! {
         eval (1 + 2) * (3 / 4)
     }
@@ -10904,48 +12896,276 @@ fn main() {
 }
 ```
 
-过程宏（Procedural Macros）: 过程宏是更高级的宏，它允许你操作Rust代码的抽象语法树（AST）。过程宏有三种类型：
-
-1.  派生宏（derive）：为 derive 属性添加新的功能。这是我们平时使用最多的宏，比如 #[derive(Debug)] 为我们的数据结构提供 Debug trait 的实现
-2.  属性宏（attribute-like）：可以在其他代码块上添加属性，为代码块提供更多功能。比如 rocket 的
-    get/put 等路由属性。
-3.  函数宏（function-like）：类函数宏可以让我们定义像函数那样调用的宏。
-
-derive 宏: derive宏允许你为任何struct/enum/union `自动实现特定的trait` 。
+macro 的 scope 包含 textual scope 和 path-base 的 scope。如果只使用标识符来引用 macro 则默认是
+textual scope，如果使用 path 语法来引用 macro 则是 path-base scope。
 
 ```rust
-#[derive(Debug)]
-struct User {
-    name: String,
-    age: u32,
+use lazy_static::lazy_static; // Path-based import.
+macro_rules! lazy_static { // Textual definition.
+    (lazy) => {};
+}
+lazy_static!{lazy} // Textual lookup finds our macro first.
+self::lazy_static!{} // Path-based lookup ignores our macro, finds imported one.
+```
+
+textual scope 的特点：
+
+1.  依赖于定义的位置，如 module、fn 内部等；
+2.  父 module 定义的 macro 可以在子 module 中直接使用（类似于其他 item 也是同样的效果）；
+3.  可以重复定义 macro，最后的生效：
+
+<!--listend-->
+
+```rust
+//// src/lib.rs
+mod has_macro {
+    // m!{} // Error: m is not in scope.
+    macro_rules! m {
+        () => {};
+    }
+    m!{} // OK: appears after declaration of m.
+    mod uses_macro;
+}
+// m!{} // Error: m is not in scope.
+
+//// src/has_macro/uses_macro.rs
+m!{} // OK: appears after declaration of m in src/lib.rs
+
+// 重复定义时，最后一次生效
+macro_rules! m {
+    (1) => {};
+}
+m!(1);
+mod inner {
+    m!(1);
+    macro_rules! m {
+        (2) => {};
+    }
+    // m!(1); // Error: no rule matches '1'
+    m!(2);
+    macro_rules! m {
+        (3) => {};
+    }
+    m!(3);
+}
+m!(1);
+
+// 可以在 fn 里定义 macro
+fn foo() {
+    // m!(); // Error: m is not in scope.
+    macro_rules! m {
+        () => {};
+    }
+    m!();
+}
+// m!(); // Error: m is not in scope.
+```
+
+macro_use attribute 可以有两个目的：
+
+1.  位于 mod 前时，将 module 中定义的所有 marco 在 module 外部生效（不支持指定 macro 列表）；
+2.  位于 extern crate 前时，从其他 crate 导入 macro 定义，可以指定导入的 macro 列表；
+    -   其他 crate 必须使用 #[macro_export] 来导出 macro 后才能被 macro_use;
+
+<!--listend-->
+
+```rust
+#[macro_use]
+mod inner {
+    macro_rules! m {
+        () => {};
+    }
+}
+m!();
+
+#[macro_use(lazy_static)] // Or #[macro_use] to import all macros.
+extern crate lazy_static;
+lazy_static!{}
+// self::lazy_static!{} // Error: lazy_static is not defined in `self`
+```
+
+macro_export attribute 可以 `将 macro 定义导出到 crate root scope` ，进而可以使用 path-based scope 的语法来使用它（未 export 时是 textural scoped），Rust 2018 开始支持该特性：
+
+-   \#[macro_export] 标记的 macro 始终是 pub 的，其他 crate 可以直接使用 use 来 by path 导入他们或者使用 macro_use 来导入他们：
+
+<!--listend-->
+
+```rust
+self::m!();
+m!(); // OK: Path-based lookup finds m in the current module.
+
+mod inner {
+    super::m!();
+    crate::m!();
 }
 
-fn main() {
-    let user = User {
-        name: String::from("Alice"),
-        age: 30,
-    };
-    println!("{:?}", user);
-}
-
-// 他的实现方式类似下面
-#[proc_macro_derive(Debug)]
-pub fn debug_derive (input: TokenStream) -> TokenStream {
-    // 基于 Input 构建 AST 语法树
+mod mac {
+    #[macro_export]
+    macro_rules! m {
+        () => {};
+    }
 }
 ```
 
-属性宏: 属性宏类似于derive宏，但它们不仅限于实现trait。derive宏只能用于结构体或枚举类型，属性宏可以用在其他类型上，比如函数。假设我们在开发一个 web 框架，当用户通过 HTTP GET 请求访问 / 根路径时，使用
-index 函数为其提供服务:
+crate 内部的 macro 相互引用：macro A 定义内部可以使用同 crate 定义的其他 macro B，但是如果在其他
+crate 只导入 macro A 而未导入 macro B 的话，会导致扩展错误。
+
+解决办法：在 macro A 内部使用绝对 path 来引用它使用的对象或类型。$crate 是只能在 macro 定义中使用的一个变量，它是 macro 定义所在的 module 的 root crate，可以用来引用依赖的 macro B，同时 macro B 也必须被 macro_export：
 
 ```rust
-#[route(GET, "/")]
-fn index() {
-
-// 如上所示，代码功能非常清晰、简洁，这里的 #[route] 属性就是一个过程宏，它的定义函数大概如下：
-#[proc_macro_attribute]
-pub fn route(attr: TokenStream, item: TokenStream) -> TokenStream {
+//// Definitions in the `helper_macro` crate.
+#[macro_export]
+macro_rules! helped {
+    // () => { helper!() } // This might lead to an error due to 'helper' not being in scope.
+    () => { $crate::helper!() }
 }
+#[macro_export]
+macro_rules! helper {
+    () => { () }
+}
+
+//// Usage in another crate.  Note that `helper_macro::helper` is not imported!
+use helper_macro::helped;  // 由于 helped 由 macro_export，所以，其他 crate 可以使用 use 来直接导入使用
+fn unit() {
+    helped!();
+}
+
+// 由于 $crate 是本 crate root，所以如果要引用其他定义，则需要使用包含中间 module 的完整引用路径。同时引用的 item 也必须是 pub 的。
+pub mod inner {
+    #[macro_export]
+    macro_rules! call_foo {
+        () => { $crate::inner::foo() }; // 必须使用完整路径
+    }
+    pub fn foo() {} // 必须是 pub 的
+}
+```
+
+在使用 #[macro_export] 时可以添加 local_inner_macros 参数，这样会自动对内部调用的 macro 添加
+$crate:: 前缀：
+
+```rust
+#[macro_export(local_inner_macros)]
+macro_rules! helped {
+    () => { helper!() } // Automatically converted to $crate::helper!().
+}
+
+#[macro_export]
+macro_rules! helper {
+    () => { () }
+}
+```
+
+
+### <span class="section-num">23.2</span> 过程宏（Procedural Macros） {#过程宏-procedural-macros}
+
+Procedural macros 允许在编译时运行一个 func 来创建 Rust 语法扩展（从一个 AST 到另一个 AST），包括三种形式：
+
+1.  Function-like macros - custom!(...)
+2.  Derive macros - #[derive(CustomDerive)]
+3.  Attribute macros - #[CustomAttribute]
+
+函数宏: 函数宏看起来和普通的 Rust 函数类似，但它们可以接受和返回 Rust 的 token。
+
+```rust
+extern crate proc_macro;  // 声明 proc_macro 是外部 crate（由于 Cargo.toml 中定义了外部 crate
+                          // dependences，所以一般情况下不需要声明 extern crate，但是 proc_macro 是
+                          // 编译器带出的 crate 且没有在 dependences 中指定，所以需要单独声明）
+use proc_macro::TokenStream;
+#[proc_macro]
+pub fn make_answer(_item: TokenStream) -> TokenStream {
+    "fn answer() -> u32 { 42 }".parse().unwrap()
+}
+
+// 使用
+extern crate proc_macro_examples;
+use proc_macro_examples::make_answer;
+make_answer!();
+fn main() {
+    println!("{}", answer());
+}
+
+
+#[proc_macro]
+pub fn define_function_macro(input: TokenStream) -> TokenStream {}
+// 使用形式类似函数调用
+let result = define_function_macro!("this is a paramater");
+```
+
+derive 宏: derive 宏允许你为任何 struct/enum/union `自动实现特定的 trait` 。
+
+```rust
+extern crate proc_macro;
+use proc_macro::TokenStream;
+
+#[proc_macro_derive(AnswerFn)]
+pub fn derive_answer_fn(_item: TokenStream) -> TokenStream {
+    "fn answer() -> u32 { 42 }".parse().unwrap()
+}
+// 使用方式
+extern crate proc_macro_examples;
+use proc_macro_examples::AnswerFn;
+#[derive(AnswerFn)]
+struct Struct;
+fn main() {
+    assert_eq!(42, answer());
+}
+```
+
+Derive macros 可以包含一些 helper attrributes，也就是在启用某个 derive attr 的情况下才生效的子
+attribute：
+
+```rust
+// 定义
+#[proc_macro_derive(HelperAttr, attributes(helper))]
+pub fn derive_helper_attr(_item: TokenStream) -> TokenStream {
+    TokenStream::new()
+}
+
+// 使用
+#[derive(HelperAttr)]
+struct Struct {
+    #[helper] field: ()
+}
+```
+
+Attribute macros: 属性宏类似于 derive宏，但它们不仅限于实现 trait。derive 宏只能用于结构体或枚举类型，属性宏可以用在其他类型上，比如函数。
+
+```rust
+// my-macro/src/lib.rs
+#[proc_macro_attribute]
+pub fn show_streams(attr: TokenStream, item: TokenStream) -> TokenStream {
+    println!("attr: \"{}\"", attr.to_string());
+    println!("item: \"{}\"", item.to_string());
+    item
+}
+
+// 使用
+// src/lib.rs
+extern crate my_macro;
+use my_macro::show_streams;
+// Example: Basic function
+#[show_streams]
+fn invoke1() {}
+// out: attr: ""
+// out: item: "fn invoke1() {}"
+
+// Example: Attribute with input
+#[show_streams(bar)]
+fn invoke2() {}
+// out: attr: "bar"
+// out: item: "fn invoke2() {}"
+
+// Example: Multiple tokens in the input
+#[show_streams(multiple => tokens)]
+fn invoke3() {}
+// out: attr: "multiple => tokens"
+// out: item: "fn invoke3() {}"
+
+// Example:
+#[show_streams { delimiters }]
+fn invoke4() {}
+// out: attr: "delimiters"
+// out: item: "fn invoke4() {}"
 ```
 
 与 derive 宏不同，类属性宏的定义函数有两个参数：
@@ -10953,20 +13173,9 @@ pub fn route(attr: TokenStream, item: TokenStream) -> TokenStream {
 1.  第一个参数时用于说明属性包含的内容：Get, "/" 部分
 2.  第二个是属性所标注的类型项，在这里是 fn index() {...}，注意，函数体也被包含其中
 
-函数宏: 函数宏看起来和普通的Rust函数类似，但它们可以接受和返回Rust的token。
+过程宏只能在单独的 proc-macro 类型的 crate package 中定义，包名也要以 derive 结尾：
 
-```rust
-#[proc_macro]
-pub fn define_function_macro(input: TokenStream) -> TokenStream {}
-
-// 使用形式类似函数调用
-let result = define_function_macro!("this is a paramater");
-```
-
-目前过程宏只能定义在单独的 package 中，宏的包名也要以 derive 结尾，运行以下命令创建单独的 lib 包：
-
--   crate type 是特殊的 proc_macro (另外的类型是 bin/lib), 通过抵债 Cargo.toml 中定义
-    lib.proc-macro=true 来标识该 crate 是 proc-macro create type.
+-   编译器使用 Cargo.toml 中定义的 lib.proc-macro=true 来标识该 crate 是 proc-macro crate type.
 -   编译器提供的 crate type 类型: <https://doc.rust-lang.org/reference/linkage.html>
 -   RFC 参考: <https://rust-lang.github.io/rfcs/1566-proc-macros.html>
 
@@ -10981,8 +13190,8 @@ let result = define_function_macro!("this is a paramater");
 │   └── src
 │       └── lib.rs
 └── src
-    ├── lib.rs
-    └── main.rs
+├── lib.rs
+└── main.rs
 ```
 
 为何要在单独的 crate package 中[定义过程宏的解答](https://users.rust-lang.org/t/why-do-we-need-procedural-macro-separation-on-a-crate-level/107295/4): A proc macro has to `be compiled for the host` such
@@ -10996,6 +13205,7 @@ crates.
 ```toml
 [dependencies]
 hello_macro_derive = { path = "../hello_macro/hello_macro_derive" }
+
 # 也可以使用下面的相对路径
 # hello_macro_derive = { path = "./hello_macro_derive" }
 ```
@@ -11004,44 +13214,12 @@ hello_macro_derive = { path = "../hello_macro/hello_macro_derive" }
 
 ```toml
 [lib]
-proc-macro = true # 链接 rustc 工具链提供的 proc-macro 库 libproc_macro
+proc-macro = true # 链接 rustc 工具链提供的 proc-macro 库 libproc_macro, 同时也是表明该 crate 是 proc macro 类型。
 
 [dependencies] # 定义过程宏依赖的包
 syn = "1.0"
 quote = "1.0"
 ```
-
-libproc_macro 是随 rustc 编译器一起提供和安装的 proc_macro create 提供的库:
-
--   同时 {toolchain}/libexec/rust-analyzer-proc-macro-srv 用于 rust-analyzer 来对 proc macro 进行
-    expand 分析(也即获得 proc macro 展开后的代码).
--   正常情况下 rustc 提供了 proc-macro server 的功能, 但是 rust-analyzer 也提供了该功能:
-    <https://fasterthanli.me/articles/proc-macro-support-in-rust-analyzer-for-nightly-rustc-versions>
-
-<!--listend-->
-
-```shell
-zj@a:~/docs$ ls -l ~/.rustup/toolchains/nightly-x86_64-apple-darwin/lib/rustlib/x86_64-apple-darwin/lib/libproc_macro-ce17747687ef7ea0.rlib
--rw-r--r-- 1 zhangjun 4.5M  3  4 19:09 /Users/zhangjun/.rustup/toolchains/nightly-x86_64-apple-darwin/lib/rustlib/x86_64-apple-darwin/lib/libproc_macro-ce17747687ef7ea0.rlib
-
-zj@a:~/docs$ ls -l ~/.rustup/toolchains/nightly-x86_64-apple-darwin/libexec/
-total 1.4M
--rwxr-xr-x 1 zhangjun 1.4M  3  4 19:09 rust-analyzer-proc-macro-srv*
-
-# The main rust-analyzer process and the proc-macro server communicate over a JSON interface
-# https://fasterthanli.me/articles/proc-macro-support-in-rust-analyzer-for-nightly-rustc-versions
-# libpm-e886d9f9eaf24619.so 是编译后的 proc-macro crate lib
-$ echo '{"ListMacros":{"dylib_path":"target/debug/deps/libpm-e886d9f9eaf24619.so"}}' | ~/.cargo/bin/rust-analyzer proc-macro
-{"ListMacros":{"Ok":[["do_thrice","FuncLike"]]}}
-```
-
-由于 rustc 内置的 proc_macro create 提供的 API 只能在 procedure macro 类型 crate 中使用, 所以不能在
-build.rs 和 main.rs 等场景中使用它们, 同时也不能用来进行测试。所以社区引入了 [proc-macro2 create](https://github.com/dtolnay/proc-macro2%20%20%20)，它是 rustc 内置 proc_macro create 的封装(wrapper), 主要提供如下两个特性:
-
-1.  Bring proc-macro-like functionality to other contexts like build.rs and main.rs.
-2.  Make procedural macros unit testable.
-
-proc-macro2 在 serde/tokio-marcros 等 project 中的带广泛使用。
 
 其次，在 hello_macro_derive/src/lib.rs 中添加如下代码：
 
@@ -11073,358 +13251,459 @@ fn impl_hello_macro(ast: &syn:: DeriveInput) -> TokenStream {
 }
 ```
 
+libproc_macro 是随 rustc 编译器一起安装的，由 proc_macro crate 提供的库:
 
-## <span class="section-num">25</span> error handling/Option/Result {#error-handling-option-result}
+-   ~/.rustup/{toolchain}/libexec/rust-analyzer-proc-macro-srv 用于 rust-analyzer 来对 proc macro 进行
+    expand 分析(也即获得 proc macro 展开后的代码).
+-   rustc 提供了 proc-macro server 的功能, 但是 rust-analyzer 也提供了该功能:
+    <https://fasterthanli.me/articles/proc-macro-support-in-rust-analyzer-for-nightly-rustc-versions>
 
-panic!()/unimplemented()!/todo!()
+<!--listend-->
+
+```shell
+zj@a:~/docs$ ls -l ~/.rustup/toolchains/nightly-x86_64-apple-darwin/lib/rustlib/x86_64-apple-darwin/lib/libproc_macro-ce17747687ef7ea0.rlib
+-rw-r--r-- 1 zhangjun 4.5M  3  4 19:09 /Users/zhangjun/.rustup/toolchains/nightly-x86_64-apple-darwin/lib/rustlib/x86_64-apple-darwin/lib/libproc_macro-ce17747687ef7ea0.rlib
+
+zj@a:~/docs$ ls -l ~/.rustup/toolchains/nightly-x86_64-apple-darwin/libexec/
+total 1.4M
+-rwxr-xr-x 1 zhangjun 1.4M  3  4 19:09 rust-analyzer-proc-macro-srv*
+
+# The main rust-analyzer process and the proc-macro server communicate over a JSON interface
+# https://fasterthanli.me/articles/proc-macro-support-in-rust-analyzer-for-nightly-rustc-versions
+# libpm-e886d9f9eaf24619.so 是编译后的 proc-macro crate lib
+$ echo '{"ListMacros":{"dylib_path":"target/debug/deps/libpm-e886d9f9eaf24619.so"}}' | ~/.cargo/bin/rust-analyzer proc-macro
+{"ListMacros":{"Ok":[["do_thrice","FuncLike"]]}}
+```
+
+由于 rustc 内置的 proc_macro create 提供的 API 只能在 procedure macro 类型 crate 中使用, 所以不能在
+build.rs 和 main.rs 等场景中使用它们, 同时也不能用来进行测试，所以社区引入了 [proc-macro2 create](https://github.com/dtolnay/proc-macro2%20)，它是 rustc 内置 proc_macro create 的封装(wrapper), 主要提供如下两个特性:
+
+1.  Bring proc-macro-like functionality to other contexts like build.rs and main.rs.
+2.  Make procedural macros unit testable.
+
+proc-macro2 在 serde/tokio-marcros 等 project 中的带广泛使用。
+
+
+### <span class="section-num">23.3</span> 常用 macro {#常用-macro}
+
+file!(), line!(), column!()
+file!() expands to a string literal: the current filename. line!() and column!() expand to u32 literals giving the current line and column (counting from 1).
+If one macro calls another, which calls another, all in different files, and the last macro calls
+file!(), line! (), or column!(), it will expand to indicate the location of the first macro call.
+
+stringify!(...tokens...)
+Expands to a string literal containing the given tokens. The assert! macro uses this to generate an error message that includes the code of the assertion.
+Macro calls in the argument are not expanded: stringify!(line!()) expands to the string "line!()".
+Rust constructs the string from the tokens, so there are no line breaks or comments in the string.
+
+concat!(str0, str1, ...)
+Expands to a single string literal made by concatenating its arguments.
+Rust also defines these macros for querying the build environment:
+
+cfg!(...)
+Expands to a Boolean constant, true if the current build configuration matches the condition in
+parentheses.
+
+env!("VAR_NAME")
+Expands to a string: the value of the specified environment variable at compile time. If the variable doesn’t exist, it’s a compilation error.
+This would be fairly worthless except that Cargo sets several interesting environment variables when it compiles a crate. For example, to get your crate’s current version string, you can write:
+let version = env!("CARGO_PKG_VERSION");
+A full list of these environment variables is included in
+the Cargo documentation.
+
+option_env!("VAR_NAME")
+This is the same as env! except that it returns an Option&lt;&amp;'static str&gt; that is None if the
+specified variable is not set.
+
+include!("file.rs")
+Expands to the contents of the specified file, which must be valid Rust code—either an expression or
+a sequence of items.
+
+include_str!("file.txt")
+Expands to a &amp;'static str containing the text of the
+specified file. You can use it like this:
+const COMPOSITOR_SHADER: &amp;str = include_str!("../resources/compositor.glsl");
+If the file doesn’t exist or is not valid UTF-8, you’ll get a compilation error.
+
+include_bytes!("file.dat")
+This is the same except the file is treated as binary data, not UTF-8 text. The result is a &amp;'static
+[u8].
+
+todo!(), unimplemented!()
+These are equivalent to panic!(), but convey a different intent. unimplemented!() goes in if clauses, match arms, and other cases that are not yet handled. It always
+panics. todo!() is much the same, but conveys the idea that this code simply has yet to be written;
+some IDEs flag it for notice.
+
+matches!(value, pattern)
+Compares a value to a pattern, and returns true if it
+matches, or false otherwise. It’s equivalent to writing:
+match value { pattern =&gt; true, _ =&gt; false
+}
+If you’re looking for an exercise in basic macro-writing, this is a good macro to replicate—especially since the real implementation, which you can see in the standard library documentation, is quite simple.
+
+
+## <span class="section-num">24</span> error handling/Option/Result {#error-handling-option-result}
+
+panic 是最简单的异常处理机制，它打印 error message，然后开始 unwinding stack，最后退出当前 thread：
+
+1.  如果是 main thread panic，则程序退出；
+2.  否则，如果是 spawned thread panic，则该 thread 会终止，程序不退出。
+
+unwinding stack 过程中，Rust 会回溯调用栈，drop 所有的对象和资源。也可以在 Cargo.toml 里设置 panic
+时不 unwiding stack 而是直接 abort 退出：
+
+```toml
+[profile.release]
+panic = 'abort'
+```
 
 panic!() 时返回错误信息，unwinding stack 和释放资源（drop 对象）：
 
 ```rust
-  fn drink(beverage: &str) {
-      // You shouldn't drink too much sugary beverages.
-      if beverage == "lemonade" { panic!("AAAaaaaa!!!!"); }
+fn drink(beverage: &str) {
+    // You shouldn't drink too much sugary beverages.
+    if beverage == "lemonade" { panic!("AAAaaaaa!!!!"); }
 
-      println!("Some refreshing {} is all I need.", beverage);
-  }
+    println!("Some refreshing {} is all I need.", beverage);
+}
 
-  fn main() {
-      drink("water");
-      drink("lemonade");
-      drink("still water");
-  }
+fn main() {
+    drink("water");
+    drink("lemonade");
+    drink("still water");
+}
 ```
 
-panic!() 发生时默认是 unwind，也可以在 .cargo/config.toml 的 profile 中配置为 abort：
+panic!() 默认是 unwind，也可以配置为 abort:
 
--   也可以通过 cargo build 或 rustc 的 -C panic=abort/unwind 参数来配置： rustc  lemonade.rs -C panic=abort
+-   在 .cargo/config.toml 的 profile 中配置为 abort：
+-   通过 cargo build 或 rustc 的 -C panic=abort/unwind 参数来配置： rustc lemonade.rs -C panic=abort
 
 <!--listend-->
 
 ```toml
-  [profile.dev]
-  opt-level = 0
-  debug = true
-  split-debuginfo = '...'  # Platform-specific.
-  strip = "none"
-  debug-assertions = true
-  overflow-checks = true
-  lto = false
-  panic = 'unwind'
-  incremental = true
-  codegen-units = 256
-  rpath = false
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = '...'  # Platform-specific.
+strip = "none"
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = 'unwind'
+incremental = true
+codegen-units = 256
+rpath = false
 ```
 
-代码可以使用 #[cfg(panic = "xx")] 来进行条件编译， 使用 cfg!() 来进行条件判断；
+代码可以使用 #[cfg(panic = "xx")] 来进行条件编译，使用 cfg!() 来进行条件判断；
 
 ```rust
-  // 根据 panic 设置进行条件编译
-  #[cfg(panic = "unwind")]
-  fn ah() {
-      println!("Spit it out!!!!");
-  }
+// 根据 panic 设置进行条件编译
+#[cfg(panic = "unwind")]
+fn ah() {
+    println!("Spit it out!!!!");
+}
 
-  #[cfg(not(panic = "unwind"))]
-  fn ah() {
-      println!("This is not your party. Run!!!!");
-  }
+#[cfg(not(panic = "unwind"))]
+fn ah() {
+    println!("This is not your party. Run!!!!");
+}
 
-  fn drink(beverage: &str) {
-      if beverage == "lemonade" {
-          ah();
-      } else {
-          println!("Some refreshing {} is all I need.", beverage);
-      }
-  }
+fn drink(beverage: &str) {
+    if beverage == "lemonade" {
+        ah();
+    } else {
+        println!("Some refreshing {} is all I need.", beverage);
+    }
+}
 
-  fn main() {
-      drink("water");
-      drink("lemonade");
-  }
+fn main() {
+    drink("water");
+    drink("lemonade");
+}
 
 
-  fn drink(beverage: &str) {
-      // You shouldn't drink too much sugary beverages.
-      if beverage == "lemonade" {
-          if cfg!(panic = "abort") {
-              println!("This is not your party. Run!!!!");
-          } else {
-              println!("Spit it out!!!!");
-          }
-      } else {
-          println!("Some refreshing {} is all I need.", beverage);
-      }
-  }
+fn drink(beverage: &str) {
+    // You shouldn't drink too much sugary beverages.
+    if beverage == "lemonade" {
+        if cfg!(panic = "abort") {
+            println!("This is not your party. Run!!!!");
+        } else {
+            println!("Spit it out!!!!");
+        }
+    } else {
+        println!("Some refreshing {} is all I need.", beverage);
+    }
+}
 
-  fn main() {
-      drink("water");
-      drink("lemonade");
-  }
+fn main() {
+    drink("water");
+    drink("lemonade");
+}
 ```
 
 对于 Option/Result 可以使用 ? 来进行 unpacking，? 可以用于方法调用等表达式中间来使用。
 
 ```rust
-  fn next_birthday(current_age: Option<u8>) -> Option<String> {
-      // If `current_age` is `None`, this returns `None`.  If `current_age` is `Some`, the inner `u8`
-      // value + 1 gets assigned to `next_age`
-      let next_age: u8 = current_age? + 1; // unpacing Some 值或提前返回 None
-      Some(format!("Next year I will be {}", next_age))
-  }
+fn next_birthday(current_age: Option<u8>) -> Option<String> {
+    // If `current_age` is `None`, this returns `None`.  If `current_age` is `Some`, the inner `u8`
+    // value + 1 gets assigned to `next_age`
+    let next_age: u8 = current_age? + 1; // unpacing Some 值或提前返回 None
+    Some(format!("Next year I will be {}", next_age))
+}
 
-  struct Person {
-      job: Option<Job>,
-  }
+struct Person {
+    job: Option<Job>,
+}
 
-  #[derive(Clone, Copy)]
-  struct Job {
-      phone_number: Option<PhoneNumber>,
-  }
+#[derive(Clone, Copy)]
+struct Job {
+    phone_number: Option<PhoneNumber>,
+}
 
-  #[derive(Clone, Copy)]
-  struct PhoneNumber {
-      area_code: Option<u8>,
-      number: u32,
-  }
+#[derive(Clone, Copy)]
+struct PhoneNumber {
+    area_code: Option<u8>,
+    number: u32,
+}
 
-  impl Person {
+impl Person {
+    // Gets the area code of the phone number of the person's job, if it exists.
+    fn work_phone_area_code(&self) -> Option<u8> {
+        // This would need many nested `match` statements without the `?` operator.
+        // It would take a lot more code - try writing it yourself and see which
+        // is easier.
+        self.job?.phone_number?.area_code
+    }
+}
 
-      // Gets the area code of the phone number of the person's job, if it exists.
-      fn work_phone_area_code(&self) -> Option<u8> {
-          // This would need many nested `match` statements without the `?` operator.
-          // It would take a lot more code - try writing it yourself and see which
-          // is easier.
-          self.job?.phone_number?.area_code
-      }
-  }
-
-  fn main() {
-      let p = Person {
-          job: Some(Job {
-              phone_number: Some(PhoneNumber {
-                  area_code: Some(61),
-                  number: 439222222,
-              }),
-          }),
-      };
-
-      assert_eq!(p.work_phone_area_code(), Some(61));
-  }
+fn main() {
+    let p = Person {
+        job: Some(Job {
+            phone_number: Some(PhoneNumber {
+                area_code: Some(61),
+                number: 439222222,
+            }),
+        }),
+    };
+    assert_eq!(p.work_phone_area_code(), Some(61));
+}
 ```
 
 
-### <span class="section-num">25.1</span> Option {#option}
+### <span class="section-num">24.1</span> Option {#option}
+
+Option 的方法:
 
 ```rust
-  impl<T> Option<T>
+impl<T> Option<T>
 
-  pub const fn is_some(&self) -> bool
+pub const fn is_some(&self) -> bool
 
-                                      // 结果是 Some 切满足 predit
-  pub fn is_some_and(self, f: impl FnOnce(T) -> bool) -> bool
-  let x: Option<u32> = Some(2);
-  assert_eq!(x.is_some_and(|x| x > 1), true);
-  let x: Option<u32> = Some(0);
-  assert_eq!(x.is_some_and(|x| x > 1), false);
+// 结果是 Some 切满足 predit
+pub fn is_some_and(self, f: impl FnOnce(T) -> bool) -> bool
+let x: Option<u32> = Some(2);
+assert_eq!(x.is_some_and(|x| x > 1), true);
+let x: Option<u32> = Some(0);
+assert_eq!(x.is_some_and(|x| x > 1), false);
 
-  pub const fn is_none(&self) -> bool
+pub const fn is_none(&self) -> bool
 
-                                    // 从 &Option<T> 转换为 Option<&T>
-  pub const fn as_ref(&self) -> Option<&T>
-  let text: Option<String> = Some("Hello, world!".to_string());
-  // First, cast `Option<String>` to `Option<&String>` with `as_ref`,
-  // then consume *that* with `map`, leaving `text` on the stack.
-  let text_length: Option<usize> = text.as_ref().map(|s| s.len());
-  println!("still can print text: {text:?}");
+// 从 &Option<T> 转换为 Option<&T>
+pub const fn as_ref(&self) -> Option<&T>
+let text: Option<String> = Some("Hello, world!".to_string());
+// First, cast `Option<String>` to `Option<&String>` with `as_ref`,
+// then consume *that* with `map`, leaving `text` on the stack.
+let text_length: Option<usize> = text.as_ref().map(|s| s.len());
+println!("still can print text: {text:?}");
 
-  pub fn as_mut(&mut self) -> Option<&mut T>
-  let mut x = Some(2);
-  match x.as_mut() {
-      Some(v) => *v = 42,
-      None => {},
-  }
-  assert_eq!(x, Some(42));
+pub fn as_mut(&mut self) -> Option<&mut T>
+let mut x = Some(2);
+match x.as_mut() {
+    Some(v) => *v = 42,
+    None => {},
+}
+assert_eq!(x, Some(42));
 
-  pub fn as_pin_ref(self: Pin<&Option<T>>) -> Option<Pin<&T>>
-  pub fn as_pin_mut(self: Pin<&mut Option<T>>) -> Option<Pin<&mut T>>
+pub fn as_pin_ref(self: Pin<&Option<T>>) -> Option<Pin<&T>>
+pub fn as_pin_mut(self: Pin<&mut Option<T>>) -> Option<Pin<&mut T>>
 
-                                // 返回一个 slice，包含对应的 Some 元素，如果为 None 则返回空 slice
-  pub fn as_slice(&self) -> &[T]
-                                assert_eq!(
-                                    [Some(1234).as_slice(), None.as_slice()],
-                                    [&[1234][..], &[][..]],
-                                );
+// 返回一个 slice，包含对应的 Some 元素，如果为 None 则返回空 slice
+pub fn as_slice(&self) -> &[T]
+assert_eq!(
+    [Some(1234).as_slice(), None.as_slice()],
+    [&[1234][..], &[][..]],
+);
 
-  pub fn as_mut_slice(&mut self) -> &mut [T]
+pub fn as_mut_slice(&mut self) -> &mut [T]
 
-                              // 返回 Some 值，如果是 None 则 panic 并打印 msg
-                              pub fn expect(self, msg: &str) -> T
-                              let x = Some("value");
-  assert_eq!(x.expect("fruits are healthy"), "value");
+// 返回 Some 值，如果是 None 则 panic 并打印 msg
+pub fn expect(self, msg: &str) -> T
+let x = Some("value");
+assert_eq!(x.expect("fruits are healthy"), "value");
 
-  // 返回 Some 值，如果是 None 则 panic
-  pub fn unwrap(self) -> T
+// 返回 Some 值，如果是 None 则 panic
+pub fn unwrap(self) -> T
 
-                              // 返回 Some 值，如果是 None，则使用缺省值、或函数返回值
-  pub fn unwrap_or(self, default: T) -> T
-  pub fn unwrap_or_else<F>(self, f: F) -> T where F: FnOnce() -> T
-  pub fn unwrap_or_default(self) -> T where T: Default
-  pub unsafe fn unwrap_unchecked(self) -> T
+ // 返回 Some 值，如果是 None，则使用缺省值、或函数返回值
+pub fn unwrap_or(self, default: T) -> T
+pub fn unwrap_or_else<F>(self, f: F) -> T where F: FnOnce() -> T
+pub fn unwrap_or_default(self) -> T where T: Default
+pub unsafe fn unwrap_unchecked(self) -> T
 
-                              // 将 Option<T> 转换为 Option<U>, 如果为 None 则返回 None
-  pub fn map<U, F>(self, f: F) -> Option<U> where F: FnOnce(T) -> U
-  let maybe_some_string = Some(String::from("Hello, World!"));
-  // `Option::map` takes self *by value*, consuming `maybe_some_string`
-  let maybe_some_len = maybe_some_string.map(|s| s.len());
-  assert_eq!(maybe_some_len, Some(13));
-  let x: Option<&str> = None;
-  assert_eq!(x.map(|s| s.len()), None);
+// 将 Option<T> 转换为 Option<U>, 如果为 None 则返回 None
+pub fn map<U, F>(self, f: F) -> Option<U> where F: FnOnce(T) -> U
+let maybe_some_string = Some(String::from("Hello, World!"));
+// `Option::map` takes self *by value*, consuming `maybe_some_string`
+let maybe_some_len = maybe_some_string.map(|s| s.len());
+assert_eq!(maybe_some_len, Some(13));
+let x: Option<&str> = None;
+assert_eq!(x.map(|s| s.len()), None);
 
-  pub fn inspect<F>(self, f: F) -> Option<T> where F: FnOnce(&T)
-  let v = vec![1, 2, 3, 4, 5];
-  // prints "got: 4"
-  let x: Option<&usize> = v.get(3).inspect(|x| println!("got: {x}"));
-  // prints nothing
-  let x: Option<&usize> = v.get(5).inspect(|x| println!("got: {x}"));
+pub fn inspect<F>(self, f: F) -> Option<T> where F: FnOnce(&T)
+let v = vec![1, 2, 3, 4, 5];
+// prints "got: 4"
+let x: Option<&usize> = v.get(3).inspect(|x| println!("got: {x}"));
+// prints nothing
+let x: Option<&usize> = v.get(5).inspect(|x| println!("got: {x}"));
 
-  // 如果为 None 则返回 default 值, 否则对 Some 值执行 f 函数
-  pub fn map_or<U, F>(self, default: U, f: F) -> U where F: FnOnce(T) -> U
-  let x = Some("foo");
-  assert_eq!(x.map_or(42, |v| v.len()), 3);
-  let x: Option<&str> = None;
-  assert_eq!(x.map_or(42, |v| v.len()), 42);
+// 如果为 None 则返回 default 值, 否则对 Some 值执行 f 函数
+pub fn map_or<U, F>(self, default: U, f: F) -> U where F: FnOnce(T) -> U
+let x = Some("foo");
+assert_eq!(x.map_or(42, |v| v.len()), 3);
+let x: Option<&str> = None;
+assert_eq!(x.map_or(42, |v| v.len()), 42);
 
-  pub fn map_or_else<U, D, F>(self, default: D, f: F) -> U where D: FnOnce() -> U, F: FnOnce(T) -> U
+pub fn map_or_else<U, D, F>(self, default: D, f: F) -> U where D: FnOnce() -> U, F: FnOnce(T) -> U
 
-                        // 将 Option 转换为 Result: 将 Some(v) -> Ok(v), None -> Err(err)
-  pub fn ok_or<E>(self, err: E) -> Result<T, E>
-  let x = Some("foo");
-  assert_eq!(x.ok_or(0), Ok("foo"));
-  let x: Option<&str> = None;
-  assert_eq!(x.ok_or(0), Err(0));
+// 将 Option 转换为 Result: 将 Some(v) -> Ok(v), None -> Err(err)
+pub fn ok_or<E>(self, err: E) -> Result<T, E>
+let x = Some("foo");
+assert_eq!(x.ok_or(0), Ok("foo"));
+let x: Option<&str> = None;
+assert_eq!(x.ok_or(0), Err(0));
 
-  pub fn ok_or_else<E, F>(self, err: F) -> Result<T, E> where F: FnOnce() -> E
+pub fn ok_or_else<E, F>(self, err: F) -> Result<T, E> where F: FnOnce() -> E
 
-  pub fn as_deref(&self) -> Option<&<T as Deref>::Target> where T: Deref
-  pub fn as_deref_mut(&mut self) -> Option<&mut <T as Deref>::Target> where T: DerefMut
+pub fn as_deref(&self) -> Option<&<T as Deref>::Target> where T: Deref
+pub fn as_deref_mut(&mut self) -> Option<&mut <T as Deref>::Target> where T: DerefMut
 
-  pub fn iter(&self) -> Iter<'_, T>
-  let x = Some(4);
-  assert_eq!(x.iter().next(), Some(&4));
-  let x: Option<u32> = None;
-  assert_eq!(x.iter().next(), None);
+pub fn iter(&self) -> Iter<'_, T>
+let x = Some(4);
+assert_eq!(x.iter().next(), Some(&4));
+let x: Option<u32> = None;
+assert_eq!(x.iter().next(), None);
 
-  pub fn iter_mut(&mut self) -> IterMut<'_, T>
+pub fn iter_mut(&mut self) -> IterMut<'_, T>
 
-                  // 如果 self 是 None 则返回  None,否则返回 optb
-  pub fn and<U>(self, optb: Option<U>) -> Option<U>
-  let x = Some(2);
-  let y: Option<&str> = None;
-  assert_eq!(x.and(y), None);
-  let x: Option<u32> = None;
-  let y = Some("foo");
-  assert_eq!(x.and(y), None);
-  let x = Some(2);
-  let y = Some("foo");
-  assert_eq!(x.and(y), Some("foo"));
-  let x: Option<u32> = None;
-  let y: Option<&str> = None;
-  assert_eq!(x.and(y), None);
+// 如果 self 是 None 则返回  None,否则返回 optb
+pub fn and<U>(self, optb: Option<U>) -> Option<U>
+let x = Some(2);
+let y: Option<&str> = None;
+assert_eq!(x.and(y), None);
+let x: Option<u32> = None;
+let y = Some("foo");
+assert_eq!(x.and(y), None);
+let x = Some(2);
+let y = Some("foo");
+assert_eq!(x.and(y), Some("foo"));
+let x: Option<u32> = None;
+let y: Option<&str> = None;
+assert_eq!(x.and(y), None);
 
+// 如果 self 是 None 则返回 None,否则返回 f 函数的结果
+pub fn and_then<U, F>(self, f: F) -> Option<U> where F: FnOnce(T) -> Option<U>
+fn sq_then_to_string(x: u32) -> Option<String> {
+    x.checked_mul(x).map(|sq| sq.to_string())
+}
+assert_eq!(Some(2).and_then(sq_then_to_string), Some(4.to_string()));
+assert_eq!(Some(1_000_000).and_then(sq_then_to_string), None); // overflowed!
+assert_eq!(None.and_then(sq_then_to_string), None);
 
-  // 如果 self 是 None 则返回 None,否则返回 f 函数的结果
-  pub fn and_then<U, F>(self, f: F) -> Option<U> where F: FnOnce(T) -> Option<U>
-  fn sq_then_to_string(x: u32) -> Option<String> {
-      x.checked_mul(x).map(|sq| sq.to_string())
-  }
-  assert_eq!(Some(2).and_then(sq_then_to_string), Some(4.to_string()));
-  assert_eq!(Some(1_000_000).and_then(sq_then_to_string), None); // overflowed!
-  assert_eq!(None.and_then(sq_then_to_string), None);
+// 如果 self 是 None 则返回 None, 否则如果 predicate 返回 true 则返回 Some 值;
+pub fn filter<P>(self, predicate: P) -> Option<T> where P: FnOnce(&T) -> bool
+fn is_even(n: &i32) -> bool {
+    n % 2 == 0
+}
+assert_eq!(None.filter(is_even), None);
+assert_eq!(Some(3).filter(is_even), None);
+assert_eq!(Some(4).filter(is_even), Some(4));
 
-  // 如果 self 是 None 则返回 None, 否则如果 predicate 返回 true 则返回 Some 值;
-  pub fn filter<P>(self, predicate: P) -> Option<T> where P: FnOnce(&T) -> bool
-  fn is_even(n: &i32) -> bool {
-      n % 2 == 0
-  }
-  assert_eq!(None.filter(is_even), None);
-  assert_eq!(Some(3).filter(is_even), None);
-  assert_eq!(Some(4).filter(is_even), Some(4));
+pub fn or(self, optb: Option<T>) -> Option<T>
+let x = Some(2);
+let y = None;
+let x = None;
+let y = Some(100);
+assert_eq!(x.or(y), Some(100));
+let x = Some(2);
+let y = Some(100);
+assert_eq!(x.or(y), Some(2));
+let x: Option<u32> = None;
+let y = None;
+assert_eq!(x.or(y), None);
 
-  pub fn or(self, optb: Option<T>) -> Option<T>
-  let x = Some(2);
-  let y = None;
-  let x = None;
-  let y = Some(100);
-  assert_eq!(x.or(y), Some(100));
-  let x = Some(2);
-  let y = Some(100);
-  assert_eq!(x.or(y), Some(2));
-  let x: Option<u32> = None;
-  let y = None;
-  assert_eq!(x.or(y), None);
+pub fn or_else<F>(self, f: F) -> Option<T> where F: FnOnce() -> Option<T>
+pub fn xor(self, optb: Option<T>) -> Option<T>
 
-  pub fn or_else<F>(self, f: F) -> Option<T> where F: FnOnce() -> Option<T>
-  pub fn xor(self, optb: Option<T>) -> Option<T>
+// 将 value 插入 Option 返回他的 &mut, Option 原来值被 dropped
+pub fn insert(&mut self, value: T) -> &mut T
+let mut opt = None;
+let val = opt.insert(1);
+assert_eq!(*val, 1);
+assert_eq!(opt.unwrap(), 1);
+let val = opt.insert(2);
+assert_eq!(*val, 2);
+*val = 3;
+assert_eq!(opt.unwrap(), 3);
 
-          // 将 value 插入 Option 返回他的 &mut, Option 原来值被 dropped
-  pub fn insert(&mut self, value: T) -> &mut T
-  let mut opt = None;
-  let val = opt.insert(1);
-  assert_eq!(*val, 1);
-  assert_eq!(opt.unwrap(), 1);
-  let val = opt.insert(2);
-  assert_eq!(*val, 2);
-  *val = 3;
-  assert_eq!(opt.unwrap(), 3);
+// 返回 Some 值的 &mut, 否则插入 value 值并返回他的 &mut
+pub fn get_or_insert(&mut self, value: T) -> &mut T
+let mut x = None;
+{
+    let y: &mut u32 = x.get_or_insert(5);
+    assert_eq!(y, &5);
+    *y = 7;
+}
+assert_eq!(x, Some(7));
 
-  // 返回 Some 值的 &mut, 否则插入 value 值并返回他的 &mut
-  pub fn get_or_insert(&mut self, value: T) -> &mut T
-  let mut x = None;
-  {
-      let y: &mut u32 = x.get_or_insert(5);
-      assert_eq!(y, &5);
-      *y = 7;
-  }
-  assert_eq!(x, Some(7));
+pub fn get_or_insert_default(&mut self) -> &mut T where T: Default
+pub fn get_or_insert_with<F>(&mut self, f: F) -> &mut T where F: FnOnce() -> T
 
-  pub fn get_or_insert_default(&mut self) -> &mut T where T: Default
-  pub fn get_or_insert_with<F>(&mut self, f: F) -> &mut T where F: FnOnce() -> T
+// 从 self 中获取 Some 值, 将 self 设为 None
+pub fn take(&mut self) -> Option<T>
+let mut x = Some(2);
+let y = x.take();
+assert_eq!(x, None);
+assert_eq!(y, Some(2));
+let mut x: Option<u32> = None;
+let y = x.take();
+assert_eq!(x, None);
+assert_eq!(y, None);
 
-      // 从 self 中获取 Some 值, 将 self 设为 None
-  pub fn take(&mut self) -> Option<T>
-  let mut x = Some(2);
-  let y = x.take();
-  assert_eq!(x, None);
-  assert_eq!(y, Some(2));
-  let mut x: Option<u32> = None;
-  let y = x.take();
-  assert_eq!(x, None);
-  assert_eq!(y, None);
+// 当 predicate 返回 ture 时 take Some 的值,将 self 设置为 None
+pub fn take_if<P>(&mut self, predicate: P) -> Option<T> where P: FnOnce(&mut T) -> bool
 
-  // 当 predicate 返回 ture 时 take Some 的值,将 self 设置为 None
-  pub fn take_if<P>(&mut self, predicate: P) -> Option<T> where P: FnOnce(&mut T) -> bool
+// 用 value 替换 self 值, 返回 self 以前的值
+pub fn replace(&mut self, value: T) -> Option<T>
+let mut x = Some(2);
+let old = x.replace(5);
+assert_eq!(x, Some(5));
+assert_eq!(old, Some(2));
+let mut x = None;
+let old = x.replace(3);
+assert_eq!(x, Some(3));
+assert_eq!(old, None);
 
-    // 用 value 替换 self 值, 返回 self 以前的值
-  pub fn replace(&mut self, value: T) -> Option<T>
-  let mut x = Some(2);
-  let old = x.replace(5);
-  assert_eq!(x, Some(5));
-  assert_eq!(old, Some(2));
-  let mut x = None;
-  let old = x.replace(3);
-  assert_eq!(x, Some(3));
-  assert_eq!(old, None);
+// 如果 self 是 Some(s) 且 other 也是 Some(o),则返回 Some((s, o)), 否则返回 None
+pub fn zip<U>(self, other: Option<U>) -> Option<(T, U)>
+let x = Some(1);
+let y = Some("hi");
+let z = None::<u8>;
+assert_eq!(x.zip(y), Some((1, "hi")));
+assert_eq!(x.zip(z), None);
 
-  // 如果 self 是 Some(s) 且 other 也是 Some(o),则返回 Some((s, o)), 否则返回 None
-  pub fn zip<U>(self, other: Option<U>) -> Option<(T, U)>
-  let x = Some(1);
-  let y = Some("hi");
-  let z = None::<u8>;
-  assert_eq!(x.zip(y), Some((1, "hi")));
-  assert_eq!(x.zip(z), None);
-
-  pub fn zip_with<U, F, R>(self, other: Option<U>, f: F) -> Option<R> where F: FnOnce(T, U) -> R
+pub fn zip_with<U, F, R>(self, other: Option<U>, f: F) -> Option<R> where F: FnOnce(T, U) -> R
 
 // 从 Option<&T> 生成 Option<T>
 impl<T> Option<&T>
@@ -11433,9 +13712,9 @@ pub fn cloned(self) -> Option<T> where T: Clone
 ```
 
 
-### <span class="section-num">25.2</span> Result {#result}
+### <span class="section-num">24.2</span> Result {#result}
 
-也支持 map/and_then 等方法:
+支持 map/and_then 等方法:
 
 ```rust
   use std::num::ParseIntError;
@@ -11553,63 +13832,82 @@ fn main() {
 }
 ```
 
-Box&lt;dyn std::error::Error&gt; 可以实现打包不同类型的 error:
+如果一个表达式返回 Result, 则忽略返回值时编译器会警告, 可以赋值给 let _ = xxx 来消除警告.
 
--   Box 和 ? 都可以使用 From/Into trait 来实现自定义类型到返回值 error 类型转换.
+标准库为 std::error::Error 实现了到 Box&lt;dyn Error + 'a&gt; 和 Box&lt;dyn Error + Sync + Send + 'a&gt; 的 From
+trait 转换实现. 所以, 任意实现了 std::error:Error 的错误类型都可以使用 ? 转换到 Box&lt;dyn Error + 'a&gt;
+和 Box&lt;dyn Error + Sync + Send + 'a&gt; 类型:
+
+-   加 Send + Sync 和 'static 后可以让 trait object 来跨线程返回, 例如在 aysnc spawn 场景中.
 
 <!--listend-->
 
 ```rust
-  use std::error;
-  use std::fmt;
+impl<'a, E> From<E> for Box<dyn Error + 'a> where E: Error + 'a,
+impl<'a, E> From<E> for Box<dyn Error + Sync + Send + 'a> where E: Error + Send + Sync + 'a,
+```
 
-  // Change the alias to use `Box<dyn error::Error>`.
-  type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+标准库为实现 std::error::Error trait 的类型都实现了 ToString trait, 所以进一步实现了 Display 和
+Debug trait, 可以用 println!() 直接打印:
 
-  #[derive(Debug, Clone)]
-  struct EmptyVec;  // 自定义 error 类型
-  impl fmt::Display for EmptyVec {
-      fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-          write!(f, "invalid first item to double")
-      }
-  }
-  impl error::Error for EmptyVec {} // std::error::Error 是 marker trait
+```rust
+println!("error querying the weather: {}", err);
+println!("error querying the weather: {:?}", err);
+```
 
-  fn double_first(vec: Vec<&str>) -> Result<i32> {
-      vec.first()
-          .ok_or_else(|| EmptyVec.into()) // Converts to Box
-          .and_then(|s| {
-              s.parse::<i32>()
-                  .map_err(|e| e.into()) // Converts to Box
-                  .map(|i| 2 * i)
-          })
-  }
+示例:
 
-  // // The same structure as before but rather than chain all `Results`
-  // // and `Options` along, we `?` to get the inner value out immediately.
-  // fn double_first(vec: Vec<&str>) -> Result<i32> {
-  //     let first = vec.first().ok_or(EmptyVec)?;
-  //     let parsed = first.parse::<i32>()?;
-  //     Ok(2 * parsed)
-  // }
+```rust
+use std::error;
+use std::fmt;
+
+// Change the alias to use `Box<dyn error::Error>`.
+type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+
+#[derive(Debug, Clone)]
+struct EmptyVec;  // 自定义 error 类型
+impl fmt::Display for EmptyVec {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid first item to double")
+    }
+}
+impl error::Error for EmptyVec {} // std::error::Error 是 marker trait
+
+fn double_first(vec: Vec<&str>) -> Result<i32> {
+    vec.first()
+        .ok_or_else(|| EmptyVec.into()) // Converts to Box
+        .and_then(|s| {
+            s.parse::<i32>()
+                .map_err(|e| e.into()) // Converts to Box
+                .map(|i| 2 * i)
+        })
+}
+
+// // The same structure as before but rather than chain all `Results`
+// // and `Options` along, we `?` to get the inner value out immediately.
+// fn double_first(vec: Vec<&str>) -> Result<i32> {
+//     let first = vec.first().ok_or(EmptyVec)?;
+//     let parsed = first.parse::<i32>()?;
+//     Ok(2 * parsed)
+// }
 
 
-  fn print(result: Result<i32>) {
-      match result {
-          Ok(n) => println!("The first doubled is {}", n),
-          Err(e) => println!("Error: {}", e),
-      }
-  }
+fn print(result: Result<i32>) {
+    match result {
+        Ok(n) => println!("The first doubled is {}", n),
+        Err(e) => println!("Error: {}", e),
+    }
+}
 
-  fn main() {
-      let numbers = vec!["42", "93", "18"];
-      let empty = vec![];
-      let strings = vec!["tofu", "93", "18"];
+fn main() {
+    let numbers = vec!["42", "93", "18"];
+    let empty = vec![];
+    let strings = vec!["tofu", "93", "18"];
 
-      print(double_first(numbers));
-      print(double_first(empty));
-      print(double_first(strings));
-  }
+    print(double_first(numbers));
+    print(double_first(empty));
+    print(double_first(strings));
+}
 ```
 
 自定义 Error 类型, 提供更丰富/个性化的上下文和出错信息:
@@ -11701,6 +13999,54 @@ fn main() {
 }
 ```
 
+thiserror crate 为自定义 Error 类型提供了基于宏的声明式实现:
+
+```rust
+use thiserror::Error;
+#[derive(Error, Debug)]
+#[error("{message:} ({line:}, {column})")]
+pub struct JsonError {
+    message: String,
+    line: usize,
+    column: usize,
+}
+```
+
+
+## <span class="section-num">25</span> external block {#external-block}
+
+external block 中可以定义 static 变量和函数声明（不含 body），编译器再根据 ABI 或
+\#[link(name="crypto")] attr macro 来链接到具体的库实现上。
+
+external block 主要用于 FFI 场景，例如 rust 调用 C 库中的全局变量或函数定义：
+
+-   link kind 支持：dylib、static、framework(MacOS)、raw-dylib（windows）；
+-   对于 static link，可以使用 bundle 机制来将依赖的 static lib 打包到二进制中；
+
+<!--listend-->
+
+```rust
+extern "C" {
+    fn foo(x: i32, ...);
+    fn with_name(format: *const u8, args: ...);
+}
+
+#[link(name = "crypto")]
+extern {
+    // …
+}
+
+#[link(name = "CoreFoundation", kind = "framework")]
+extern {
+    // …
+}
+
+#[link(wasm_import_module = "foo")]
+extern {
+    // …
+}
+```
+
 
 ## <span class="section-num">26</span> FFI {#ffi}
 
@@ -11709,64 +14055,357 @@ Rust 提供 Foreign Function Interface (FFI) 来调用 C 库.
 Foreign function 必须在 extern {} block 中声明, 而且使用 #[link] attr 来指定要链接的外部 C 库名称:
 
 ```rust
-  use std::fmt;
+use std::fmt;
+use num::Complex;
 
-  // this extern block links to the libm library
-  #[cfg(target_family = "windows")]
-  #[link(name = "msvcrt")]
-  extern {
-      // this is a foreign function that computes the square root of a single precision complex number
-      fn csqrtf(z: Complex) -> Complex;
+// this extern block links to the libm library
+#[cfg(target_family = "windows")]
+#[link(name = "msvcrt")]
+extern {
+    // this is a foreign function that computes the square root of a single precision complex number
+    fn csqrtf(z: Complex) -> Complex;
 
-      fn ccosf(z: Complex) -> Complex;
-  }
+    fn ccosf(z: Complex) -> Complex;
+}
 
-  #[cfg(target_family = "unix")]
-  #[link(name = "m")]
-  extern {
-      // this is a foreign function that computes the square root of a single precision complex number
-      fn csqrtf(z: Complex) -> Complex;
+#[cfg(target_family = "unix")]
+#[link(name = "m")]
+extern {
+    // this is a foreign function that computes the square root of a single precision complex number
+    fn csqrtf(z: Complex) -> Complex;
 
-      fn ccosf(z: Complex) -> Complex;
-  }
+    fn ccosf(z: Complex) -> Complex;
+}
 
-  // Since calling foreign functions is considered unsafe, it's common to write safe wrappers around
-  // them.
-  fn cos(z: Complex) -> Complex {
-      unsafe { ccosf(z) }
-  }
+// Since calling foreign functions is considered unsafe, it's common to write safe wrappers around
+// them.
+fn cos(z: Complex) -> Complex {
+    unsafe { ccosf(z) }
+}
 
-  fn main() {
-      // z = -1 + 0i
-      let z = Complex { re: -1., im: 0. };
+fn main() {
+    // z = -1 + 0i
+    let z = Complex { re: -1., im: 0. };
 
-      // calling a foreign function is an unsafe operation
-      let z_sqrt = unsafe { csqrtf(z) };
+    // calling a foreign function is an unsafe operation
+    let z_sqrt = unsafe { csqrtf(z) };
 
-      println!("the square root of {:?} is {:?}", z, z_sqrt);
+    println!("the square root of {:?} is {:?}", z, z_sqrt);
 
-      // calling safe API wrapped around unsafe operation
-      println!("cos({:?}) = {:?}", z, cos(z));
-  }
+    // calling safe API wrapped around unsafe operation
+    println!("cos({:?}) = {:?}", z, cos(z));
+}
 
-  // Minimal implementation of single precision complex numbers
-  #[repr(C)]
-  #[derive(Clone, Copy)]
-  struct Complex {
-      re: f32,
-      im: f32,
-  }
+// Minimal implementation of single precision complex numbers
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct Complex {
+    re: f32,
+    im: f32,
+}
 
-  impl fmt::Debug for Complex {
-      fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-          if self.im < 0. {
-              write!(f, "{}-{}i", self.re, -self.im)
-          } else {
-              write!(f, "{}+{}i", self.re, self.im)
-          }
-      }
-  }
+impl fmt::Debug for Complex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.im < 0. {
+            write!(f, "{}-{}i", self.re, -self.im)
+        } else {
+            write!(f, "{}+{}i", self.re, self.im)
+        }
+    }
+}
 ```
+
+当通过 FFI 调用的其他语言出现 excception/panic 时, Rust 不会进行栈展开, 而是可能直接推出:
+
+-   如果 Rust 非主线程发生 panic, 默认是栈展开, 而不会导致程序直接退出的.
+-   参考: <https://doc.rust-lang.org/nomicon/ffi.html>
+
+Rust 的 std::os::raw 提供了 C 类型的 Rust 表示，这些 c\_ 开头的类型其实是 Rust 原始类型的 alias, 比如
+c_char 是 i8/u8 的别名.
+
+-   Rust 的 usize/isize 对应 C 的 size_t 和 ptrdiff_t;
+-   C/C++ 的指针对应 Rust 的 raw pointer,如 \*mut T 和 \*const T;
+
+| C type                 | Corresponding std::os::raw type |
+|------------------------|---------------------------------|
+| short                  | c_short                         |
+| int                    | c_int                           |
+| long                   | c_long                          |
+| long long              | c_longlong                      |
+| unsigned short         | c_ushort                        |
+| unsigned, unsigned int | c_uint                          |
+| unsigned long          | c_ulong                         |
+| unsigned long long     | c_ulonglong                     |
+| char                   | c_char                          |
+| signed char            | c_schar                         |
+| unsigned char          | c_uchar                         |
+| float                  | c_float                         |
+| double                 | c_double                        |
+| void \*, const void \* | \*mut c_void, \*const c_void    |
+
+C 的 struct 定义:
+
+```c
+typedef struct {
+	char *message;
+	int klass;
+} git_error;
+```
+
+对应的 Rust struct 定义:
+
+```rust
+use std::os::raw::{c_char, c_int};
+
+#[repr(C)]
+pub struct git_error {
+    pub message: *const c_char,
+    pub klass: c_int
+}
+```
+
+Rust 枚举类型:
+
+```rust
+#[repr(C)]  // 还可以使用 #[repr(i16)] 表示使用 int16 来保存 enum
+#[allow(non_camel_case_types)]
+enum git_error_code {
+    GIT_OK         =  0,
+    GIT_ERROR      = -1,
+    GIT_ENOTFOUND  = -3,
+    GIT_EEXISTS    = -4,
+    //...
+}
+```
+
+C 类型的 Rust 表示:
+
+```rust
+// C 类型
+enum tag { FLOAT = 0, INT =1, };
+union number { float f; short i; };
+struct tagged_number { tag t; number n; };
+
+// 对应的 Rust 类型
+#[repr(C)]
+enum Tag { Float = 0, Int = 1 }
+
+#[repr(C)]
+union FloatOrInt { f: f32, i: i32, }
+
+#[repr(C)]
+struct Value { tag: Tag, union: FloatOrInt }
+
+fn is_zero(v: Value) -> bool {
+    use self::Tag::*;
+    unsafe {
+        match v {
+            Value { tag: Int, union: FloatOrInt { i: 0 } } => true,
+            Value { tag: Float, union: FloatOrInt { f: num } } => (num == 0.0),
+            _ => false }
+    } }
+```
+
+C 的 string 是 NULL 终止的 char 数组, 而 Rust 字符串是 UTF-8 编码的不以 NULL 终止的连续内存区域.
+
+-   不能将 Rust &amp;str 转换为 C 字符串;
+-   但是可以将 C 字符串转换为 Rust &amp;str,只要包含的是有效的 UTF-8 字符.
+-   std::ffi 的 CStr 和 CString 代表 NULL 终止的 C 字符串.
+
+需要在 extern block 中声明在其他库中定义的变量或函数, Rust 可执行程序将与他们进行链接:
+
+-   Rust 默认 extern block 中的代码使用 C 惯例来传参和返回值, 同时都是 unsafe 函数.
+
+<!--listend-->
+
+```rust
+use std::os::raw::c_char;
+extern {
+    fn strlen(s: *const c_char) -> usize;
+    static environ: *mut *mut c_char; // C 库中的全局变量 extern char **environ;
+}
+```
+
+然后就可以调用 extern block 中的函数:
+
+```rust
+use std::ffi::CString;
+let rust_str = "I'll be back";
+let null_terminated = CString::new(rust_str).unwrap();
+unsafe {
+    assert_eq!(strlen(null_terminated.as_ptr()), 12);
+}
+
+unsafe {
+    if !environ.is_null() && !(*environ).is_null() {
+        let var = CStr::from_ptr(*environ);
+        println!("first environment variable: {}", var.to_string_lossy())
+    }
+}
+```
+
+可以通过 #[link] 来指定链接其他库中的变量或函数:
+
+```rust
+use std::os::raw::c_int;
+
+#[link(name = "git2")] // Rust 使用系统连接器,如 linux 的 ld, 传递 -lgit2 参数
+extern {
+    pub fn git_libgit2_init() -> c_int;
+    pub fn git_libgit2_shutdown() -> c_int;
+}
+
+fn main() {
+    unsafe {
+        git_libgit2_init();
+        git_libgit2_shutdown();
+    }
+}
+```
+
+如果 git2 lib 被安装到非系统库目录, 则 rustc 调用 ld 时可能会找不到该库, 解决办法是使用 build
+script: 在 Cargo.toml 文件的同级目录下创建名为 build.rs 文件, 内容如下:
+
+```rust
+fn main() {
+    println!(r"cargo:rustc-link-search=native=/home/jimb/libgit2-0.25.1/build");
+}
+```
+
+cargo build 会自动允许 build.rs 并获取和解析他的输出, 从中获取到 rustc link 需要寻找函数库的路径地址.
+
+上面只解决了链接时查找共享库的问题, 在运行时有可能还是找不到动态库,解决办法是设置环境变量:
+
+```text
+export LD_LIBRARY_PATH=/home/jimb/libgit2- 0.25.1/build:$LD_LIBRARY_PATH
+```
+
+对于 Mac 而言是设置 DYLD_LIBRARY_PATH.
+
+对于 Rust 而言, 如果一个 crate 是专用于调用 C 库的 Rust 代码, 则该 crate 的命名惯例是 LIB-sys, 其中
+LIB 是 C 库的名称. 该 crate 中的内容:
+
+1.  C 库(动态或静态) 文件;
+2.  在 extern block 中声明的 C 库中的变量或函数的 Rust 表示;
+
+libgit2 项目示例:
+
+-   每一个 item 都是 libgit2 头文件中定义函数或类型的 Rust 重新定义;
+-   bindgen crate 提供了根据 C 库 header 文件自动生成 Rust extern block 的功能;
+
+<!--listend-->
+
+```rust
+#![allow(non_camel_case_types)]
+use std::os::raw::{c_int, c_char, c_uchar};
+
+#[link(name = "git2")]
+extern {
+    pub fn git_libgit2_init() -> c_int;
+    pub fn git_libgit2_shutdown() -> c_int;
+    pub fn giterr_last() -> *const git_error;
+    pub fn git_repository_open(out: *mut *mut git_repository, path: *const c_char) -> c_int;
+    pub fn git_repository_free(repo: *mut git_repository);
+    pub fn git_reference_name_to_id(out: *mut git_oid, repo: *mut git_repository, reference: *const c_char) -> c_int;
+    pub fn git_commit_lookup(out: *mut *mut git_commit, repo: *mut git_repository, id: *const git_oid) -> c_int;
+    pub fn git_commit_author(commit: *const git_commit) -> *const git_signature;
+    pub fn git_commit_message(commit: *const git_commit) -> *const c_char;
+    pub fn git_commit_free(commit: *mut git_commit);
+}
+
+#[repr(C)]
+pub struct git_repository {
+    _private: [u8; 0]
+}
+#[repr(C)]
+pub struct git_commit {
+    _private: [u8; 0]
+}
+#[repr(C)]
+pub struct git_error {
+    pub message: *const c_char,
+    pub klass: c_int
+}
+pub const GIT_OID_RAWSZ: usize = 20;
+
+#[repr(C)]
+pub struct git_oid {
+    pub id: [c_uchar; GIT_OID_RAWSZ]
+}
+pub type git_time_t = i64;
+
+#[repr(C)]
+pub struct git_time {
+    pub time: git_time_t,
+    pub offset: c_int
+}
+
+#[repr(C)]
+pub struct git_signature {
+    pub name: *const c_char,
+    pub email: *const c_char,
+    pub when: git_time
+}
+
+use std::ffi::CStr;
+use std::os::raw::c_int;
+fn check(activity: &'static str, status: c_int) -> c_int {
+    if status < 0 {
+        unsafe {
+            let error = &*raw::giterr_last();
+            println!("error while {}: {} ({})",
+                activity,
+                CStr::from_ptr(error.message).to_string_lossy(),
+                error.klass);
+            std::process::exit(1);
+        }
+    }
+    status
+}
+
+check("initializing library", raw::git_libgit2_init());
+unsafe fn show_commit(commit: *const raw::git_commit) {
+    let author = raw::git_commit_author(commit);
+    let name = CStr::from_ptr((*author).name).to_string_lossy();
+    let email = CStr::from_ptr((*author).email).to_string_lossy();
+    println!("{} <{}>\n", name, email);
+    let message = raw::git_commit_message(commit);
+    println!("{}", CStr::from_ptr(message).to_string_lossy());
+}
+
+// 主程序
+use std::ffi::CString; use std::mem;
+use std::ptr;
+use std::os::raw::c_char;
+fn main() {
+    let path = std::env::args().skip(1).next().expect("usage: git-toy PATH");
+    let path = CString::new(path).expect("path contains null characters");
+    unsafe {
+        check("initializing library", raw::git_libgit2_init());
+        let mut repo = ptr::null_mut();
+        check("opening repository", raw::git_repository_open(&mut repo, path.as_ptr()));
+        let c_name = b"HEAD\0".as_ptr() as *const c_char;
+        let oid = {
+            let mut oid = mem::MaybeUninit::uninit(); // 创建一个未初始化的内存区域
+            check("looking up HEAD", repo, c_name));
+        };
+        raw::git_reference_name_to_id(oid.as_mut_ptr(), oid.assume_init()
+    };
+
+    let mut commit = ptr::null_mut();
+    check("looking up commit", raw::git_commit_lookup(&mut commit, repo, &oid));
+    show_commit(commit);
+    raw::git_commit_free(commit);
+    raw::git_repository_free(repo);
+    check("shutting down library", raw::git_libgit2_shutdown());
+}
+```
+
+C 很常见的情况是, 传递一个指针, 然后让函数内的逻辑来修改指针指向的内容. Rust 提供了
+std::mem::MaybeUninit&lt;T&gt; 类型, 他告诉编译器为 T 分配足够的内存, 但是不做任何处理, 直到后续明确告诉他可以安全地操作这一块内存区域. MaybeUninit&lt;T&gt; 拥有这一块内存区域, 这样编译器就不会做一些优化和操作,从而避免非预期的行为.
+
+-   MaybeUninit.as_mut_ptr() 返回这个内存区域的 \*mut T 指针, 可以将他传递给 FFI 函数使用;
+-   然后调用 MaybeUninit.assume_init() 来将内存区域标记为已初始化;
 
 
 ## <span class="section-num">27</span> testing {#testing}
@@ -12088,7 +14727,7 @@ fn test_add() {
 
 ## <span class="section-num">28</span> unsafe {#unsafe}
 
-unsafe {} 块注解用于指示 rustc 忽略一些严格的安全检查, 主要使用场景:
+unsafe {} 块注解用于指示编译器忽略一些严格的安全检查, 主要使用场景:
 
 1.  解构 raw pointers;
 2.  调用 FFI 函数;
@@ -12096,14 +14735,84 @@ unsafe {} 块注解用于指示 rustc 忽略一些严格的安全检查, 主要�
 4.  存取 static mut 全局变量;
 5.  实现 unsafe trait;
 
-raw pointer:
+通过使用 unsafe 关键字，可以将 Rust 安全代码和非安全代码建立边界，调用者或开发者需要关注非安全代码的使用前提和影响，从而确保使用时没有未定义的行为。
+
+-   一般来说 unsafe fun/block/trait 都是有特殊的使用前提的，使用方需要保证满足这些约束，防止出现未定义的行为。
+-   调用 unsafe 代码带来的影响可以在调用前后：
+    -   调用前：没有满足 unsafe 代码的前提约束；
+    -   调用后：unsafe 代码的结果是不可信的、未定义的，对程序后续的逻辑或功能都有影响；
+-   一般来说，尽量使用安全代码，这样 Rust 的编译器、type checker、borrow checker 和其他的静态 checker
+    会详细检查代码的合法性，但是 unsafe 代码不会有这些安全性优势，需要开发者自己来保证。
+
+<!--listend-->
 
 ```rust
-fn main() {
-    let raw_p: *const u32 = &10;
-    unsafe {
-        assert!(*raw_p == 10);
+$ cat crash.rs fn main() {
+      let mut a: usize = 0;
+      let ptr = &mut a as *mut usize;
+      unsafe {
+          *ptr.offset(3) = 0x7ffff72f484c;
+      }
+}
+$ cargo build
+     Compiling unsafe-samples v0.1.0
+      Finished debug [unoptimized + debuginfo] target(s) in 0.44s
+$ ../../target/debug/crash
+crash: Error: .netrc file is readable by others.
+crash: Remove password or make file unreadable by others. Segmentation fault (core dumped)
+$
+```
+
+unsafe block：
+
+-   可以调用 unsafe 函数；
+-   可以解引用 raw pointer；（安全代买可以创建、转移、比较 raw pointer，但是不能解引用和赋值 raw
+    pointer）；
+-   访问 union 类型的 field；
+-   访问 static mut 变量；
+-   使用 FFI 访问其他语言函数库定义的变量、类型和函数；
+
+<!--listend-->
+
+```rust
+unsafe {
+    String::from_utf8_unchecked(ascii) // from_utf8_unchecked 是 unsaft 函数，只能在 unsafe 上下文中调用
+}
+```
+
+unsafe function 是添加了 unsafe 标识的函数，他的 body 对应是 unsafe block。
+
+```rust
+pub unsafe fn from_bytes_unchecked(bytes: Vec<u8>) -> Ascii {
+    Ascii(bytes)
+}
+```
+
+unsafe trait 是添加了 unsafe 标识的 trait，在 impl 它时，也必须添加 unsafe 标识：
+
+-   unsafe trait 实际上是表明该 trait 的定义或实现有一些前提约束，Rust 编译器无法检查，需要开发者来保证。
+
+<!--listend-->
+
+```rust
+// 定义 unsafe trait
+pub unsafe trait Zeroable {}
+
+// 实现 unsafe trait
+unsafe impl Zeroable for u8 {}
+unsafe impl Zeroable for i32 {}
+unsafe impl Zeroable for usize {}
+// and so on for all the integer types
+
+// 使用 unsafe trait，不一定需要 unsafe 函数
+use core::nonzero::Zeroable;
+fn zeroed_vector<T>(len: usize) -> Vec<T> where T: Zeroable
+{
+    let mut vec = Vec::with_capacity(len); unsafe {
+        std::ptr::write_bytes(vec.as_mut_ptr(), 0, len);
+        vec.set_len(len);
     }
+    vec
 }
 ```
 
@@ -12124,7 +14833,215 @@ fn main() {
         assert_eq!(some_vector.as_slice(), my_slice);
     }
 }
+
+
 ```
+
+
+### <span class="section-num">28.1</span> raw pointer {#raw-pointer}
+
+只有两种类型：
+
+1.  A \*mut T is a raw pointer to a T that permits modifying its referent.
+2.  A \*const T is a raw pointer to a T that only permits reading its referent.
+3.  没有 \*T 类型，必须指定 mut 或 const 类型；
+
+<!--listend-->
+
+```rust
+fn main() {
+    let raw_p: *const u32 = &10;
+    unsafe {
+        assert!(*raw_p == 10);
+    }
+}
+
+fn very_trustworthy(shared: &i32) {
+    unsafe {
+        // Turn the shared reference into a mutable pointer.
+        // This is undefined behavior.
+        let mutable = shared as *const i32 as *mut i32;
+        *mutable = 20;
+    }
+}
+
+```
+
+可以从 ref 创建 raw pointer 或者使用 \* 来解引用 raw pointer：
+
+```rust
+let mut x = 10;
+let ptr_x = &mut x as *mut i32;
+
+let y = Box::new(20);
+let ptr_y = &*y as *const i32;
+unsafe {
+    *ptr_x += *ptr_y;
+}
+assert_eq!(x, 30);
+```
+
+裸指针是允许 null 的:
+
+1.  std::ptr::null&lt;T&gt; 对应 \*const T;
+2.  std::ptr::null_mut&lt;T&gt; 对应 \*mut T;
+3.  使用 is_null 方法来才检查 raw pointer 是否为 null；
+
+<!--listend-->
+
+```rust
+fn option_to_raw<T>(opt: Option<&T>) -> *const T {
+    match opt {
+        None => std::ptr::null(),
+        Some(r) => r as *const T
+    }
+}
+assert!(!option_to_raw(Some(&("pea", "pod"))).is_null());
+assert_eq!(option_to_raw::<i32>(None), std::ptr::null());
+```
+
+普通引用的裸指针和 C/C++ 的指针一样，是一个机器字 usize 大小的变量。但是如果是 unsized type 的指针，这是占用两个机器字 usize 的 fat pointer，比如 \*const [u8] 或 \*mut dyn std::io::Write.
+
+raw pointer 的一些限制：
+
+1.  必须显示解引用，(\*raw).field 或 (\*raw).method(...)；
+2.  raw pointer 不支持 Deref；
+3.  raw pointer 的比较运算，如 == 或 &lt;, 比较的是指针地址, 而非他指向的内容;
+4.  raw pointer 没有实现 Display, 但是实现了 Debug 和 Pointer;
+5.  不支持 raw pointer 的算术运算符,如 +, 但是可以使用一个库函数来进行运算;
+
+<!--listend-->
+
+```rust
+let trucks = vec!["garbage truck", "dump truck", "moonstruck"];
+let first: *const &str = &trucks[0];
+let last: *const &str = &trucks[2];
+assert_eq!(unsafe { last.offset_from(first) }, 2);
+assert_eq!(unsafe { first.offset_from(last) }, -2);
+
+// as 运算符支持将引用转换为 raw pointer(反过来不支持), 但是可能需要多次转换
+&vec![42_u8] as *const String; // error: invalid conversion
+&vec![42_u8] as *const Vec<u8> as *const String; // permitted
+```
+
+很多类型提供了 as_ptr() 和 as_mut_ptr() 方法来返回他的内容的 raw pointer.
+
+Owning 指针类型, 如 Box/Rc/Arc 提供 into_raw() 和 from_raw() 方法来生成 raw pointer 或从 raw pointer
+创建对象.
+
+也可以从 int 创建 raw pointer, 但是非常不安全.
+
+raw pointer 没有实现 Send/Sync, 不能跨线程或 async spawn 中使用.
+
+Rust 的 array/slice/vector 都是连续的内存地址块，每个元素占用固定打下的内存。
+
+```rust
+fn offset<T>(ptr: *const T, count: isize) -> *const T where T: Sized
+{
+    let bytes_per_element = std::mem::size_of::<T>() as isize;
+    let byte_offset = count * bytes_per_element;
+    (ptr as isize).checked_add(byte_offset).unwrap() as *const T
+}
+```
+
+Rust 变量区分 copy 和 move：
+
+1.  move：原变量不能再使用，新的变量认为 是 live的；
+2.  copy：老变量、新变量均可以使用；
+
+如果要实现类似与 Vec/HashMap 等自己管理内存的类型，Rust 提供了两个函数：
+
+1.  std::ptr::read(src)：将 src 执行的地址的内容 move 出来，转移给 caller。src 必须是 \*const T 类型，
+    T 是 Sized。调用该 read() 函数后，src 地址的内容没有变化，但是如果 T 没有实现 Copy，代码应该任务
+    src 的内容是未初始化的；
+2.  std::ptr::write(dest, value)：将 value 移动到 dest 指向的内存，dest 是 \*mut T 类型， T 是 unsized，且， dest 内存必须未初始化；
+
+其他操作 raw pointer 的函数：
+
+1.  std::ptr::copy(src, dst, count)
+2.  ptr.copy_to(dst, count)
+3.  std::ptr::copy_nonoverlapping(src, dst, count)
+4.  ptr.copy_to_nonoverlapping(dst, count)
+5.  read_unaligned, write_unaligned
+6.  read_volatile, write_volatile
+
+
+### <span class="section-num">28.2</span> union {#union}
+
+union 是将一块内存区域可以按照不同的类型进行解释的类型：
+
+```rust
+union FloatOrInt {
+    f: f32,
+    i: i32,
+}
+```
+
+在创建 union 对象时，必须指定某一个 field，但是后续可以按照其他 field 的类型来解释以前给 union 的赋值：
+
+```rust
+let mut one = FloatOrInt { i: 1 };
+assert_eq!(unsafe { one.i }, 0x00_00_00_01);
+one.f = 1.0;
+assert_eq!(unsafe { one.i }, 0x3F_80_00_00);
+```
+
+union 类型的大小取决于最大 field 的空间需求，比如下面 union 的大小为 64 bytes：
+
+```rust
+union SmallOrLarge {
+    s: bool,
+    l: u64
+}
+```
+
+必须在 unsafe 中访问 union field：
+
+```rust
+let u = SmallOrLarge { l: 1337 };
+println!("{}", unsafe {u.l}); // prints 1337
+```
+
+这是由于 union 不像 enum，内存模型不包含 tag，所以编译器不知道存入和访问的字段值。
+
+可以使用 #[repr(C)] 来设置 union 使用 C 的内存布局：
+
+```rust
+#[repr(C)]
+union SignExtractor {
+    value: i64,
+    bytes: [u8; 8]
+}
+fn sign(int: i64) -> bool {
+    let se = SignExtractor { value: int};
+    println!( "{:b} ({:?})", unsafe { se.value }, unsafe { se.bytes });
+    unsafe { se.bytes[7] >= 0b10000000 }
+}
+assert_eq!(sign(-1), true);
+assert_eq!(sign(1), false);
+assert_eq!(sign(i64::MAX), false);
+assert_eq!(sign(i64::MIN), true);
+```
+
+union 用不同的方式来解释同一块内存区域，编译器不知道如何 Drop union 对象，所以各 field 必须都必须是实现 Copy 的类型。如果要保存 String 类型，则可以参考 std::mem::ManuallyDrop。
+
+可以使用 match pattern 来匹配 union，但是每个 pattern 只能包含一个 field：
+
+-   如果只指定 filed 但是没有值，则一定可以匹配成功。
+
+<!--listend-->
+
+```rust
+unsafe {
+    match u {
+        SmallOrLarge { s: true } => { println!("boolean true"); } // 如果按照 s 来解释，能够匹配 true
+        SmallOrLarge { l: 2 } => { println!("integer 2"); } // 如果按照 l 来解释，能够匹配 2
+        _ => { println!("something else"); }
+    }
+}
+```
+
+borrow uinon 某个 filed 等效于 borrow 整个 union，所以在 borrow 某个 field 后就不能再 borrow 其他 field。
 
 
 ## <span class="section-num">29</span> 工程化 {#工程化}
