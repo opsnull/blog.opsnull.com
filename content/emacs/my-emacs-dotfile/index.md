@@ -2,7 +2,7 @@
 title: "My Emacs Dotfile"
 author: ["张俊(geekard@qq.com)"]
 date: 2023-08-20T00:00:00+08:00
-lastmod: 2024-04-08T12:04:48+08:00
+lastmod: 2024-04-13T21:30:05+08:00
 tags: ["emacs"]
 categories: ["emacs"]
 draft: false
@@ -21,7 +21,7 @@ series_order: 1
 brew uninstall emacs-plus@29
 brew install emacs-plus@29  --with-no-frame-refocus --with-xwidgets --with-imagemagick --with-poll --with-dragon-icon --with-native-comp --with-poll --HEAD
 brew unlink emacs-plus@29 && brew link emacs-plus@29
-ln -sf /usr/local/opt/emacs-plus@29/Emacs.app /Applications
+ln -sf /opt/homebrew/opt/emacs-plus/Emacs.app /Applications/
 ```
 
 
@@ -144,7 +144,7 @@ export PATH="/opt/homebrew/opt/curl/bin:$PATH"
 ;; 以这里使用的是同时满足两者的域名后缀形式, 如 baidu.com;
 (setq my/no-proxy '("0.0.0.0" "127.0.0.1" "localhost" "10.0.0.0/8" "172.0.0.0/8"
                     ".cn" ".alibaba-inc.com" ".taobao.com" ".antfin-inc.com"
-                    ".openai.azure.com" ".baidu.com"))
+                    ".openai.azure.com" ".baidu.com" ".aliyun-inc.com"))
 
 ;; Google 默认会 403 缺少 UA 的请求。
 (setq my/user-agent
@@ -945,12 +945,13 @@ patch:
               :foreground-color "#dcdccc"
               :internal-border-width 2))
 
-
-  ;; 部分 major-mode 关闭 RIME 输入法。
+  ;; 部分 mode 关闭 RIME 输入法。
   (defadvice switch-to-buffer (after activate-input-method activate)
     (if (or (string-match "vterm-mode" (symbol-name major-mode))
             (string-match "dired-mode" (symbol-name major-mode))
             (string-match "image-mode" (symbol-name major-mode))
+            (string-match "compilation-mode" (symbol-name major-mode))
+            (string-match "isearch-mode" (symbol-name major-mode))
             (string-match "minibuffer-mode" (symbol-name major-mode)))
         (activate-input-method nil)
       (activate-input-method "rime"))))
@@ -1593,7 +1594,7 @@ org-download：拖拽保存图片或 F6 保存剪贴板中图片:
 
 ```emacs-lisp
 ;; 关闭 C-c C-c 触发执行代码.
-(setq org-babel-no-eval-on-ctrl-c-ctrl-c t)
+;;(setq org-babel-no-eval-on-ctrl-c-ctrl-c t)
 ;; 关闭确认执行代码的操作.
 (setq org-confirm-babel-evaluate nil)
 ;; 使用语言的 mode 来格式化代码.
