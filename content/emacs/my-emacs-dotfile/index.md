@@ -2,7 +2,7 @@
 title: "My Emacs Dotfile"
 author: ["张俊(geekard@qq.com)"]
 date: 2023-08-20T00:00:00+08:00
-lastmod: 2024-04-13T21:30:05+08:00
+lastmod: 2024-04-20T21:45:14+08:00
 tags: ["emacs"]
 categories: ["emacs"]
 draft: false
@@ -1845,15 +1845,18 @@ slide：
                             (org-fold-hide-block-all)
                             (setq-default x-stretch-cursor -1)
                             (redraw-display)
-			        (blink-cursor-mode -1)
+                            (blink-cursor-mode -1)
+                            (setq cursor-type 'bar)
                             ;;(org-display-inline-images)
-			        ;;(hl-line-mode -1)
-                            ;;(text-scale-increase 1)
+                            ;;(hl-line-mode -1)
+                            (text-scale-increase 2)
+                            (setq org-tree-slide-slide-in-waiting 0.01)
                             (read-only-mode 1)))
    (org-tree-slide-stop . (lambda ()
                             (blink-cursor-mode +1)
                             (setq-default x-stretch-cursor t)
-                            ;;(text-scale-increase 0)
+                            (setq cursor-type t)
+                            (text-scale-increase 0)
                             ;;(hl-line-mode 1)
                             (read-only-mode -1))))
   :config
