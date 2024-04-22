@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2024-02-20T12:56:29+08:00
+lastmod: 2024-04-22T15:48:13+08:00
 tags: ["hugo", "org-mode", "blog"]
 categories: ["emacs"]
 draft: false
@@ -134,6 +134,22 @@ shortcode:
 recent:
   show_more: "显示更多"
 zj@a:~/blog/blog.opsnull.com$
+```
+
+配置 config/_default/makrup.toml 参数：
+
+```toml
+[goldmark]
+[goldmark.renderer]
+  unsafe = true # 开启非安全渲染
+
+[highlight]
+  guessSyntax = true # 部分不支持的 code language 使用猜测。
+  noClasses = false
+
+[tableOfContents]
+  startLevel = 1
+  endLevel = 3 # 不包含 endLevel，所以只显示 1-2 级别。
 ```
 
 
@@ -674,7 +690,7 @@ menu:
 
 ox-hugo 全局缺省配置：
 
--   文档根目录：由 org-hugo-base-dir 配置，markdown 内容会保存到该目录的 contenxt/&lt;HUGO_SECTION&gt; 目录下。
+-   org-hugo-base-dir: markdown 文档根目录，文档会保存到该目录的 contenxt/&lt;HUGO_SECTION&gt; 目录下。
 
 <!--listend-->
 
@@ -689,35 +705,50 @@ ox-hugo 全局缺省配置：
   (setq org-hugo-auto-set-lastmod t))
 ```
 
-By 文档输出根目录：HUGO_BASE_DIR：
+两种文档输出方式：
 
-```text
-#+hugo_base_dir: ~/blog/blog.opsnull.com
-```
+1.  建议：One post per Org `subtree` (preferred)
+    -   Export only the current post Org subtree, or
+    -   Export all valid Hugo post subtrees in a loop.
+2.  不建议：One post per Org file
+    -   This works but you won’t be able to leverage `Org-specific benefits like tag and property
+            inheritance`, use of TODO states to translate to `post draft state, =auto weight calculation` for
+        pages, `taxonomies and menu items`, etc.
 
-By 文档输出 section：HUGO_SECTION：
+subtree 模式使用 :PROPERTIES: 来设置 subtree 的输出属性，:PROPERTIES: 必须紧接着 headerline， 中间不能有空行，否则 ox-hugo 可能不识别。
+
+文档输出根目录(即使只 subtree 输出, 也需要在文档整体设置)：
+
+1.  整个文档：#+hugo_base_dir: ~/blog/blog.opsnull.com
+2.  subtree：:HUGO_BASE_DIR：
+
+文档输出目录（section）：HUGO_SECTION：
 
 -   整个文件：#+hugo_section: posts
 -   subtree：:EXPORT_HUGO_SECTION: shell
 
-说明：
+说明（参考：<https://ox-hugo.scripter.co/doc/hugo-section/%EF%BC%89%EF%BC%9A>
 
 -   如果设置为 `/` 则表示的是 content/ 目录；
--   如果是 subtree，对于子 tree，可以通过设置 EXPORT_HUGO_SECTION_FRAG  来在父 tree 的路径下添加子目录, 例如：
+-   如果是 subtree，对于子 tree，可以通过设置 EXPORT_HUGO_SECTION_FRAG 来在父 tree 的路径下添加子目录, 例如：
     -   父 tree 设置 :EXPORT_HUGO_SECTION: a
     -   子 tree 设置 :EXPORT_HUGO_SECTION_FRAG: b, 则子 tree 的输出保存位置  content/a/b
--   参考：<https://ox-hugo.scripter.co/doc/hugo-section/>
 
-输出文档标题：#+titile
+输出文档标题：
+
+-   整个文件：#+titile; (如果要输出整个文档, 则必须要定义);
+-   subtree: org header 行内容作为输出文档的标题；
 
 输出文件名：
 
--   \#+EXPORT_FILE_NAME: index
+-   整个文件：#+EXPORT_FILE_NAME: index
+-   subtree：:EXPORT_FILE_NAME: my-first-post, 不能嵌套，必须在 leaf node 上定义, 如果要输出该
+    subtree, 则必须要定义;
 
 输出 Bundle 文档：
 
-1.  Bundle 是位于某一个 Section 下的目录名，由 #+HUGO_BUNDLE 配置；
-2.  输出文件名必须是 index，由 #+EXPORT_FILE_NAME: index 配置；
+1.  Bundle：位于某一个 Section 下的目录名，由 #+HUGO_BUNDLE 配置；
+2.  输出文件名：必须是 index，由 #+EXPORT_FILE_NAME: index 配置；
     -   如果未定义 EXPORT_FILE_NAME（不建议）， 则文件名称和源文件名称一致。
 
 示例：
@@ -729,16 +760,46 @@ By 文档输出 section：HUGO_SECTION：
 #+EXPORT_FILE_NAME: index
 ```
 
-对于 subtree 输出 Bundle 文档：
+subtree 输出 Bundle 文档：
 
--   目录名称由 EXPORT_HUGO_BUNDLE 指定；
--   输出文档名由 :EXPORT_FILE_NAME: 指定，但一般为 index 或 \_index（建议, 可以使输出文件名唯一）;
+-   Bundle 目录：由 :EXPORT_HUGO_BUNDLE: 指定，不能于整个文档或其他 subtree 重名。
+-   输出文档名：由 :EXPORT_FILE_NAME: 指定，但一般为 index 或 \_index（建议, 可以使输出文件名唯一）;
     -   EXPORT_FILE_NAME 不能嵌套，也即一个子 subtree 不能再定义该 Property；
-    -   如果使用 branch/leaf 结构，EXPORT_FILE_NAME 只能用于 leaf nodes
-        -   也即设置 EXPORT_FILE_NAME: index
+    -   如果使用 branch/leaf 结构，EXPORT_FILE_NAME 只能用于 leaf nodes, 也即设置 EXPORT_FILE_NAME: index
+
+文档分类和 tag 属性：
+
+1.  整个文档：#+HUGO_TAGS: ebpf，#+HUGO_CATEGORIES: ebpf
+2.  subtree: 通过 org-mode 的 header tag 来定义，其中分类的 tag 名称使用 @前缀，如 :tag1:@catagory1:
+3.  特殊的 noexport tag 表示不输出这个 header 及以下的内容。
+
+输出的 front matter 格式：
+
+1.  整个文档：#+hugo_front_matter_format: yaml
+2.  subtree：:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+
+Custom Front-matter Parameters:
+
+1.  整个文档: #+hugo_custom_front_matter:
+2.  subtree: :EXPORT_HUGO_CUSTOM_FRONT_MATTER:
+
+<!--listend-->
+
+```text
+# 文档级别
+#+#+HUGO_CUSTOM_FRONT_MATTER: :series '("emacs") :series_order 2
+
+# subtree
+:EXPORT_HUGO_CUSTOM_FRONT_MATTER: :series '("rust crate") :series_order 1
+```
 
 发布命令：
 
+-   如何区分输出整个文档或 subtree?
+    -   如果文档包含 #+titile: 且光标不位于包含 PROPERTY 的 subtree 中, 则表明要输出文档;
+    -   如果光标位于包含 PROPERTY 的 subtree 中, 而且具有 EXPORT_FILE_NAME PROPERTY 则输出该 subtree;
+    -   即使只输出 subtree, 也需要在全局设置 #+hugo_base_dir: ~/blog/blog.opsnull.com
+    -   如果给文档或 subtree 新加了配置, 需要关闭并重新打开文档, 这样才能生效.
 -   发布 file 或 subtree：
     -   C-c C-e H H: org-hugo-export-wim-to-md
         -   If point is in `a valid Hugo post subtree`, export `that subtree` to a Hugo post in Markdown
@@ -752,17 +813,6 @@ By 文档输出 section：HUGO_SECTION：
 -   只发布 file：
     -   C-c C-e H h：Export the Org file to a Hugo post in Markdown. This is same as calling the
         org-hugo-export-to-md function interactively.
-
-建议：One post per Org subtree (preferred)
-
--   Export only the current post Org subtree, or
--   Export all valid Hugo post subtrees in a loop.
-
-不建议：One post per Org file
-
--   This works but you won’t be able to leverage `Org-specific benefits like tag and property inheritance`, use of
-    TODO states to translate to `post draft state, =auto weight calculation` for pages, `taxonomies and menu items`,
-    etc.
 
 
 ### <span class="section-num">2.2</span> hugo front-matter {#hugo-front-matter}
@@ -1050,27 +1100,34 @@ blowfish 不显示 Author：
   series = "series"
 ```
 
-Mark Articles
+export 后生成的 Mark Articles
 
 ```markdown
 series: ["Documentation"]
 series_order: 11
 ```
 
-org-mode 语法：
+Custom Front-matter Parameters:
 
-<div class="verse">
+1.  整个文档: #+hugo_custom_front_matter:
+2.  subtree: :EXPORT_HUGO_CUSTOM_FRONT_MATTER:
 
-:EXPORT_HUGO_CUSTOM_FRONT_MATTER+: :series '("shell") :series_order 1<br />
+<!--listend-->
 
-</div>
+```text
+# 文档级别
+#+#+HUGO_CUSTOM_FRONT_MATTER: :series '("emacs") :series_order 2
+
+# subtree
+:EXPORT_HUGO_CUSTOM_FRONT_MATTER: :series '("rust crate") :series_order 1
+```
 
 然后可以通过 <http://localhost:1313/series/> 来访问。
 
-Marking an article as part of a series will automatically display the series module as you see in this page
-for example. You can choose whether that module starts opened or not using the article.seriesOpened global
-variable in params.toml or the front-matter parameter seriesOpened to specify an override at the article
-level.
+Marking an article as part of a series will automatically display the series module as you see in
+this page for example. You can choose whether that module starts opened or not using the
+article.seriesOpened global variable in params.toml or the front-matter parameter seriesOpened to
+specify an override at the article level.
 
 
 ### <span class="section-num">3.9</span> org tree properties {#org-tree-properties}
@@ -1081,12 +1138,16 @@ CLOSED: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 
 <br />
 :PROPERTIES:<br />
 :EXPORT_DATE: <span class="timestamp-wrapper"><span class="timestamp">[2023-05-07 Sun 15:00]</span></span><br />
+:HUGO_BASE_DIR: _~/blog/blog.opsnull.com_<br />
+:EXPORT_HUGO_SECTION: rust<br />
+:EXPORT_FILE_NAME: clap<br />
+:EXPORT_HUGO_BUNDLE: clap<br />
+:EXPORT_FILE_NAME: index<br />
+:EXPORT_HUGO_CUSTOM_FRONT_MATTER: :series '("rust crate") :series_order 1<br />
 \# 生成目录结构<br />
 :EXPORT_HUGO_MENU: :menu "main"<br />
 \# 生成各种 key:value, key 用 : 开头;<br />
 :EXPORT_HUGO_CUSTOM_FRONT_MATTER: :foo bar :baz zoo :alpha 1 :beta "two words" :gamma 10<br />
-\# 生成 md 文件名<br />
-:EXPORT_FILE_NAME: shell-history<br />
 :END:<br />
 
 </div>
