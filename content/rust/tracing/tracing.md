@@ -1,7 +1,7 @@
 ---
 title: "tracing"
 author: ["zhangjun"]
-lastmod: 2024-04-23T16:59:41+08:00
+lastmod: 2024-04-23T22:14:25+08:00
 tags: ["rust", "tracing"]
 categories: ["rust"]
 draft: false
@@ -889,28 +889,15 @@ let subscriber = Registry::default().with(otel_layer);
 
 ## <span class="section-num">7</span> opentelemetry {#opentelemetry}
 
-[open-telemetry/opentelemetry-rust](https://github.com/open-telemetry/opentelemetry-rust) 项目提供了如下 crate
+[open-telemetry/opentelemetry-rust](https://github.com/open-telemetry/opentelemetry-rust) 项目提供了如下 crate：
 
-opentelemetry
-: This is the OpenTelemetry API crate, and is the crate required to instrument
-    libraries and applications. It contains Context API, Baggage API, Propagators API, Logging Bridge
-    API, Metrics API, and Tracing API.
+-   opentelemetry
+-   opentelemetry_sdk
+-   opentelemetry-otlp
+-   opentelemetry-stdout
+-   opentelemetry-http
 
-opentelemetry_sdk ::This is the OpenTelemetry SDK crate, and contains the official OpenTelemetry
-    SDK implementation. It contains Logging SDK, Metrics SDK, and Tracing SDK. It also contains
-    propagator implementations.
-    -   提供了配置各种 Provider 的 SDK；
-
-opentelemetry_otlp
-: `exporter to send telemetry` (logs, metrics and traces) in `the OTLP format` to
-    an endpoint accepting OTLP. This could be `the OTel Collector`, telemetry backends like Jaeger,
-    Prometheus or vendor specific endpoints.
-
-opentelemetry-stdout
-: `exporter` for sending logs, metrics and traces to stdout, for
-    learning/debugging purposes.
-
-opentelemetry 提供 global/logs/metrics/trace 等 module:
+opentelemetry 提供 global/logs/metrics/trace/context/propagation 等 module:
 
 -   logs module: 提供了 Logger 和 LoggerProvider trait 定义, 同时定义了 LogRecord/LogRdcordBuilder
     struct 类型;
@@ -918,12 +905,28 @@ opentelemetry 提供 global/logs/metrics/trace 等 module:
     同时也定义了 Meter/Counter/Guage/Histogram/UpDownCounter/Observer struct 类型;
 -   trace module: 提供了 Span/Tracer trait 和 TracerProvider 定义, 同时定义了
     SpanBuilder/SpanId/TraceId struct 类型;
+-   context module：提供了execution-scoped collection of values.
+    -   Context struct 类型为 execution-scoped collection of values 提供了封装和传递机制；
+    -   Context::with_value() 来写入数据，get() 来获得对应类型的数据，一般使用应用定义的自定义类型来区分不同的数据；
+    -   Context::attch() 方法为当前 thread 设置一个默认的 Context。Context 是可以嵌套的，通过 drop 返回的 ContextGuard，可以恢复上一个 Context；通过 Context::current() 返回当前 Context；
+-   propagation module：提供了跨服务的上下文分布式追踪功能：
+    -   Propagator：从应用间交换的 message 中读取和写入 Context data；
+    -   propagation module 提供了名为 Trait
+        opentelemetry::propagation::text_map_propagator::TextMapPropagator 的 Propagator，他提供了
+        inject() 和 extract() 方法，用来写入和提取 Context；
+    -   Struct opentelemetry::propagation::composite::TextMapCompositePropagator 实现了
+        TextMapPropagator trait，他可以将多个实现 TextMapPropagator trait 的对象组合为一个。
+    -   opentelemetry_sdk crate 的 propagation::BaggagePropagator 和 TraceContextPropagator 实现了
+        TextMapPropagator；
 -   global module:
     1.  定义了 GlobalLoggerProvider/GlobalTracerProvider/GlobalMeterProvider struct 类型, 他们分别实现了 LoggerProvider/TracerProvider/MeterProvider;
     2.  设置/获取 GlobalLoggerProvider/GlobalTracerProvider/GlobalMeterProvider 对象的函数:
         1.  设置全局对象: set_logger_provider()/set_meter_provider()/set_tracer_provider()
         2.  获取全局对象: logger_provider()/meter_provider()/tracer_provider()
         3.  获取指定 name 的 Logger/Meter/Tracer 的实现对象: logger(name)/meter(name)/tracer(name);
+    3.  获取和设置全局 TextMapPropagator propagator：
+        1.  获取：执行一个闭包 FnMut(&amp;dyn TextMapPropagator) -&gt; T, 返回 T；
+        2.  设置：set_text_map_propagator() 设置全局 TextMapPropagator propagator；
 
 global module 提供了 logs/metrics/trace 的全局 API 对象, 这样 app/lib 就可以更方便的从全局对象创建实现 Logger/Meter/Tracer trait 的对象, 更方便使用.
 
@@ -1013,6 +1016,210 @@ pub fn my_traced_library_function() {
 }
 ```
 
+Context 示例：
+
+```rust
+use opentelemetry::Context;
+
+// 自定义的各种类型作为 Context 的 value 类型
+// Application-specific `a` and `b` values
+#[derive(Debug, PartialEq)]
+struct ValueA(&'static str);
+#[derive(Debug, PartialEq)]
+struct ValueB(u64);
+
+let _outer_guard = Context::new().with_value(ValueA("a")).attach(); // 为当前 thread 设置缺省 Context
+
+// Only value a has been set
+let current = Context::current();
+assert_eq!(current.get::<ValueA>(), Some(&ValueA("a"))); // 获得 ValueA 类型对应的值
+assert_eq!(current.get::<ValueB>(), None);
+
+{
+    let _inner_guard = Context::current_with_value(ValueB(42)).attach();
+    // Both values are set in inner context
+    let current = Context::current();
+    assert_eq!(current.get::<ValueA>(), Some(&ValueA("a")));
+    assert_eq!(current.get::<ValueB>(), Some(&ValueB(42)));
+    // drop _inner_guard 后恢复以前的 Context
+}
+
+// Resets to only the `a` value when inner guard is dropped
+let current = Context::current();
+assert_eq!(current.get::<ValueA>(), Some(&ValueA("a")));
+assert_eq!(current.get::<ValueB>(), None);
+```
+
+Context 实现了 BaggageExt trait 和 opentelemetry::trace::TraceContextExt：
+
+-   BaggageExt：可以将 Baggage 中的数据合并到 Context 中；
+-   TraceContextExt：从 Span 来创建一个新的 Context；
+
+<!--listend-->
+
+```rust
+impl BaggageExt for Context
+
+// Returns a clone of the given context with the included name/value pairs.
+fn with_baggage<T: IntoIterator<Item = I>, I: Into<KeyValueMetadata>>(
+    &self,
+    baggage: T
+) -> Self
+// Returns a clone of the current context with the included name/value pairs. Read more
+fn current_with_baggage<T: IntoIterator<Item = I>, I: Into<KeyValueMetadata>>(
+    kvs: T
+) -> Self
+// Returns a clone of the given context with no baggage. Read more
+fn with_cleared_baggage(&self) -> Self
+// Returns a reference to this context’s baggage, or the default empty baggage if none has been set.
+fn baggage(&self) -> &Baggage
+
+
+impl TraceContextExt for Context
+// Returns a clone of the current context with the included Span. Read more
+fn current_with_span<T: Span + Send + Sync + 'static>(span: T) -> Self
+// Returns a clone of this context with the included span. Read more
+fn with_span<T: Span + Send + Sync + 'static>(&self, span: T) -> Self
+// Returns a reference to this context’s span, or the default no-op span if none has been set. Read more
+fn span(&self) -> SpanRef<'_>
+// Returns whether or not an active span has been set. Read more
+fn has_active_span(&self) -> bool
+// Returns a copy of this context with the span context included. Read more
+fn with_remote_span_context(&self, span_context: SpanContext) -> Self
+```
+
+opentelemetry::trace::Tracer trait 的部分方法使用 Context 来创建 Span：
+
+```rust
+pub trait Tracer {
+    type Span: Span;
+
+    // Required method
+    fn build_with_context(
+        &self,
+        builder: SpanBuilder,
+        parent_cx: &Context
+    ) -> Self::Span;
+
+    // Provided methods
+    fn start<T>(&self, name: T) -> Self::Span where T: Into<Cow<'static, str>> { ... }
+    fn start_with_context<T>(&self, name: T, parent_cx: &Context) -> Self::Span where T: Into<Cow<'static, str>> { ... }
+    fn span_builder<T>(&self, name: T) -> SpanBuilder where T: Into<Cow<'static, str>> { ... }
+    fn build(&self, builder: SpanBuilder) -> Self::Span { ... }
+    fn in_span<T, F, N>(&self, name: N, f: F) -> T
+       where F: FnOnce(Context) -> T,
+             N: Into<Cow<'static, str>>,
+             Self::Span: Send + Sync + 'static { ... }
+}
+
+// 示例
+use opentelemetry::{global, trace::{Span, Tracer, TraceContextExt}, Context};
+let tracer = global::tracer("my-component");
+let parent = tracer.start("foo");
+let parent_cx = Context::current_with_span(parent);
+let mut child = tracer.start_with_context("bar", &parent_cx);
+// ...
+child.end(); // explicitly end
+drop(parent_cx) // or implicitly end on drop
+```
+
+Propagator 示例：
+
+-   Propagator 使用 inject_context() 将传入的 Context 信息注入 injector 如 HashMash；
+-   global::get_text_map_propagator() 的参数是一个闭包，可以从传入的 Propagator 来提取出 Context；
+
+<!--listend-->
+
+```rust
+use opentelemetry::{
+    baggage::BaggageExt,
+    propagation::{TextMapPropagator, TextMapCompositePropagator},
+    trace::{TraceContextExt, Tracer, TracerProvider},
+    Context, KeyValue,
+};
+use opentelemetry_sdk::propagation::{BaggagePropagator, TraceContextPropagator,};
+use opentelemetry_sdk::trace as sdktrace;
+use std::collections::HashMap;
+
+// First create 1 or more propagators
+// BaggagePropagator 和 TraceContextPropagator 均实现了 opentelemetry::TextMapPropagator
+let baggage_propagator = BaggagePropagator::new();
+let trace_context_propagator = TraceContextPropagator::new();
+
+// Then create a composite propagator
+// 将两个 propagators 组合为一个 propagators
+let composite_propagator = TextMapCompositePropagator::new(vec![
+    Box::new(baggage_propagator),
+    Box::new(trace_context_propagator),
+]);
+
+// Then for a given implementation of `Injector`
+let mut injector = HashMap::new();
+
+// And a given span
+let example_span = sdktrace::TracerProvider::default()
+    .tracer("example-component")
+    .start("span-name");
+
+// with the current context, call inject to add the headers
+composite_propagator.inject_context(
+    &Context::current_with_span(example_span)
+        .with_baggage(vec![KeyValue::new("test", "example")]),
+    &mut injector,
+);
+
+// The injector now has both `baggage` and `traceparent` headers
+assert!(injector.get("baggage").is_some());
+assert!(injector.get("traceparent").is_some());
+
+
+
+// 另一个例子，使用 global::get_text_map_propagator() 来提取和注入信息。
+
+// Ensure context propagation optional
+// Context propagation is particularly important when network calls (for example, REST) are involved.
+// Method to extract the parent context from the request
+
+// 从 reque 中提取 Context 信息
+fn get_parent_context(req: Request<Body>) -> Context {
+    global::get_text_map_propagator(|propagator| {
+        propagator.extract(&HeaderExtractor(req.headers()))
+    })
+}
+
+async fn incoming_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+    let parent_cx = get_parent_context(req);
+
+    let mut span = global::tracer("manual-server")
+        .start_with_context("my-server-span", &parent_cx); //TODO Replace with the name of your span
+
+    span.set_attribute(KeyValue::new("my-server-key-1", "my-server-value-1")); //TODO Add attributes
+
+    // TODO Your incoming_request code goes here
+}
+// 向发出的 hyper 请求注入 context
+async fn outgoing_request(
+    context: Context,
+) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let client = Client::new();
+    let span = global::tracer("manual-client")
+        .start_with_context("my-client-span", &context); //TODO Replace with the name of your span
+    let cx = Context::current_with_span(span);
+
+    let mut req = hyper::Request::builder().uri("<HTTP_URL>");
+
+    //Method to inject the current context in the request
+    global::get_text_map_propagator(|propagator| {
+        propagator.inject_context(&cx, &mut HeaderInjector(&mut req.headers_mut().unwrap()))
+    });
+
+    cx.span()
+        .set_attribute(KeyValue::new("my-client-key-1", "my-client-value-1")); //TODO Add attributes
+
+    // TODO Your outgoing_request code goes here
+}
+```
+
 opentelemetry 的 logs/metrics/trace module 定义了 LoggerProvider/MeterProvider/TracerProvider trait,
 而且 global module 的 set_logger_provider()/set_meter_provider()/set_tracer_provider() 都需要传入这些 Provider trait 的实现, 但是 opentelemetry crate `并没有提供他们的实现` , 而  opentelemetry_sdk
 crate 提供了各种 Provider 的实现.
@@ -1034,6 +1241,10 @@ opentelemetry_sdk crate 提供了各种 Provider 的实现:
     -   TracerProvider struct 实现了 Trait opentelemetry::trace::TracerProvider;
     -   Struct opentelemetry_sdk::trace::Builder 提供的方法用于设置 TracerProvider, 如
         with_simple_exporter()/with_batch_exporter()/with_span_processor()/with_config()
+-   propagation module：提供了 BaggagePropagator 和 TraceContextPropagator struct：
+    1.  BaggagePropagator 遵从 W3C Baggage format 规范；TraceContextPropagator 遵从 W3C TraceContext
+        格式规范。
+    2.  他们都实现了 Trait opentelemetry::propagation::text_map_propagator::TextMapPropagator，
 
 opentelemetry_sdk metrics:
 
@@ -1158,21 +1369,76 @@ fn main() {
 }
 ```
 
-Crate opentelemetry_otlp 提供了 OTLP Exporter 的实现, 各种 Pipeline 的
-install_simple()/install_batch() 方法返回实现 opentelemetry::logs::Logger, Trait
-opentelemetry::trace::Tracer 和 Struct opentelemetry_sdk::metrics::SdkMeterProvider
-的对象:
+opentelemetry_sdk propagation：
+
+-   BaggagePropagator 是类似与 k=v 格式的集合；
+-   TraceContextPropagator 将 SpanContext 使用 W3C TraceContex 格式的 traceparent 和 tracestatte
+    header 来传递。
+
+<!--listend-->
+
+```rust
+use opentelemetry::{baggage::BaggageExt, Key, propagation::TextMapPropagator};
+use opentelemetry_sdk::propagation::BaggagePropagator;
+use std::collections::HashMap;
+
+// Example baggage value passed in externally via http headers
+let mut headers = HashMap::new();
+headers.insert("baggage".to_string(), "user_id=1".to_string());
+
+let propagator = BaggagePropagator::new();
+// can extract from any type that impls `Extractor`, usually an HTTP header map
+let cx = propagator.extract(&headers);
+
+// Iterate over extracted name-value pairs
+for (name, value) in cx.baggage() {
+    // ...
+}
+
+// Add new baggage
+let cx_with_additions = cx.with_baggage(vec![Key::new("server_id").i64(42)]);
+
+// Inject baggage into http request
+propagator.inject_context(&cx_with_additions, &mut headers);
+
+let header_value = headers.get("baggage").expect("header is injected");
+assert!(header_value.contains("user_id=1"), "still contains previous name-value");
+assert!(header_value.contains("server_id=42"), "contains new name-value pair");
+```
+
+Crate opentelemetry_otlp 的各种 Pipeline 的 install_simple()/install_batch() 方法返回实现
+opentelemetry::logs::Logger, Trait opentelemetry::trace::Tracer 和 Struct
+opentelemetry_sdk::metrics::SdkMeterProvider 对象;
 
 1.  OtlpLogPipeline: 通过 with_log_config()/with_batch_config()/with_exporter() 来配置
     OtlpLogPipeline, 然后通过 install_simple()/install_batch() 返回实现 opentelemetry::logs::Logger
-    trait 的对象;
+    trait 的对象，同时设置global::set_tracer_provider(), 这样该 tracer 会作为 opentelemetry 的 global
+    tracer
 2.  OtlpMetricPipeline
 3.  OtlpTracePipeline
 4.  OtlpPipeline: 他的 tracing()/logging()/metrics() 方法分别返回
     OtlpTracePipeline/OtlpLogPipeline/OtlpMetricPipeline;
 
+当前 opentelemetry_otlp crate 发送 OTLP 格式的 tracing/metrics 数据, 使用 grpc 或 http.
+
+-   grpc: 使用 tonic 作为 grpc layer;
+-   http: 使用 http-proto 和 reqwest 实现;
+
+opentelemetry_otlp 定义了 opentelemetry_otlp::OtlpExporterPipeline, 用于指定 tonic/http 协议的
+expoter builder:
+
+```rust
+impl OtlpExporterPipeline
+pub fn tonic(self) -> TonicExporterBuilder
+pub fn http(self) -> HttpExporterBuilder
+```
+
 由于 opentelemetry_otlp crate 的 OtlpTracePipeline 实现了 Trait opentelemetry::trace::Tracer, 所以可以作为 tracing_opentelemetry::layer().with_tracer(tracer) 来创建一个实现 Trait
 tracing_subscriber::layer::Layer trait 的对象, 然后作为 tracing_subscriber::registry().with(layer)的参数来创建一个 Subscriber:
+
+-   opentelemetry_otlp::new_pipeline().tracing().install_simple()/install_batch() 返回一个 tracer 的同时设置 global::set_tracer_provider(), 这样该 tracer 会作为 opentelemetry 的 global tracer；
+
+<!--listend-->
 
 ```rust
 use opentelemetry::trace::Tracer;
@@ -1183,7 +1449,8 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(otlp_exporter)
-        .install_simple()?;
+        .install_simple()?;  // tracer 被设置为 global::set_tracer_provider(), 这样该 tracer 会作为
+                             // opentelemetry 的 global tracer
 
     tracer.in_span("doing_work", |cx| {
         // Traced app logic here...
@@ -1202,7 +1469,8 @@ let tracer = opentelemetry_otlp::new_pipeline()
             // Needed in order to convert the trace IDs into an Xray-compatible format
             .with_id_generator(sdktrace::XrayIdGenerator::default()),
     )
-    .install_simple()
+    .install_simple() // tracer 被设置为 global::set_tracer_provider(), 这样该 tracer 会作为
+    // opentelemetry 的 global tracer
     .expect("Unable to initialize OtlpPipeline");
 
 // Create a tracing layer with the configured tracer
@@ -1219,26 +1487,622 @@ tracing_subscriber::registry()
     .with(filter)
     .with(fmt::Layer::default())
     .try_init()
+
+// 后续就可以使用 tracing 库的 span/event 宏了
+#[tracing::instrument]
+async fn hello_world() -> &'static str {
+     info!("Received a request!");
+     "Hello world!"
+}
+
+// 另一个和 tracing 结合使用的例子：https://www.shuttle.rs/blog/2024/04/10/using-opentelemetry-rust
+// note that here, localhost:4318 is the default HTTP address
+// for a local OpenTelemetry collector
+let tracer = opentelemetry_otlp
+    ::new_pipeline()
+    .tracing()
+    .with_exporter(opentelemetry_otlp::new_exporter().http().with_endpoint("localhost:4318"))
+    .install_batch(Tokio)
+    .unwrap();
+
+// log level filtering here
+let filter_layer = EnvFilter::try_from_default_env()
+    .or_else(|_| EnvFilter::try_new("info"))
+    .unwrap();
+
+// fmt layer - printing out logs
+let fmt_layer = fmt::layer().compact();
+
+// turn our OTLP pipeline into a tracing layer
+let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+
+// initialise our subscriber
+subscriber
+    .with(filter_layer)
+    .with(fmt_layer)
+    .with(otel_layer)
+    // The error layer needs to go after the otel_layer, because it needs access to the
+    // otel_data extension that is set on the span in the otel_layer.
+    .with(ErrorTracingLayer::new())
+    .init();
+```
+
+直接使用 opentelemetry/opentelemetry_otlp 的例子:
+
+-   opentelemetry_otlp::new_exporter() 返回一个 Struct opentelemetry_otlp::OtlpExporterPipeline 对象,
+    他的 tonic() 方法返回 TonicExporterBuilder 对象, http() 返回 HttpExporterBuilder 对象.
+-   pub struct TonicExporterBuilder 提供了 build_log_exporter()/build_metrics_exporter()/
+    build_span_exporter() 来分别返回 LogExporter/MetricsExporter/SpanExporter;
+-   TonicExporterBuilder 实现了 WithExportConfig trait, 提供了
+    with_endpoint()/with_protocol()/with_timeout()/with_export_config() 配置方法; 这些参数也可以通过
+    OTEL_EXPORTER_OTLP_XX 环境变量来配置(优先级低), 如:
+    -   OTEL_EXPORTER_OTLP_ENDPOINT
+    -   OTEL_EXPORTER_OTLP_TIMEOUT
+
+全量 opentelemetry_otlp 配置:
+
+```rust
+use opentelemetry::{KeyValue, trace::Tracer};
+use opentelemetry_sdk::{trace::{self, RandomIdGenerator, Sampler}, Resource};
+use opentelemetry_sdk::metrics::reader::{DefaultAggregationSelector, DefaultTemporalitySelector};
+use opentelemetry_otlp::{Protocol, WithExportConfig, ExportConfig};
+use std::time::Duration;
+use tonic::metadata::*;
+
+fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let mut map = MetadataMap::with_capacity(3);
+
+    map.insert("x-host", "example.com".parse().unwrap());
+    map.insert("x-number", "123".parse().unwrap());
+    map.insert_bin("trace-proto-bin", MetadataValue::from_bytes(b"[binary data]"));
+
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter() // OtlpExporterPipeline
+            .tonic() // TonicExporterBuilder，实现了 WithExportConfig trait，调用他的 with_xx() 方法
+            .with_endpoint("http://localhost:4317") // 如果没有设置, 则会读取环境变量 OTEL_EXPORTER_OTLP_XX
+            .with_timeout(Duration::from_secs(3))
+            .with_metadata(map)
+         )
+        .with_trace_config(
+            trace::config()
+                .with_sampler(Sampler::AlwaysOn)
+                .with_id_generator(RandomIdGenerator::default())
+                .with_max_events_per_span(64)
+                .with_max_attributes_per_span(16)
+                .with_max_events_per_span(16)
+                .with_resource(Resource::new(vec![KeyValue::new("service.name", "example")])),
+        )
+        // 会返回一个 tracer, 同时设置 global::set_tracer_provider(), 这样该 tracer 会作为
+        // opentelemetry 的 global tracer
+        .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+
+    let export_config = ExportConfig {
+        endpoint: "http://localhost:4317".to_string(),
+        timeout: Duration::from_secs(3),
+        protocol: Protocol::Grpc
+    };
+
+    let meter = opentelemetry_otlp::new_pipeline()
+        .metrics(opentelemetry_sdk::runtime::Tokio)
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_export_config(export_config),
+                // can also config it using with_* functions like the tracing part above.
+        )
+        .with_resource(Resource::new(vec![KeyValue::new("service.name", "example")]))
+        .with_period(Duration::from_secs(3))
+        .with_timeout(Duration::from_secs(10))
+        .with_aggregation_selector(DefaultAggregationSelector::new())
+        .with_temporality_selector(DefaultTemporalitySelector::new())
+        .build();
+
+    tracer.in_span("doing_work", |cx| {
+        // Traced app logic here...
+    });
+
+    Ok(())
+}
+```
+
+```rust
+use opentelemetry_sdk::metrics::reader::{
+    DefaultAggregationSelector, DefaultTemporalitySelector,
+};
+// Create a span exporter you can use to when configuring tracer providers
+let span_exporter = opentelemetry_otlp::new_exporter().tonic().build_span_exporter()?;
+// Create a metrics exporter you can use when configuring meter providers
+let metrics_exporter = opentelemetry_otlp::new_exporter()
+    .tonic()
+    .build_metrics_exporter(
+        Box::new(DefaultAggregationSelector::new()),
+        Box::new(DefaultTemporalitySelector::new()),
+    )?;
+
+// Create a log exporter you can use when configuring logger providers
+let log_exporter = opentelemetry_otlp::new_exporter().tonic().build_log_exporter()?;
+
+
+// 例子1:
+use opentelemetry::trace::Tracer;
+fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    // First, create a OTLP exporter builder. Configure it as you need.
+    let otlp_exporter = opentelemetry_otlp::new_exporter().tonic();
+    // Then pass it into pipeline builder
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(otlp_exporter)
+        .install_simple()?;
+
+    tracer.in_span("doing_work", |cx| {
+        // Traced app logic here...
+    });
+    Ok(())
+}
+
+
+use opentelemetry::sdk::Resource;
+use opentelemetry::trace::TraceError;
+use opentelemetry::{global, sdk::trace as sdktrace};
+use opentelemetry::{trace::Tracer};
+use opentelemetry_otlp::WithExportConfig;
+fn init_tracer() -> Result<sdktrace::Tracer, TraceError> {
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(opentelemetry_otlp::new_exporter().tonic()) // 默认从环境变量获取 exporter 配置
+        .with_trace_config(
+            sdktrace::config().with_resource(Resource::default()),
+        )
+        .install_batch(opentelemetry::runtime::Tokio)
+}
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    let tracer = init_tracer()?;
+    let parent_cx = global::get_text_map_propagator(|propagator| {
+        propagator.extract(&HeaderExtractor(req.headers()))
+    });
+    tracer.start_with_context("fibonacci", &parent_cx);
+    //...
+}
+
+// 后续可以使用环境变量来设置 RESOURCE 和 ENDPOINT
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 OTEL_RESOURCE_ATTRIBUTES=service.name=rust-app cargo run
+```
+
+从 http request headers 中提取 text map propagator，从而实现分布式 trace context：
+
+Context propagation – The mechanism that allows us to correlate events across distributed
+services. Context is referred to as the metadata we collect and transfer. Propagation is how the
+context is packaged and transferred across services, often via HTTP headers. Context propagation is
+one of the areas where OpenTelemetry shines.
+
+opentelemetry-http crate 提供了从 HTTP Header 中提取 propagating/extracing context 的能力，从而实现跨服务的分布式追踪：
+
+{{< figure src="/images/tracing/2024-04-23_18-41-10_screenshot.png" width="400" >}}
+
+```rust
+// https://github.com/SigNoz/sample-rust-app/blob/main/src/main.rs
+#![warn(rust_2018_idioms)]
+
+use opentelemetry::global::shutdown_tracer_provider;
+use opentelemetry::sdk::Resource;
+use opentelemetry::trace::TraceError;
+use opentelemetry::{global, sdk::trace as sdktrace};
+use opentelemetry::{trace::Tracer};
+use opentelemetry_otlp::WithExportConfig;
+use std::error::Error;
+
+use hyper::{body::Body, Method, Request, Response, Server, StatusCode};
+
+use hyper::service::{make_service_fn, service_fn};
+
+use opentelemetry_http::HeaderExtractor;
+use std::collections::HashMap;
+use url::form_urlencoded;
+
+static INDEX: &[u8] = b"<html><body><form action=\"post\" method=\"post\">Name: <input type=\"text\" name=\"name\"><br>Number: <input type=\"text\" name=\"number\"><br><input type=\"submit\"></body></html>";
+static MISSING: &[u8] = b"Missing field";
+static NOTNUMERIC: &[u8] = b"Number field is not numeric";
+
+fn fibonacci(n: u8) -> u64 {
+    match n {
+        0 => 1,
+        1 => 1,
+        _ => fibonacci(n - 1) + fibonacci(n - 2),
+    }
+}
+
+// Using service_fn, we can turn this function into a `Service`.
+async fn handle(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+    let tracer = global::tracer("global_tracer");
+
+    match (req.method(), req.uri().path()) {
+        (&Method::GET, "/") | (&Method::GET, "/post") => Ok(Response::new(INDEX.into())),
+        (&Method::POST, "/post") => {
+            // Extract the incoming context
+            let parent_cx = global::get_text_map_propagator(|propagator| {
+                propagator.extract(&HeaderExtractor(req.headers()))
+            });
+            tracer.start_with_context("fibonacci", &parent_cx);
+
+            // Concatenate the body...
+            let b = hyper::body::to_bytes(req).await?;
+            // Parse the request body. form_urlencoded::parse
+            // always succeeds, but in general parsing may
+            // fail (for example, an invalid post of json), so
+            // returning early with BadRequest may be
+            // necessary.
+            //
+            // Warning: this is a simplified use case. In
+            // principle names can appear multiple times in a
+            // form, and the values should be rolled up into a
+            // HashMap<String, Vec<String>>. However in this
+            // example the simpler approach is sufficient.
+            let params = form_urlencoded::parse(b.as_ref())
+                .into_owned()
+                .collect::<HashMap<String, String>>();
+
+            // Validate the request parameters, returning
+            // early if an invalid input is detected.
+            let name = if let Some(n) = params.get("name") {
+                n
+            } else {
+                return Ok(Response::builder()
+                    .status(StatusCode::UNPROCESSABLE_ENTITY)
+                    .body(MISSING.into())
+                    .unwrap());
+            };
+            let number = if let Some(n) = params.get("number") {
+                if let Ok(v) = n.parse::<u8>() {
+                    v
+                } else {
+                    return Ok(Response::builder()
+                        .status(StatusCode::UNPROCESSABLE_ENTITY)
+                        .body(NOTNUMERIC.into())
+                        .unwrap());
+                }
+            } else {
+                return Ok(Response::builder()
+                    .status(StatusCode::UNPROCESSABLE_ENTITY)
+                    .body(MISSING.into())
+                    .unwrap());
+            };
+
+            let nth_fib = fibonacci(number);
+
+            // Render the response. This will often involve
+            // calls to a database or web service, which will
+            // require creating a new stream for the response
+            // body. Since those may fail, other error
+            // responses such as InternalServiceError may be
+            // needed here, too.
+
+            let body = format!(
+                "Hello {}, {}th fibonacci number is {}",
+                name, number, nth_fib
+            );
+            Ok(Response::new(body.into()))
+        }
+        (&Method::GET, "/get") => {
+            let query = if let Some(q) = req.uri().query() {
+                q
+            } else {
+                return Ok(Response::builder()
+                    .status(StatusCode::UNPROCESSABLE_ENTITY)
+                    .body(MISSING.into())
+                    .unwrap());
+            };
+            let params = form_urlencoded::parse(query.as_bytes())
+                .into_owned()
+                .collect::<HashMap<String, String>>();
+            let page = if let Some(p) = params.get("page") {
+                p
+            } else {
+                return Ok(Response::builder()
+                    .status(StatusCode::UNPROCESSABLE_ENTITY)
+                    .body(MISSING.into())
+                    .unwrap());
+            };
+            let body = format!("You requested {}", page);
+            Ok(Response::new(body.into()))
+        }
+        _ => Ok(Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Body::empty())
+            .unwrap()),
+    }
+}
+
+fn init_tracer() -> Result<sdktrace::Tracer, TraceError> {
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(opentelemetry_otlp::new_exporter().tonic().with_env())
+        .with_trace_config(
+            sdktrace::config().with_resource(Resource::default()),
+        )
+        .install_batch(opentelemetry::runtime::Tokio)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    let _ = init_tracer()?;
+
+    let addr = ([127, 0, 0, 1], 1337).into();
+
+    let server = Server::bind(&addr).serve(make_service_fn(|_| async {
+        Ok::<_, hyper::Error>(service_fn(handle))
+    }));
+
+    println!("Listening on {}", addr);
+    if let Err(e) = server.await {
+        eprintln!("server error: {}", e);
+    }
+
+    shutdown_tracer_provider();
+
+    Ok(())
+}
+```
+
+另一个分布式追踪例子：
+
+```rust
+// https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/walkthroughs/rust
+
+use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Read};
+
+use opentelemetry::{
+    global,
+    trace::{Span, TraceContextExt, TraceError, Tracer},
+    Context, KeyValue,
+};
+
+use opentelemetry_sdk::{runtime, trace as sdktrace, Resource};
+use opentelemetry_http::{HeaderExtractor, HeaderInjector};
+use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_semantic_conventions as semcov;
+
+fn init_opentelemetry() -> Result<sdktrace::Tracer, TraceError>  {
+    // Helper function to read potentially available OneAgent data
+    fn read_dt_metadata() -> Resource {
+        fn read_single(path: &str, metadata: &mut Vec<KeyValue>) -> std::io::Result<()> {
+            let mut file = std::fs::File::open(path)?;
+            if path.starts_with("dt_metadata") {
+                let mut name = String::new();
+                file.read_to_string(&mut name)?;
+                file = std::fs::File::open(name)?;
+            }
+            for line in BufReader::new(file).lines() {
+                if let Some((k, v)) = line?.split_once('=') {
+                    metadata.push(KeyValue::new(k.to_string(), v.to_string()))
+                }
+            }
+            Ok(())
+        }
+        let mut metadata = Vec::new();
+        for name in [
+            "dt_metadata_e617c525669e072eebe3d0f08212e8f2.properties",
+            "/var/lib/dynatrace/enrichment/dt_metadata.properties",
+            "/var/lib/dynatrace/enrichment/dt_host_metadata.properties"
+        ] {
+            let _ = read_single(name, &mut metadata);
+        }
+        Resource::new(metadata)
+    }
+
+    // ===== GENERAL SETUP =====
+    let DT_API_TOKEN = env::var("DT_API_TOKEN").unwrap(); // TODO: change
+    let DT_API_URL = env::var("DT_API_URL").unwrap();
+
+    let mut map = HashMap::new();
+    map.insert("Authorization".to_string(), format!("Api-Token {}", DT_API_TOKEN));
+    let mut resource = Resource::new([
+    KeyValue::new(semcov::resource::SERVICE_NAME, "rust-app") //TODO Replace with the name of your application
+    ]);
+    resource = resource.merge(&read_dt_metadata());
+
+    // ===== TRACING SETUP =====
+    global::set_text_map_propagator(TraceContextPropagator::new());
+
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .http()
+                .with_endpoint(DT_API_URL)
+                .with_headers(map),
+        )
+        .with_trace_config(
+            sdktrace::config()
+                .with_resource(resource)
+                .with_sampler(sdktrace::Sampler::AlwaysOn),
+        )
+        .install_batch(runtime::Tokio) // 设置 opentelemetry global 的 trace provider
+}
+
+init_opentelemetry()
+
+// 后续，在需要的位置，从 global 获取命名的 tracer
+let tracer = global::tracer("my-tracer");
+
+// 从 tracer 创建 span
+let mut span = tracer.start("Call to /myendpoint");
+span.set_attribute(KeyValue::new("http.method", "GET"));
+span.set_attribute(KeyValue::new("net.protocol.version", "1.1"));
+// TODO: Your code goes here
+span.end();
+
+
+// Ensure context propagation optional
+// Context propagation is particularly important when network calls (for example, REST) are involved.
+
+//Method to extract the parent context from the request
+fn get_parent_context(req: Request<Body>) -> Context {
+    global::get_text_map_propagator(|propagator| {
+        propagator.extract(&HeaderExtractor(req.headers()))
+    })
+}
+
+async fn incoming_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+    let parent_cx = get_parent_context(req);
+
+    let mut span = global::tracer("manual-server")
+        .start_with_context("my-server-span", &parent_cx); //TODO Replace with the name of your span
+
+    span.set_attribute(KeyValue::new("my-server-key-1", "my-server-value-1")); //TODO Add attributes
+
+    // TODO Your incoming_request code goes here
+}
+
+// 向发出的 hyper 请求注入 context
+async fn outgoing_request(
+    context: Context,
+) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let client = Client::new();
+    let span = global::tracer("manual-client")
+        .start_with_context("my-client-span", &context); //TODO Replace with the name of your span
+    let cx = Context::current_with_span(span);
+
+    let mut req = hyper::Request::builder().uri("<HTTP_URL>");
+
+    //Method to inject the current context in the request
+    global::get_text_map_propagator(|propagator| {
+        propagator.inject_context(&cx, &mut HeaderInjector(&mut req.headers_mut().unwrap()))
+    });
+
+    cx.span()
+        .set_attribute(KeyValue::new("my-client-key-1", "my-client-value-1")); //TODO Add attributes
+
+    // TODO Your outgoing_request code goes here
+}
+```
+
+aliyun sls 的例子：
+
+```rust
+// https://www.alibabacloud.com/help/en/sls/user-guide/import-trace-data-from-rust-applications-to-log-service-by-using-opentelemetry-sdk-for-rust
+use opentelemetry::global::shutdown_tracer_provider;
+use opentelemetry::sdk::Resource;
+use opentelemetry::trace::TraceError;
+use opentelemetry::{
+    baggage::BaggageExt,
+    trace::{TraceContextExt, Tracer},
+    Context, Key, KeyValue,
+};
+use opentelemetry::{global, sdk::trace as sdktrace};
+use opentelemetry_otlp::WithExportConfig;
+use std::error::Error;
+use std::time::Duration;
+use tonic::metadata::MetadataMap;
+use tonic::transport::ClientTlsConfig;
+use url::Url;
+static ENDPOINT: &str = "https://${endpoint}";
+static PROJECT: &str = "${project}";
+static INSTANCE_ID: &str = "${instance}";
+static AK_ID: &str = "${access-key-id}";
+static AK_SECRET: &str = "${access-key-secret}";
+static SERVICE_VERSION: &str = "${version}";
+static SERVICE_NAME: &str = "${service}";
+static SERVICE_NAMESPACE: &str = "${service.namespace}";
+static HOST_NAME: &str = "${host}";
+
+static SLS_PROJECT_HEADER: &str = "x-sls-otel-project";
+static SLS_INSTANCE_ID_HEADER: &str = "x-sls-otel-instance-id";
+static SLS_AK_ID_HEADER: &str = "x-sls-otel-ak-id";
+static SLS_AK_SECRET_HEADER: &str = "x-sls-otel-ak-secret";
+static SLS_SERVICE_VERSION: &str = "service.version";
+static SLS_SERVICE_NAME: &str = "service.name";
+static SLS_SERVICE_NAMESPACE: &str = "service.namespace";
+static SLS_HOST_NAME: &str = "host.name";
+
+fn init_tracer() -> Result<sdktrace::Tracer, TraceError> {
+    let mut metadata_map = MetadataMap::with_capacity(4);
+    metadata_map.insert(SLS_PROJECT_HEADER, PROJECT.parse().unwrap());
+    metadata_map.insert(SLS_INSTANCE_ID_HEADER, INSTANCE_ID.parse().unwrap());
+    metadata_map.insert(SLS_AK_ID_HEADER, AK_ID.parse().unwrap());
+    metadata_map.insert(SLS_AK_SECRET_HEADER, AK_SECRET.parse().unwrap());
+
+    let endpoint = ENDPOINT;
+    let endpoint = Url::parse(&endpoint).expect("endpoint is not a valid url");
+    let resource = vec![
+        KeyValue::new(SLS_SERVICE_VERSION, SERVICE_VERSION),
+        KeyValue::new(SLS_HOST_NAME, HOST_NAME),
+        KeyValue::new(SLS_SERVICE_NAMESPACE, SERVICE_NAMESPACE),
+        KeyValue::new(SLS_SERVICE_NAME, SERVICE_NAME),
+    ];
+
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_endpoint(endpoint.as_str())
+                .with_metadata(dbg!(metadata_map))
+                .with_tls_config(
+                    ClientTlsConfig::new().domain_name(
+                        endpoint
+                            .host_str()
+                            .expect("the specified endpoint should have a valid host"),
+                    ),
+                ),
+        )
+        .with_trace_config(sdktrace::config().with_resource(Resource::new(resource)))
+        .install_batch(opentelemetry::runtime::Tokio)
+}
+
+const FOO_KEY: Key = Key::from_static_str("ex.com/foo");
+const BAR_KEY: Key = Key::from_static_str("ex.com/bar");
+const LEMONS_KEY: Key = Key::from_static_str("lemons");
+const ANOTHER_KEY: Key = Key::from_static_str("ex.com/another");
+
+lazy_static::lazy_static! {
+    static ref COMMON_ATTRIBUTES: [KeyValue; 4] = [
+        LEMONS_KEY.i64(10),
+        KeyValue::new("A", "1"),
+        KeyValue::new("B", "2"),
+        KeyValue::new("C", "3"),
+    ];
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    let _ = init_tracer()?;
+    let tracer = global::tracer("ex.com/basic");
+    let _baggage =
+        Context::current_with_baggage(vec![FOO_KEY.string("foo1"), BAR_KEY.string("bar1")])
+            .attach();
+
+    tracer.in_span("operation", cx {
+        let span = cx.span();
+        span.add_event(
+            "Nice operation!".to_string(),
+            vec![Key::new("bogons").i64(100)],
+        );
+        span.set_attribute(ANOTHER_KEY.string("yes"));
+
+        tracer.in_span("Sub operation...", cx {
+            let span = cx.span();
+            span.set_attribute(LEMONS_KEY.string("five"));
+
+            span.add_event("Sub span event".to_string(), vec![]);
+        });
+    });
+
+    tokio::time::sleep(Duration::from_secs(60)).await;
+    shutdown_tracer_provider();
+    Ok(())
+}
 ```
 
 
-## <span class="section-num">8</span> tracing-log {#tracing-log}
+## <span class="section-num">8</span> tracing-appender {#tracing-appender}
 
-tracing-log
-: provides `a compatibility layer` with the log crate, allowing log messages to be
-    recorded as tracing Events within the trace tree. This is useful when a project using tracing have
-    dependencies which use log. Note that if you’re using tracing-subscriber’s FmtSubscriber, you
-    don’t need to depend on tracing-log directly.
+该 crate 提供了终端和文件输出的 writer，同时文件支持轮转，需要和
+tracing_subscriber::fmt().with_writer(xxx) 来配合使用。
 
-tracing-log 用于将 log crate 创建的 log record 转换为 subscribe 消费的 tracing event，从而可以被
-tracing 消费使用。
-
-
-## <span class="section-num">9</span> tracing-appender {#tracing-appender}
-
-该 crate 提供了终端和文件输出的 writer，同时文件支持轮转：
-
--   需要和 tracing_subscriber::fmt().with_writer(xxx) 来配合使用。
 -   按时间周期，按文件大小轮转；
 -   tracing_appender::non_blocking() 非阻塞模式，会创建一个特定的 worker thread 来接受 log line 并写入
     writer。log line 先被 enqueue，然后在被写入。
@@ -1288,6 +2152,44 @@ tracing_subscriber::fmt()
 ```
 
 
+## <span class="section-num">9</span> tracing-flame {#tracing-flame}
+
+tracing 数据也可以生成火焰图。
+
+先在项目中添加 tracing-frame crate：cargo add tracing-flame
+
+tracing_flame::FlameLayer() 提供了一个 Layer 实现，可用于配置 Registry 来作为全局 Subscribe：
+
+```rust
+use std::{fs::File, io::BufWriter};
+use tracing_flame::FlameLayer;
+use tracing_subscriber::{registry::Registry, prelude::*, fmt};
+
+fn main()  {
+    let fmt_layer = fmt::Layer::default();
+
+    let (flame_layer, _guard) = FlameLayer::with_file("./tracing.folded").unwrap();
+
+    tracing_subscriber::registry()
+    .with(fmt::layer())
+    .with(flame_layer)
+    .init();
+    // ... the rest of your code
+}
+```
+
+tracing 数据会被保存到 ./tracing.folded 文件，然后使用 inferno crate 来转换成 flamegraph：
+
+```shell
+cargo install inferno
+
+# flamegraph
+cat tracing.folded | inferno-flamegraph > tracing-flamegraph.svg
+# flamechart
+cat tracing.folded | inferno-flamegraph --flamechart > tracing-flamechart.svg
+```
+
+
 ## <span class="section-num">10</span> tracing console {#tracing-console}
 
 Cargo.toml
@@ -1329,6 +2231,12 @@ tokio-console
 <https://tokio.rs/tokio/topics/tracing>
 
 <https://burgers.io/custom-logging-in-rust-using-tracing>
+
+<https://signoz.io/blog/opentelemetry-rust/>
+
+<https://docs.dynatrace.com/docs/extend-dynatrace/opentelemetry/walkthroughs/rust>
+
+<https://www.alibabacloud.com/help/en/sls/user-guide/import-trace-data-from-rust-applications-to-log-service-by-using-opentelemetry-sdk-for-rust>
 
 ```rust
 #![allow(dead_code)]
