@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2024-04-22T15:48:13+08:00
+lastmod: 2024-04-26T18:08:46+08:00
 tags: ["hugo", "org-mode", "blog"]
 categories: ["emacs"]
 draft: false
@@ -201,7 +201,20 @@ Blowfish has built-in support for a number of FontAwesome 6 icons. These can be 
 website through either the `icon partial` or `icon shortcode`.
 
 
-### <span class="section-num">1.6</span> 调大文档内容宽度 {#调大文档内容宽度}
+### <span class="section-num">1.6</span> 插入静态内容 {#插入静态内容}
+
+以图片为例，现将图片等静态内容放到 static 的子目录下，如 static/images/made-with-emacs.svg
+
+然后在自定义 html 页面片段如 layouts/partials/extend-footer.html 中使用相对于 static 目录的绝对路径来引用图片。
+
+```html
+<div class="flex flex-col items-center justify-center">
+  <img src="/images/made-with-emacs.svg" width="150">
+</div>
+```
+
+
+### <span class="section-num">1.7</span> 调大文档内容宽度 {#调大文档内容宽度}
 
 创建 `assets/css/custom.css` 文件，内容如下：
 
@@ -212,14 +225,14 @@ website through either the `icon partial` or `icon shortcode`.
 ```
 
 
-### <span class="section-num">1.7</span> firebase {#firebase}
+### <span class="section-num">1.8</span> firebase {#firebase}
 
 <https://blowfish.page/docs/firebase-views/>
 
 配置后，可以显示页面访问计数和 like 统计，但是国内被墙。
 
 
-### <span class="section-num">1.8</span> baidu analytics {#baidu-analytics}
+### <span class="section-num">1.9</span> baidu analytics {#baidu-analytics}
 
 创建目录和文件： `~/blog/blog.opsnull.com/layouts/partials/analytics/main.html`
 
@@ -240,7 +253,7 @@ var _hmt = _hmt || [];
 ```
 
 
-### <span class="section-num">1.9</span> comment {#comment}
+### <span class="section-num">1.10</span> comment {#comment}
 
 1.  utterances： <https://utteranc.es/>
 2.  gisscus： 在 `layouts/partials/comments.html` 创建一个页面。在 <https://giscus.app/> 配置基于 github
@@ -261,7 +274,7 @@ var _hmt = _hmt || [];
 ```
 
 
-### <span class="section-num">1.10</span> 相关文章 {#相关文章}
+### <span class="section-num">1.11</span> 相关文章 {#相关文章}
 
 在 `config/_default/config.toml` 文件中设置，主要是根据文件的 tags、categories、series 等标准来判断：
 
@@ -299,7 +312,7 @@ var _hmt = _hmt || [];
 ```
 
 
-### <span class="section-num">1.11</span> 阅读计数器 {#阅读计数器}
+### <span class="section-num">1.12</span> 阅读计数器 {#阅读计数器}
 
 这里使用 busuanzi 阅读计数器方案。
 
@@ -367,12 +380,12 @@ cp themes/blowfish/layouts/partials/article-meta/basic.html layouts/partials/art
 ```
 
 
-### <span class="section-num">1.12</span> rss {#rss}
+### <span class="section-num">1.13</span> rss {#rss}
 
 访问地址：<http://blog.opsnull.com/index.xml>
 
 
-### <span class="section-num">1.13</span> TOC {#toc}
+### <span class="section-num">1.14</span> TOC {#toc}
 
 全局控制 TOC 显示级别：
 
@@ -387,7 +400,7 @@ cp themes/blowfish/layouts/partials/article-meta/basic.html layouts/partials/art
 -   showTableOfContents: true
 
 
-### <span class="section-num">1.14</span> 各种页面和配置Branch Pages {#各种页面和配置branch-pages}
+### <span class="section-num">1.15</span> 各种页面和配置Branch Pages {#各种页面和配置branch-pages}
 
 各种页面的 title：设置页面标题。
 
@@ -590,7 +603,7 @@ _build:
 ```
 
 
-### <span class="section-num">1.15</span> 导航菜单 {#导航菜单}
+### <span class="section-num">1.16</span> 导航菜单 {#导航菜单}
 
 <https://gohugo.io/content-management/menus/>
 
