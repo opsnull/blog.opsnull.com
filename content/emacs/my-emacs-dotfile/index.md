@@ -2,7 +2,7 @@
 title: "My Emacs Dotfile"
 author: ["张俊(geekard@qq.com)"]
 date: 2023-08-20T00:00:00+08:00
-lastmod: 2024-04-20T21:45:14+08:00
+lastmod: 2024-04-26T17:15:34+08:00
 tags: ["emacs"]
 categories: ["emacs"]
 draft: false
@@ -58,6 +58,7 @@ ln -sf /opt/homebrew/opt/emacs-plus/Emacs.app /Applications/
 (setq my-bin-path '(
                     "/opt/homebrew/bin"
                     "/opt/homebrew/opt/findutils/libexec/gnubin"
+		      "/opt/homebrew/opt/openjdk/bin"
                     "/Users/alizj/go/bin"
                     "/Users/alizj/.cargo/bin"
                     ))
@@ -1622,6 +1623,8 @@ org-download：拖拽保存图片或 F6 保存剪贴板中图片:
    (emacs-lisp . t)
    (rust . t)
    (python . t)
+   (C . t) ;; provide C, C++, and D
+   (java . t)
    (awk . t)
    (css . t)))
 
@@ -1710,11 +1713,11 @@ org-download：拖拽保存图片或 F6 保存剪贴板中图片:
   ;; 使用 booktabs style 来显示表格，例如支持隔行颜色, 这样 #+ATTR_LATEX: 中不需要添加 :booktabs t。
   (setq org-latex-tables-booktabs t)
   ;; 不保存 LaTeX 日志文件（调试时打开）。
-  (setq org-latex-remove-logfiles t)
+  (setq org-latex-remove-logfiles nil)
   ;; 使用支持中文的 xelatex。
   (setq org-latex-pdf-process '("latexmk -xelatex -quiet -shell-escape -f %f"))
   (add-to-list 'org-latex-classes
-               '("ctexart"
+	       '("ctexart"
                  "\\documentclass[lang=cn,11pt,a4paper,table]{ctexart}
                     [NO-DEFAULT-PACKAGES]
                     [PACKAGES]
@@ -1727,6 +1730,23 @@ org-download：拖拽保存图片或 F6 保存剪贴板中图片:
 
 ;; org export html 格式时需要 htmlize.el 包来格式化代码。
 (use-package htmlize)
+```
+
+在线预览 LaTex fragments：
+
+-   预览命令：C-c C-x C-l (org-latex-preview)，When called with a single prefix argument, clear all
+    images in the current entry. Two prefix arguments produce a preview image for all fragments in the
+    buffer, while three of them clear all the images in that buffer.
+-   或者添加启动时自动预览：#+STARTUP: latexpreview 或  nolatexpreview
+
+<!--listend-->
+
+```emacs-lisp
+;; 使用 imagemagick 而非默认的 dvipng 来生成 M-x org-latex-preview 在线显式的图片。
+;; dvipng 总是报错。
+;; 参考：https://orgmode.org/worg/org-tutorials/org-latex-preview.html
+(setq latex-run-command "xelatex")
+(setq org-latex-create-formula-image-program 'imagemagick)
 ```
 
 自定义样式 mystyle.sty: 对于表格，如果列内容过宽则导出的 pdf 中该列的内容会被截断，可以为表格设置如下属性，将该列 align 设置为 X 来解决： `#+ATTR_LATEX: :environment tabularx :booktabs t :width
@@ -1745,6 +1765,8 @@ org-download：拖拽保存图片或 F6 保存剪贴板中图片:
 
 % 提示 title
 \usepackage[explicit]{titlesec}
+% 每个 chapter 另起一页
+\newcommand{\sectionbreak}{\clearpage}
 \usepackage{titling}
 \setlength{\droptitle}{-6em}
 
