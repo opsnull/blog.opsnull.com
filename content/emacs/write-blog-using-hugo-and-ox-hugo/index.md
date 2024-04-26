@@ -2,7 +2,7 @@
 title: "使用 hugo 和 ox-hugo 写博客"
 author: ["opsnull"]
 date: 2023-07-22T00:00:00+08:00
-lastmod: 2024-04-26T18:08:46+08:00
+lastmod: 2024-04-26T18:31:43+08:00
 tags: ["hugo", "org-mode", "blog"]
 categories: ["emacs"]
 draft: false
@@ -12,6 +12,14 @@ draft: false
 来写博客的过程。
 
 <!--more-->
+
+<details>
+<summary>变更历史</summary>
+<div class="details">
+
+<span class="timestamp-wrapper"><span class="timestamp">&lt;2024-04-26 Fri 18:15&gt; </span></span> 添加变更历史。
+</div>
+</details>
 
 
 ## <span class="section-num">1</span> blowfish 主题 {#blowfish-主题}
