@@ -21,7 +21,7 @@ mainSections = ["posts"]
 disableImageOptimization = false
 
 # 关闭 defaultFeaturedImage 时不在列表页面为每个文档显示一张图片
-defaultBackgroundImage = "/img/ocean.jpg" # used as default for background images 
+#defaultBackgroundImage = "/img/ocean.jpg" # used as default for background images 
 #defaultFeaturedImage = "/img/ocean.jpg" # used as default for featured images in all articles
 
 # 文章目录 TOC
@@ -41,7 +41,7 @@ smartTOCHideUnfocusedChildren = true # 是否展开 TOC, 如果为 false，则�
 
 [homepage]
   layout = "background" # valid options: page, profile, hero, card, background, custom
-  homepageImage = "/img/iceland.jpg" # used in: hero, and card，以及 background 的背景图。
+  #homepageImage = "/img/iceland.jpg" # used in: hero, and card，以及 background 的背景图。
   showRecent = false
   showRecentItems = 12
   showMoreLink = true
