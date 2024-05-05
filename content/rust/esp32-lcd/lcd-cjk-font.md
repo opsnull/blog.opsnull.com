@@ -2,12 +2,12 @@
 title: "LCD 中英文字体制作"
 author: ["张俊(zj@opsnull.com)"]
 date: 2024-02-19T00:00:00+08:00
-lastmod: 2024-02-26T11:37:21+08:00
+lastmod: 2024-05-05T17:58:28+08:00
 tags: ["rust", "esp32"]
 categories: ["rust", "esp32"]
 draft: false
 series: ["rust-esp32"]
-series_order: 1
+series_order: 2
 ---
 
 一个 LCD 小游戏：
