@@ -1,8 +1,8 @@
 ---
-title: "Rust Notes"
+title: "Rust-个人参考手册"
 author: ["张俊(zj@opsnull.com)"]
 date: 2024-04-05T00:00:00+08:00
-lastmod: 2024-04-20T21:45:05+08:00
+lastmod: 2024-05-24T17:53:27+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -320,7 +320,6 @@ Rust 字符串字面量类型是 &amp;'static str：
 
 ```rust
 fn main() {
-
     let hello_world = "Hello, World!";
     //  等效于
     let hello_world: &'static str = "Hello, world!";
@@ -1942,6 +1941,16 @@ fn main() {
     // Error! Cannot modify a `const`.
     THRESHOLD = 5;
 }
+
+// static 变量也可以定义在函数中，和 C 的 static 变量类似，在函数返回时变量仍有效，在程序整个生命周
+// 期均有效。
+fn computation() -> &'static DeepThought {
+    // n.b. static items do not call [`Drop`] on program termination, so if
+    // [`DeepThought`] impls Drop, that will not be used for this instance.
+    static COMPUTATION: OnceLock<DeepThought> = OnceLock::new();
+    COMPUTATION.get_or_init(|| DeepThought::new())
+}
+
 ```
 
 也可以定义 const 函数, 但 const 函数有一些限制:
@@ -4010,7 +4019,7 @@ let b = &'a dyn MyTrait + Send + 'static; // error: expected expression, found k
 let b = &'a(dyn MyTrait + Send + 'static); // error: borrow expressions cannot be annotated with lifetimes
 ```
 
-lifetime 只是一个编译时的注解, `没有运行时代表` ，也不能在表达式中使用. lifetime 表达的是一个 `相对的概念` 和约束， `Rust borrow checker` 根据 lifetime anno 来检查引用是否有效：
+lifetime 只是一个编译时的注解, `没有运行时代表` ，也不能在表达式中使用。lifetime 表达的是一个 `相对的概念` 和约束， `Rust borrow checker` 根据 lifetime anno 来检查引用是否有效：
 
 1.  &lt;T: 'b&gt; ：表示 T 的引用的生命周期比 'b 长。
     -   &amp;'b T 隐式表示 T: 'b, 即 T 的生命周期要比 'b 长。
@@ -5343,6 +5352,8 @@ CoerceUnsized<Foo<U>>`. This allows it to provide `a unsized coercion to Foo<U>`
 Note: While the definition of the unsized coercions and their implementation has been
 stabilized, the traits themselves are not yet stable and therefore can't be used directly in
 stable Rust.
+
+T: ?Sized 前的 ? 只能用在 Sized trait 前，而不能用于其他 trait。这时需要使用 &amp;T.
 
 
 ### <span class="section-num">15.6</span> Least upper bound coercions {#least-upper-bound-coercions}
@@ -12589,9 +12600,50 @@ impl FromIterator<TokenTree> for TokenStream
 
 ## <span class="section-num">21</span> crate/module/package {#crate-module-package}
 
-crate 是 rust 的编译、发布、版本化、加载的单元: rustc some_file.rs 中的 some_file.rs 是 crate file.
+package 目录结构：
+
+-   包含一个 Cargotoml, 它妙输了如何构建这些 Crates；
+-   只能包含 0-1 个 library crate；
+-   可以包含任意数量的 binary crate；
+-   但至少必须包含一个 Crate（library 或 binary）；
+-   cargo new xx 创建的是一个 package，package name 为 xx；
+
+<!--listend-->
+
+```rust
+# Create a package which contains
+# 1. three binary crates: `hello-package`, `main1` and `main2`
+# 2. one library crate
+# describe the directory tree below
+.
+├── Cargo.toml
+├── Cargo.lock
+├── src
+│   ├── __
+│   ├── __
+│   └── __
+│       └── __
+│       └── __
+├── tests # directory for integrated tests files
+│   └── some_integration_tests.rs
+├── benches # dir for benchmark files
+│   └── simple_bench.rs
+└── examples # dir for example files
+    └── simple_example.rs
+```
+
+crate 是 Rust 的编译、发布、版本化、加载的单元: rustc some_file.rs 中的 some_file.rs 是 crate file.
 
 -   crate 可以被编译为 binary 或 library, 可以通过 --crate-type=lib/bin/procedure_macro 来定义;
+-   crate root 是 Rust 编译器开始编译的地方，组成 Crate 的根 module；
+    -   src/main.rs: binary crate 的 crate root，crate 名称与 package 名称相同；
+    -   src/lib.rs: library crate 的 crate root（一个 package 包含 0-1 个 library crate），crate 名称与 package 名相同；
+    -   如果 package 有多个 binary crate，则放到 src/bin 目录下，每个文件都是一个 binary crate，crate
+        名称和文件名相同；
+    -   root crate 称为 crate，比如 use crate::xxx 就表示引用 crate root 下的 xxx item；
+    -   每个 bianry crate 和 lib crate 都有自己的 crate root：
+        -   如果只有一个 src/main.rs，则该 binary crate root 是 package name；
+        -   如果有多个 src/bin/mybinary.rs，则该 bianry crate root 是 mybinary;
 
 <!--listend-->
 
@@ -12659,6 +12711,11 @@ extern crate foo as _ // 表示不使用 foo crate 中的 item，只做链接
 ```
 
 module 引入了一级 namespace, 其中的 item 需要使用 module::item 来访问.
+
+-   module 是在一个 crate 内部，用于将代码进行分组；
+-   增加可读性，易于复用；
+-   控制项目（item）的可见性。
+-   module 可以嵌套，可以包含其他 item，如 struct/enum/常量/trait/函数等定义；
 
 module 中 item 的可见性：
 
@@ -12782,6 +12839,10 @@ mod thread {
 
 module 也可以使用 #[cfg_attr] 来指定在 match 条件的情况下，为 module 添加一些 attr：
 
+-   \#\![cfg_attr] 是为 crate 或 module 添加 inner attribute, 例如 #\![no_std];
+
+<!--listend-->
+
 ```rust
 #[cfg_attr(target_os = "linux", path = "linux.rs")]
 #[cfg_attr(target_os = "linux", cfg_attr(feature = "multithreaded", some_other_attribute))]
@@ -12794,30 +12855,14 @@ fn bewitched() {}
 #[sparkles]
 #[crackles]
 fn bewitched() {}
-```
 
-package 目录结构：
+#![no_std]
+#![cfg_attr(not(feature = "simulator"), no_main)]
 
-```rust
-# Create a package which contains
-# 1. three binary crates: `hello-package`, `main1` and `main2`
-# 2. one library crate
-# describe the directory tree below
-.
-├── Cargo.toml
-├── Cargo.lock
-├── src
-│   ├── __
-│   ├── __
-│   └── __
-│       └── __
-│       └── __
-├── tests # directory for integrated tests files
-│   └── some_integration_tests.rs
-├── benches # dir for benchmark files
-│   └── simple_bench.rs
-└── examples # dir for example files
-    └── simple_example.rs
+
+#![cfg_attr(not(feature = "std"), no_std)]
+#[cfg(feature = "esp32-s3-box-3")]
+mod esp32_s3_box_3;
 ```
 
 可以使用 self 或 super 来访问当前 module 或父 module 的 item:
@@ -12874,9 +12919,14 @@ fn main() {
 }
 ```
 
+路径 Path：为了在 Rust 模块中找到某个 item，需要使用路径，路径使用 :: 分割，路径有两种形式：
+
+1.  绝对路径：从rate root 开始，使用 use crate::module::item;
+2.  相对路径：从当前 module 开始，使用 self/super或当前 module 的标识符；
+
 use 语句: 将某个标识符和一个 full path 绑定, 后续可以直接使用标识符:
 
--   use xx::yy 中的 xx 是相对于当前 module 的, 可以是子 module 或 item, 如果都不存在则 xx 是crate;
+-   use xx::yy 中的 xx 是相对于当前 module 的, 可以是子 module 或 item, 如果都不存在则 xx 是 crate 名称;
 -   use self::item 导入当前 module 的 item;
 -   yse super::item 导入父 module 的 item;
 -   use crate::module::item 中的 crate 表示当前 module 所在的 crate;
@@ -13142,50 +13192,6 @@ fn test_divide_by_zero_error() { 1 / 0; // should panic!
 
 ## <span class="section-num">23</span> async {#async}
 
-async fn 是异步函数，实际上是返回 impl Feature 的语法糖，而且可以和 unsafe 连用：
-
--   async block {} 也是 impl Feature 的语法糖。
--   async fn 内部可以使用 async block 和 await 表达式；
-
-<!--listend-->
-
-```rust
-// Source
-async fn example(x: &str) -> usize {
-    x.len()
-}
-// is roughly equivalent to:
-// Desugared
-fn example<'a>(x: &'a str) -> impl Future<Output = usize> + 'a {
-    async move { x.len() }
-}
-
-// Returns a future that, when awaited, dereferences `x`.
-//
-// Soundness condition: `x` must be safe to dereference until
-// the resulting future is complete.
-async unsafe fn unsafe_example(x: *const i32) -> i32 {
-    *x
-}
-
-async fn safe_example() {
-    // An `unsafe` block is required to invoke the function initially:
-    let p = 22;
-    let future = unsafe { unsafe_example(&p) };
-
-    // But no `unsafe` block required here. This will
-    // read the value of `p`:
-    let q = future.await;
-}
-```
-
-Rust 使用单线程或线程池来运行多个 aysnc task：
-
--   block_on(): 当前线程来运行异步任务；
--   task::spawn_local(): 在 block_on() 所在的线程空闲时运行异步任务；
--   task::spawn(): 在一个线程池中运行异步任务；
--   task::spawn_blocking()： 立即创建一个线程来运行指定的 `同步函数` ；
-
 Future trait:
 
 -   poll 方法的 self 类型是 Pin&lt;&amp;mut Self&gt;，表示一旦开始 pool 时，Self 的地址必须是固定的，不能再被转移，这是为了确保 Future 对象内部保存的栈地址继续有效；
@@ -13205,7 +13211,7 @@ enum Poll<T> {
 }
 ```
 
-同步函数可以返回 impl Future，执行该函数时只是返回一个 Future 对象，但是并没有实际执行：
+同步函数也可以返回 impl Future，执行该函数时只是返回一个 Future 对象，但是并没有实际执行：
 
 ```rust
 fn read_to_string(&mut self, buf: &mut String) -> impl Future<Output = Result<usize>>;
@@ -13236,7 +13242,7 @@ async fn cheapo_request(host: &str, port: u16, path: &str) -> std::io::Result<St
     Ok(response)
 }
 
-// 返回一个 Future
+// 调用该函数时，返回一个 Future
 let response = cheapo_request(host, port, path);
 ```
 
@@ -13248,103 +13254,59 @@ async_std::net::TcpListener::bind() 返回一个 Future，.await 用于 pull 该
 
 ```rust
 use async_std::{net, task};
+
 let listener = net::TcpListener::bind(address).await?;
 let mut new_connections = listener.incoming(); // 返回一个 Stream
 while let Some(socket_result) = new_connections.next().await { // Stream 类似与迭代器，但是每一个元素需要 .await 返回
     let socket = socket_result?;
-    let groups = chat_group_table.clone(); task::spawn(async {
+    let groups = chat_group_table.clone();
+    task::spawn(async {
         log_error(serve(socket, groups).await);
     });
 }
 ```
 
-同步代码和异步代码的结合点是 block_on():
+async fn 是异步函数，它实际上是返回 impl Feature 的语法糖：
 
--   block_on() 的输入是 Future 对象，如执行 async fn 返回的对象。
--   block_on() 是一个同步函数（所以不能在 async fn 中调用 block_on(), 而需要调用 .await），他在当前线程上 `poll 传入的 Future 对象` ，直到 Ready 返回值，如果是 Pending 且没有其他 aysnc task 可以 poll，则 block_on() 会 sleep。
-
-<!--listend-->
-
-```rust
-fn main() -> std::io::Result<()> {
-    use async_std::task;
-    let response = task::block_on(cheapo_request("example.com", 80, "/"))?;
-    println!("{}", response);
-    Ok(()) }
-```
-
-block_on() 在当前线程 poll 传入的 Future 对象，为了能在该线程中同时 poll 其他 Future，可以使用
-spawn_local():
-
--   可以多次调用 spawn_local，它将传入的 Future 添加到 block_on() 线程所处理的 task pool 中，当
-    block_on() 处理某个 task pending 时，会从该 pool 中获取下一个 Future task 进行 poll；
--   spawn_local() 返回一个 JoinHandle 类型，可以进行 await 来获得最终值。
--   如果一个 task 执行时间很长，会导致 block_on 没有机会执行其他 task，从而引起性能问题。
+-   async block {} 也是 impl Feature 的语法糖，返回一个 Future；
+-   async fn 和 aysnc block 内部可以使用 async block 和 await 表达式；
 
 <!--listend-->
 
 ```rust
-//! Dependencies can be specified in the script file itself as follows:
-//!
-//! ```cargo
-//! [dependencies]
-//! async-std = { version = "1", features = ["unstable"] }
-//! ```
-
-fn main() {
+// Source
+async fn example(x: &str) -> usize {
+    x.len()
+}
+// is roughly equivalent to: Desugared
+fn example<'a>(x: &'a str) -> impl Future<Output = usize> + 'a {
+    async move { x.len() }
 }
 
-pub async fn many_requests(requests: Vec<(String, u16, String)>) -> Vec<std::io::Result<String>>
-{
-    use async_std::task;
-    let mut handles = vec![];
-    for (host, port, path) in requests {
-        handles.push(task::spawn_local(cheapo_request(&host, port, &path))); // 这些 request 被单线程并发执行
-    }
-
-    let mut results = vec![]; for handle in handles {
-        results.push(handle.await); // 串行等待 handle 返回最终值
-    }
-    results
-}
-```
-
-编译上面的代码时报错，提示传给 spawn_local() 的 &amp;host, &amp;path 引用不是 'static 的：
-
--   spawn_local() 要求传入的 Future 是 'static 的，这是由于该 Future 的 `执行时机是不确定的` ，如果不
-    await 它返回的 handle，则有可能 many_requests() 函数返回了，但是 Future 还没有被执行，从而导致引用失效。
-
-解决办法：传入一个 async 辅助函数，它拥有对应的参数值，这样该函数就实现了 'static:
-
-```rust
-async fn cheapo_owning_request(host: String, port: u16, path: String) -> std::io::Result<String> {
-    cheapo_request(&host, port, &path).await
+// Returns a future that, when awaited, dereferences `x`.
+//
+// Soundness condition: `x` must be safe to dereference until
+// the resulting future is complete.
+async unsafe fn unsafe_example(x: *const i32) -> i32 {
+    *x
 }
 
-for (host, port, path) in requests {
-    handles.push(task::spawn_local(cheapo_owning_request(host, port, path)));
-}
+async fn safe_example() {
+    // An `unsafe` block is required to invoke the function initially:
+    let p = 22;
+    let future = unsafe { unsafe_example(&p) };
 
-// 在单线程中并发发起多个 request
-let requests = vec![
-    ("example.com".to_string(), 80, "/".to_string()),
-    ("www.red-bean.com".to_string(), 80, "/".to_string()),
-    ("en.wikipedia.org".to_string(), 80, "/".to_string()),
-];
-let results = async_std::task::block_on(many_requests(requests));
-for result in results {
-    match result {
-        Ok(response) => println!("{}", response),
-        Err(err) => eprintln!("error: {}", err),
-    }
+    // But no `unsafe` block required here. This will
+    // read the value of `p`:
+    let q = future.await;
 }
 ```
 
-除了 async fn，Rust 还支持返回 Future 的 async block，可以在 async block 中使用 .await，也可以
+除了 async fn，Rust 还提供返回 Future 的 async block，可以在 async block 中使用 .await，也可以
 .await 他的返回值：
 
 -   在 async block 中使用 ? 来传播错误，或 return 来返回值时，都是 async block 的返回，而不是它所在的函数返回。
--   async block 可以和闭包一样捕获环境中的对象（借用或 move），也可以指定 async move 来获得对象的所有权，这时 async block 返回的 Future 具有 'static lifetime。
+-   async block 可以和闭包一样捕获环境中的对象（借用或 move），也可以指定 `async move` 来获得对象的所有权，这时 async block 返回的 Future 具有 'static lifetime。
 
 <!--listend-->
 
@@ -13388,24 +13350,115 @@ let future = async {
 };
 ```
 
-由于 async block 返回一个 Future，故可以使用他定义一个 async fun：
+由于 async block 返回一个 Future，故可以使用他实现一个 async fun：
 
 ```rust
 use std::io;
 use std::future::Future;
+
 fn cheapo_request(host: &str, port: u16, path: &str) -> impl Future<Output = io::Result<String>> + 'static
 {
     let host = host.to_string();
     let path = path.to_string();
+
     async move { // 捕获了 host、path 的所有权
         //... use &*host, port, and path ...
     } }
 ```
 
+一个 async fn 或 async block 代表一个 `async task` ，Rust 使用单线程或线程池来运行这些 async task：
+
+-   block_on(): 当前线程来运行异步任务；
+-   task::spawn_local(): 在 block_on() 所在的线程空闲时运行异步任务；
+-   task::spawn(): 在一个线程池中运行异步任务；
+-   task::spawn_blocking()： 立即创建一个线程来运行指定的 `同步函数` 。
+
+同步代码和异步代码的结合点是 block_on():
+
+-   block_on() 的输入是 Future 对象，如执行 async fn 返回的 Future 对象或 async block。
+-   block_on() 是一个 `同步函数` （所以不能在 async fn 中调用 block_on(), 而需要调用 .await），他在当前线程上 `poll 传入的 Future 对象` ，直到 Ready 返回值，如果是 Pending 且没有其他 aysnc task 可以 poll，则 block_on() 会 sleep。
+
+<!--listend-->
+
+```rust
+fn main() -> std::io::Result<()> {
+    use async_std::task;
+    let response = task::block_on(cheapo_request("example.com", 80, "/"))?;
+    println!("{}", response);
+    Ok(()) }
+```
+
+block_on() 在当前线程 poll 传入的 Future 对象，为了能在该线程中同时 poll 其他 Future，可以使用
+spawn_local():
+
+-   可以多次调用 spawn_local()，它将传入的 Future 添加到 block_on() 线程所处理的 task pool 中，当
+    block_on() 处理某个 task pending 时，会从该 pool 中获取下一个 Future task 进行 poll；
+-   spawn_local() 返回 JoinHandle 类型，它实现了 Future trait，可以进行 await 来获得最终值。
+-   如果一个 task 执行时间很长，会导致 block_on 没有机会执行其他 task，从而引起性能问题。
+
+<!--listend-->
+
+```rust
+//!
+//! ```cargo
+//! [dependencies]
+//! async-std = { version = "1", features = ["unstable"] }
+//! ```
+
+fn main() {
+}
+
+pub async fn many_requests(requests: Vec<(String, u16, String)>) -> Vec<std::io::Result<String>>
+{
+    use async_std::task;
+    let mut handles = vec![];
+    for (host, port, path) in requests {
+        handles.push(task::spawn_local(cheapo_request(&host, port, &path))); // 这些 request 被单线程并发执行
+    }
+
+    let mut results = vec![];
+    for handle in handles {
+        results.push(handle.await); // 串行等待 handle 返回最终值
+    }
+    results
+}
+```
+
+编译上面的代码时报错，提示传给 spawn_local() 的 &amp;host, &amp;path 引用不是 'static 的：
+
+-   spawn_local() 要求传入的 Future 是 'static 的，这是由于该 Future 的 `执行时机是不确定的` ，如果不
+    await 它返回的 handle，则有可能 many_requests() 函数返回了，但是 Future 还没有被执行，从而导致引用失效。
+
+解决办法：传入一个 async 辅助函数，它拥有对应的参数值，这样该函数就实现了 'static:
+
+```rust
+async fn cheapo_owning_request(host: String, port: u16, path: String) -> std::io::Result<String> {
+    cheapo_request(&host, port, &path).await
+}
+
+for (host, port, path) in requests {
+    handles.push(task::spawn_local(cheapo_owning_request(host, port, path)));
+}
+
+// 在单线程中并发发起多个 request
+let requests = vec![
+    ("example.com".to_string(), 80, "/".to_string()),
+    ("www.red-bean.com".to_string(), 80, "/".to_string()),
+    ("en.wikipedia.org".to_string(), 80, "/".to_string()),
+];
+let results = async_std::task::block_on(many_requests(requests));
+for result in results {
+    match result {
+        Ok(response) => println!("{}", response),
+        Err(err) => eprintln!("error: {}", err),
+    }
+}
+```
+
 spawn_local() 是在 block_on() 所在的线程的 task pool 中添加 async task，后续在 block_on() 空闲时执行。而 spawn() 是在一个专门 poll Future 的线程池（tokio 称为 worker thread 或 core thread）中并发执行
 async task：
 
--   spawn() 和 spawn_local() 一样，也是返回 JoinHandler，但是他不依赖调用 block_on() 来 poll，而是执行候该函数后立即开始被 poll；
+-   spawn() 和 spawn_local() 一样，也是返回 JoinHandler，JoinHandler 实现了 Futureu，可以 .await 获得结果。但是他不依赖调用 block_on() 来 poll，而是执行候该函数后立即开始被 poll；
 -   由于传给 spawn() 的 Future 可能被线程池中任意线程执行，而且在暂停恢复候可能会在另一个线程中运行，所以不能使用线程本地存储变量（解决办法是使用 task_local! 宏），同时 Future 捕获的对象必须具有
     `Future + Send + 'static` 语义，这样这些变量才能安全的 move 到其他线程执行。（类似与
     std::thread::spawn() 对闭包的要求）。
@@ -13421,7 +13474,6 @@ for (host, port, path) in requests {
     }
     ));
 }
-//...
 
 
 use async_std::task; use std::rc::Rc;
@@ -13457,6 +13509,7 @@ type GenericResult<T> = Result<T, GenericError>;
 fn some_fallible_thing() -> GenericResult<i32> {
     //...
 }
+
 // This function's future is not `Send`...
 async fn unfortunate() {
     // ... because this call's value ...
@@ -13469,6 +13522,7 @@ async fn unfortunate() {
             use_output(output).await;
         }
     } }
+
 // ... and thus this `spawn` is an error.
 async_std::task::spawn(unfortunate());
 ```
@@ -13484,7 +13538,7 @@ type GenericResult<T> = Result<T, GenericError>;
 
 1.  使用 yield_now() 主动让出 CPU 时间；
 2.  使用 spawn_blocking() 来运行一个 `同步闭包函数` ，他会立即创建一个 `新的线程来执行` （tokio 中称为
-    blocking thread，该线程也组成线程池，在过期前可以被重复利用） ，同时返回一个Future。
+    blocking thread，该线程也组成线程池，在过期前可以被重复利用），同时返回一个Future，可以 await 结果。
 
 <!--listend-->
 
@@ -13513,6 +13567,7 @@ async fn verify_password(password: &str, hash: &str, key: &str) -> Result<bool, 
 
 ```rust
 use async_chat::FromServer;
+
 async fn handle_replies(from_server: net::TcpStream) -> ChatResult<()> {
     let buffered = io::BufReader::new(from_server);
     let mut reply_stream = utils::receive_as_json(buffered); // 返回一个 Stream
@@ -13550,14 +13605,15 @@ let from_server = task::spawn(handle_replies(socket));
 
 to_server.await?; // 会先等待 to_server 完成，再等待 form_server. 而不是等待任意一个完成
 from_server.await?;
-
 ```
 
 如果在 async 中使用跨 await 的 Mutex，则应该使用异步 Mutex：
 
 ```rust
 use async_std::sync::Mutex;
+
 pub struct Outbound(Mutex<TcpStream>);
+
 impl Outbound {
     pub fn new(to_client: TcpStream) -> Outbound {
         Outbound(Mutex::new(to_client))
@@ -14914,6 +14970,7 @@ C 的 string 是 NULL 终止的 char 数组, 而 Rust 字符串是 UTF-8 编码�
 
 ```rust
 use std::os::raw::c_char;
+
 extern {
     fn strlen(s: *const c_char) -> usize;
     static environ: *mut *mut c_char; // C 库中的全局变量 extern char **environ;
@@ -14924,6 +14981,7 @@ extern {
 
 ```rust
 use std::ffi::CString;
+
 let rust_str = "I'll be back";
 let null_terminated = CString::new(rust_str).unwrap();
 unsafe {
@@ -14958,7 +15016,7 @@ fn main() {
 ```
 
 如果 git2 lib 被安装到非系统库目录, 则 rustc 调用 ld 时可能会找不到该库, 解决办法是使用 build
-script: 在 Cargo.toml 文件的同级目录下创建名为 build.rs 文件, 内容如下:
+script: 在 Cargo.toml 文件的同级目录下创建名为 `build.rs 文件`, 内容如下:
 
 ```rust
 fn main() {
@@ -14974,7 +15032,7 @@ cargo build 会自动允许 build.rs 并获取和解析他的输出, 从中获�
 export LD_LIBRARY_PATH=/home/jimb/libgit2- 0.25.1/build:$LD_LIBRARY_PATH
 ```
 
-对于 Mac 而言是设置 DYLD_LIBRARY_PATH.
+对于 Mac 而言是设置 `DYLD_LIBRARY_PATH`.
 
 对于 Rust 而言, 如果一个 crate 是专用于调用 C 库的 Rust 代码, 则该 crate 的命名惯例是 LIB-sys, 其中
 LIB 是 C 库的名称. 该 crate 中的内容:
@@ -15096,7 +15154,9 @@ fn main() {
 ```
 
 C 很常见的情况是, 传递一个指针, 然后让函数内的逻辑来修改指针指向的内容. Rust 提供了
-std::mem::MaybeUninit&lt;T&gt; 类型, 他告诉编译器为 T 分配足够的内存, 但是不做任何处理, 直到后续明确告诉他可以安全地操作这一块内存区域. MaybeUninit&lt;T&gt; 拥有这一块内存区域, 这样编译器就不会做一些优化和操作,从而避免非预期的行为.
+`std::mem::MaybeUninit<T>` 类型, 他告诉编译器为 T 分配足够的内存, 但是不做任何处理, 直到后续明确告诉他可以安全地操作这一块内存区域.
+
+MaybeUninit&lt;T&gt; 拥有这一块内存区域, 这样编译器就不会做一些优化和操作,从而避免非预期的行为.
 
 -   MaybeUninit.as_mut_ptr() 返回这个内存区域的 \*mut T 指针, 可以将他传递给 FFI 函数使用;
 -   然后调用 MaybeUninit.assume_init() 来将内存区域标记为已初始化;
@@ -15118,31 +15178,12 @@ Rust 的 Cargo.toml 中也为 testing 提供了单独的依赖配置 dev-depende
 pretty_assertions = "1"
 ```
 
-src/lib.rs:
+Unit testing: 单元测试即函数：
 
-```rust
-pub fn add(a: i32, b: i32) -> i32 {
-    a + b
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use pretty_assertions::assert_eq; // crate for test-only use. Cannot be used in non-test code.
-
-    #[test]
-    fn test_add() {
-        assert_eq!(add(2, 3), 5);
-    }
-}
-```
-
-Unit testing:
-
-1.  使用 #[cfg(test)] 来注解 test module;
+1.  使用 #[cfg(test)] 来注解 test module，该 module 在 cargo build 时会被忽略（减少代码体积），而只有运行 cargo test时才被编译和执行；
 2.  使用 #[test] 来注解 test 函数;
-3.  test 函数内部使用 assert!()/assert_eq!()/assert_ne!() 等来报告错误;
-4.  单元测试 module/func 和源码在同一个文件, 所以可以测试 private code(但是集成测试在不同 crate,只能测试 public 接口);
+3.  test 函数内部使用 assert!()/assert_eq!()/assert_ne!()/Result 等来报告错误;
+4.  单元测试 module/func 和源码在同一个文件或目录, 运行测试 private code(但是集成测试在不同 crate, 只能测试 public 接口);
 
 <!--listend-->
 
@@ -15151,8 +15192,7 @@ pub fn add(a: i32, b: i32) -> i32 {
     a + b
 }
 
-// This is a really bad adding function, its purpose is to fail in this
-// example.
+// This is a really bad adding function, its purpose is to fail in this example.
 #[allow(dead_code)]
 fn bad_add(a: i32, b: i32) -> i32 {
     a - b
@@ -15228,6 +15268,10 @@ mod tests {
 
 单元测试也支持 panic!() 测试:
 
+-   使用 expected 匹配 panic 消息的字符串；
+
+<!--listend-->
+
 ```rust
 pub fn divide_non_zero_result(a: u32, b: u32) -> u32 {
     if b == 0 {
@@ -15262,6 +15306,10 @@ mod tests {
 ```
 
 也可以为 test 函数添加 #[ignore] 来忽略测试:
+
+-   在常规 cargo test 时忽略这些 test。可以使用 cargo test -- --ignored 来只运行这些被忽略的测试。
+
+<!--listend-->
 
 ```rust
 pub fn add(a: i32, b: i32) -> i32 {
@@ -15336,7 +15384,59 @@ pub fn div(a: i32, b: i32) -> i32 {
 }
 ```
 
-测试:
+单元测试 module/func 和源码在同一个文件, 允许测试 private code. 但是集成测试在不同 crate,只能测试
+public 接口, 集成测试的代码位于 tests 目录下:
+
+```rust
+  // src/lib.rs
+  // Define this in a crate called `adder`.
+  pub fn add(a: i32, b: i32) -> i32 {
+      a + b
+  }
+
+  // tests/integration_test.rs
+  #[test]
+  fn test_add() {
+      assert_eq!(adder::add(3, 2), 5);
+  }
+```
+
+集成测试:
+
+-   集成测试是完全位于被测试 crate 的外部，目的是测试被测试库的多个部分能否正确的一起工作，所以覆盖率很重要；
+-   集成测试位于 tests 目录下，各文件对应一个单独的集成测试，可以包含子 module；
+
+<!--listend-->
+
+```rust
+// tests/common/mod.rs:
+pub fn setup() {
+    // some setup code, like creating required files/directories, starting
+    // servers, etc.
+}
+
+// tests/integration_test.rs
+// importing common module.
+mod common;
+
+// 不再需要 #cfg[test] 注解了。
+#[test]
+fn test_add() {
+    // using common code.
+    common::setup();
+    assert_eq!(adder::add(3, 2), 5);
+}
+```
+
+cargo test 时默认使用 `多线程并发运行` 所有测试（单元+集成）函数，同时也会运行 doc comment 中的测试：
+
+-   cargo test KEYWORD 中的 KEYWORD 可以用来匹配要运行的测试函数/module 名称；
+-   cargo test 会编程生成一个可执行程序，所以为 cargo test 指定参数时，包含两部分：
+    1.  cargo test 命令本身的参数：直接放到 test 命令后；
+    2.  编程生成的 test 程序的参数：放到 -- 分割符号后面，如 cargo test -- --ignored;
+-   cargo test --test integrated_test_file_name ： 只运行指定集成测试文件名中的测试；
+
+<!--listend-->
 
 ```shell
 $ cargo test
@@ -15353,65 +15453,6 @@ test src/lib.rs - div (line 31) ... ok
 
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 
-```
-
-单元测试 module/func 和源码在同一个文件, 所以可以测试 private code. 但是集成测试在不同 crate,只能测试 public 接口, 集成测试的代码位于 tests 目录下:
-
-```rust
-  // src/lib.rs
-  // Define this in a crate called `adder`.
-  pub fn add(a: i32, b: i32) -> i32 {
-      a + b
-  }
-
-  // tests/integration_test.rs
-  #[test]
-  fn test_add() {
-      assert_eq!(adder::add(3, 2), 5);
-  }
-```
-
-测试:
-
-```shell
-$ cargo test
-running 0 tests
-
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
-
-     Running target/debug/deps/integration_test-bcd60824f5fbfe19
-
-running 1 test
-test test_add ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
-
-   Doc-tests adder
-
-running 0 tests
-
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
-```
-
-集成测试也可以包含 module:
-
-```rust
-// tests/common/mod.rs:
-pub fn setup() {
-    // some setup code, like creating required files/directories, starting
-    // servers, etc.
-}
-
-// tests/integration_test.rs
-// importing common module.
-mod common;
-
-#[test]
-fn test_add() {
-    // using common code.
-    common::setup();
-    assert_eq!(adder::add(3, 2), 5);
-}
 ```
 
 参考:
@@ -15539,62 +15580,15 @@ fn main() {
 1.  A `*mut T` is a raw pointer to a T that permits modifying its referent.
 2.  A `*const T` is a raw pointer to a T that only permits reading its referent.
 
-<!--listend-->
+通过 raw pointer 的 \*ptr = data 来保存对象时，会对 ptr 指向的 old value `调用 drop` 。但是通过裸指针的
+write() 方法或 std::ptr::write() 来写入新对象时，并不会 drop old value。
 
-```rust
-fn main() {
-    let raw_p: *const u32 = &10;
-    unsafe {
-        assert!(*raw_p == 10);
-    }
-}
-
-fn very_trustworthy(shared: &i32) {
-    unsafe {
-        // Turn the shared reference into a mutable pointer.
-        // This is undefined behavior.
-        let mutable = shared as *const i32 as *mut i32;
-        *mutable = 20;
-    }
-}
-
-```
-
-Rust 的 raw pointer 和引用都是指针，但是可以认为包括两部分：
-
-1.  data pointer：指向 value 内存地址的指针；
-2.  可选的 metadata 指针；
-
-对于编译时可知的固定大小类型（实现了 Sized trait）或 extern 类型的指针，是 thin 指针，它的 metadata 是
-zero-sized 的 () 类型，所以 thin 指针只占用一个机器字 usize 的变量。
-
-对于动态大小类型，他的指针是 fat 指针，它的 metadata 是非空的。fat 指针占用两个 usize 大小，如
-\*const [u8] 或 \*mut dyn std::io::Write：
-
--   For structs whose last field is a DST, metadata is the metadata for the last field
--   For the str type, metadata is the length in bytes as usize
--   For slice types like [T], metadata is the length in items as usize
--   For trait objects like dyn SomeTrait, metadata is DynMetadata&lt;Self&gt; (e.g. DynMetadata&lt;dyn SomeTrait&gt;)
-
-Rust 的 std::ptr::Pointee trait 来为指针提供 metadata type 信息：
-
--   Metadata 关联类型可能是 () or usizer or DynMetadata&lt;_&gt; 类型；
--   Rust `为所有类型实现了改 trait` ， 所以可以直接使用；
--   to_raw_parts()/metadata()/form_raw_parts()/from_raw_parts_mut() 等函数或方法来使用 Pointee。
-
-<!--listend-->
-
-```rust
-pub trait Pointee {
-    type Metadata: Copy + Send + Sync + Ord + Hash + Unpin;
-}
-```
-
-raw pointer 本身可以是 unaligned 或 null，但是当解引用 raw pointer 时，他必须是 non-null 和 aligned。
+raw pointer 本身可以是 unaligned 或 null，但是当解引用 raw pointer 时， `他必须是 non-null 和
+aligned` :
 
 -   aligned 是指指针的地址如 \*const T 是 std::mem::align_of::&lt;T&gt;() 的倍数。
 
-裸指针是允许 null 的：
+裸指针是允许为 null 的：
 
 1.  创建 null 指针：
     1.  std::ptr::null&lt;T&gt; 对应 \*const T;
@@ -15623,12 +15617,12 @@ assert_eq!(option_to_raw::<i32>(None), std::ptr::null());
 
 ```rust
 let my_num: i32 = 10;
-let my_num_ptr: *const i32 = &my_num;
+let my_num_ptr: *const i32 = &my_num; // 引用类型自动 type coercing 到 raw pointer
 let mut my_speed: i32 = 88;
 let my_speed_ptr: *mut i32 = &mut my_speed;
 
 let mut x = 10;
-let ptr_x = &mut x as *mut i32;
+let ptr_x = &mut x as *mut i32; // as 运算符将借用转换为 raw pointer
 
 let y = Box::new(20);
 let ptr_y = &*y as *const i32;
@@ -15636,11 +15630,20 @@ unsafe {
     *ptr_x += *ptr_y;
 }
 assert_eq!(x, 30);
+
+fn very_trustworthy(shared: &i32) {
+    unsafe {
+        // Turn the shared reference into a mutable pointer.
+        // This is undefined behavior.
+        let mutable = shared as *const i32 as *mut i32;
+        *mutable = 20;
+    }
+}
 ```
 
-如果要获得 boxed value 的 raw pointer，需要解引用 box：
+如果要获得 boxed value 的 raw pointer，需要解引用 Box，这并不会获得原始值的 ownership；
 
--   这并不会获得原始值的 ownership；
+-   Box&lt;T&gt; 的 into_raw() 函数消耗 Box 的同时返回一个 raw pointer：
 
 <!--listend-->
 
@@ -15649,22 +15652,17 @@ let my_num: Box<i32> = Box::new(10);
 let my_num_ptr: *const i32 = &*my_num;  // &*my_num 的结果是 &i32，可以转换为 *const i32
 let mut my_speed: Box<i32> = Box::new(88);
 let my_speed_ptr: *mut i32 = &mut *my_speed;
-```
 
-Box&lt;T&gt; 的 into_raw() 函数消耗 box 的同时返回一个 raw pointer：
-
-```rust
 let my_speed: Box<i32> = Box::new(88);
 let my_speed: *mut i32 = Box::into_raw(my_speed);
-
-// By taking ownership of the original `Box<T>` though
-// we are obligated to put it together later to be destroyed.
+// By taking ownership of the original `Box<T>` though we are obligated to put it together later to
+// be destroyed.
 unsafe {
     drop(Box::from_raw(my_speed));
 }
 ```
 
-也可以使用 std::ptr::addr_of!() 和 std::ptr::addr_of_mut!() 来返回 raw pointer：
+使用 std::ptr::addr_of!() 和 std::ptr::addr_of_mut!() 来返回参数 express 的 raw pointer：
 
 -   packed struct：默认情况下，struct 对象的 field 会通过 pading 来对齐。通过添加 packed attr，可以关闭 struct field padding 对齐机制，这样 struct 的某个 field 可能是未对齐的。
 -   对于未对齐的 filed，是不能创建引用的，但是通过 addr_of!() 和 addr_of_mut!() 宏是可以创建 `未对齐的
@@ -15683,7 +15681,7 @@ let s = S::default();
 let p = std::ptr::addr_of!(s.unaligned); // not allowed with coercion
 ```
 
-也可以使用 libc 的 malloc 和 free 来管理 raw pointer：
+可以使用 libc 的 malloc 和 free 来管理 raw pointer：
 
 ```rust
 #[allow(unused_extern_crates)]
@@ -15702,7 +15700,7 @@ unsafe {
 
 其他创建 raw pointer 方式：
 
-1.  很多类型提供了 as_ptr() 和 as_mut_ptr() 方法来返回他的内容的 raw pointer.
+1.  很多类型提供了 as_ptr() 和 as_mut_ptr() 方法来返回他的 raw pointer.
 2.  Owning 指针类型, 如 Box/Rc/Arc 提供 into_raw() 和 from_raw() 方法来生成 raw pointer 或从 raw
     pointer 创建对象.
 3.  也可以从 int 创建 raw pointer, 但是非常不安全.
@@ -15714,6 +15712,7 @@ raw pointer 的一些限制：
 3.  raw pointer 的比较运算，如 == 或 &lt;, 比较的是指针地址, 而非他指向的内容;
 4.  raw pointer 没有实现 Display, 但是实现了 Debug 和 Pointer;
 5.  不支持 raw pointer 的算术运算符,如 +, 但是可以使用一个库函数来进行运算;
+6.  raw pointer 没有实现 Send/Sync, 不能跨线程或 async spawn 中使用.
 
 <!--listend-->
 
@@ -15729,12 +15728,11 @@ assert_eq!(unsafe { first.offset_from(last) }, -2);
 &vec![42_u8] as *const Vec<u8> as *const String; // permitted
 ```
 
-通过 raw pointer 的 \*ptr = data 来保存对象时，会对 ptr 指向的 old value 调用 drop。但是通过裸指针的
-write() 方法或 std::ptr::write() 来写入新对象时，并不会 drop old value。
-
-raw pointer 没有实现 Send/Sync, 不能跨线程或 async spawn 中使用.
-
 Rust 的 array/slice/vector 都是连续的内存地址块，每个元素占用固定大小的(std::mem::size_of&lt;T&gt;)内存。
+
+-   T 为 raw pointer 指向的类型，如 \*const T 或 \*mut T;
+
+<!--listend-->
 
 ```rust
 fn offset<T>(ptr: *const T, count: isize) -> *const T where T: Sized
@@ -15745,11 +15743,6 @@ fn offset<T>(ptr: *const T, count: isize) -> *const T where T: Sized
 }
 ```
 
-Rust 变量区分 copy 和 move：
-
-1.  move：原变量不能再使用，新的变量认为 是 live的；
-2.  copy：老变量、新变量均可以使用；
-
 如果要实现类似与 Vec/HashMap 等自己管理内存的类型，Rust 提供了两个函数：
 
 1.  std::ptr::read(src)：将 src 执行的地址的内容 move 出来，转移给 caller。src 必须是 \*const T 类型，
@@ -15757,7 +15750,43 @@ Rust 变量区分 copy 和 move：
     src 的内容是未初始化的；
 2.  std::ptr::write(dest, value)：将 value 移动到 dest 指向的内存，dest 是 \*mut T 类型， T 是 unsized，且， dest 内存必须未初始化；
 
-裸指针 \*const T 和 \*mut T 的方法：
+裸指针 \*const T 和 \*mut T 的方法（ 标准库的 std::ptr module 也提供了一些方法来操作 raw pointer）：
+
+指针是否为 null
+: pub fn is_null(self) -&gt; bool
+
+将指针转换为 U 的指针
+: pub const fn cast&lt;U&gt;(self) -&gt; \*const U
+
+返回指定 count 对象的偏移指针
+: pub const unsafe fn offset(self, count: isize) -&gt; \*const T
+
+计算相对于指定指针的对象数量
+: pub const unsafe fn offset_from(self, origin: \*const T) -&gt; isize
+
+计算增加 count 对象的偏移指针
+: pub const unsafe fn add(self, count: usize) -&gt; \*const T
+
+计算减少 count 对象的偏移指针
+: pub const unsafe fn sub(self, count: usize) -&gt; \*const T
+
+读取 raw pointer 的内容，但是不 move self
+: pub const unsafe fn read(self) -&gt; T
+
+拷贝 count \* size_of&lt;T&gt;() bytes， src 和 dest 地址可以重叠
+: pub const unsafe fn copy_to(self,
+    dest: \*mut T, count: usize)
+
+写入 T 值，但是不 read &amp; drop 原来的值
+: pub unsafe fn write(self, val: T)
+
+替换 T 值，但是不 read &amp; drop 原来的值
+: pub unsafe fn replace(self, src: T) -&gt; T
+
+交换两个地址的值
+: pub unsafe fn swap(self, with: \*mut T)
+
+<!--listend-->
 
 ```rust
 impl<T> *const T where T: ?Sized,
@@ -15787,6 +15816,7 @@ pub fn to_raw_parts(self) -> (*const (), <T as Pointee>::Metadata)
 // Returns None if the pointer is null, or else returns a shared reference to the value wrapped in
 // Some. If the value may be uninitialized, as_uninit_ref must be used instead.
 pub unsafe fn as_ref<'a>(self) -> Option<&'a T>
+pub unsafe fn as_uninit_ref<'a>(self) -> Option<&'a MaybeUninit<T>>
 let ptr: *const u8 = &10u8 as *const u8;
 unsafe {
     if let Some(val_back) = ptr.as_ref() {
@@ -15794,11 +15824,10 @@ unsafe {
     }
 }
 
-pub unsafe fn as_uninit_ref<'a>(self) -> Option<&'a MaybeUninit<T>>
-
 // Calculates the offset from a pointer. count is in units of T; e.g., a count of 3 represents a
-// pointer offset of 3 * size_of::<T>() bytes. offset 的起始地址和加了 count*size 的结束地址都必须位
-// 于已分配对象的内存范围内，否则是 UB。
+// pointer offset of 3 * size_of::<T>() bytes.
+//
+// offset 的起始地址和加了 count*size 的结束地址都必须位于已分配对象的内存范围内，否则是 UB。
 pub const unsafe fn offset(self, count: isize) -> *const T
 let s: &str = "123";
 let ptr: *const u8 = s.as_ptr();
@@ -15812,6 +15841,7 @@ pub const unsafe fn byte_offset(self, count: isize) -> *const T
 
 // wrapping_offset 和 offset 相比，不要求起始和结束地址都位于已分配对象的内存范围内。
 pub const fn wrapping_offset(self, count: isize) -> *const T
+pub const fn wrapping_byte_offset(self, count: isize) -> *const T
 // Iterate using a raw pointer in increments of two elements
 let data = [1u8, 2, 3, 4, 5];
 let mut ptr: *const u8 = data.as_ptr();
@@ -15825,15 +15855,13 @@ while ptr != end_rounded_up {
     ptr = ptr.wrapping_offset(step);
 }
 
-pub const fn wrapping_byte_offset(self, count: isize) -> *const T
-
 pub fn mask(self, mask: usize) -> *const T
-
 
 // Calculates the distance between two pointers. The returned value is in units of T: the distance
 // in bytes divided by mem::size_of::<T>(). This is equivalent to (self as isize - origin as isize)
 // / (mem::size_of::<T>() as isize),
 pub const unsafe fn offset_from(self, origin: *const T) -> isize
+pub const unsafe fn byte_offset_from<U>(self, origin: *const U) -> isize where U: ?Sized,
 let a = [0; 5];
 let ptr1: *const i32 = &a[1];
 let ptr2: *const i32 = &a[3];
@@ -15843,8 +15871,6 @@ unsafe {
     assert_eq!(ptr1.offset(2), ptr2);
     assert_eq!(ptr2.offset(-2), ptr1);
 }
-
-pub const unsafe fn byte_offset_from<U>(self, origin: *const U) -> isize where U: ?Sized,
 
 // Calculates the distance between two pointers, where it’s known that self is equal to or greater
 // than origin. The returned value is in units of T: the distance in bytes is divided by
@@ -15856,13 +15882,13 @@ pub const unsafe fn byte_offset_from<U>(self, origin: *const U) -> isize where U
 // ptr.sub(count) == origin
 pub unsafe fn sub_ptr(self, origin: *const T) -> usize
 
-
 pub fn guaranteed_eq(self, other: *const T) -> Option<bool>
 pub fn guaranteed_ne(self, other: *const T) -> Option<bool>
 
 // Calculates the offset from a pointer (convenience for .offset(count as isize)). count is in units
 // of T; e.g., a count of 3 represents a pointer offset of 3 * size_of::<T>() bytes.
 pub const unsafe fn add(self, count: usize) -> *const T
+pub const unsafe fn byte_add(self, count: usize) -> *const T
 let s: &str = "123";
 let ptr: *const u8 = s.as_ptr();
 unsafe {
@@ -15870,7 +15896,6 @@ unsafe {
     println!("{}", *ptr.add(2) as char);
 }
 
-pub const unsafe fn byte_add(self, count: usize) -> *const T
 
 // Calculates the offset from a pointer (convenience for .offset((count as
 // isize).wrapping_neg())). count is in units of T; e.g., a count of 3 represents a pointer offset
@@ -15892,11 +15917,10 @@ pub const unsafe fn read_unaligned(self) -> T
 // this has the same argument order as ptr::copy. See ptr::copy for safety concerns and examples.
 pub const unsafe fn copy_to(self, dest: *mut T, count: usize)
 pub const unsafe fn copy_to_nonoverlapping(self, dest: *mut T, count: usize)
+
 pub fn align_offset(self, align: usize) -> usize
 pub fn is_aligned(self) -> bool
 pub fn is_aligned_to(self, align: usize) -> bool
-
-
 
 // *mut T 类型是在 *const T 的方法基础上，增加了一些 write 相关的方法
 impl<T> *mut T where T: ?Sized,
