@@ -1,11 +1,11 @@
 ---
 title: "clap"
 author: ["zhangjun"]
-lastmod: 2024-04-22T15:42:54+08:00
+lastmod: 2024-06-08T21:57:43+08:00
 tags: ["rust", "clap"]
 draft: false
 series: ["rust crate"]
-series_order: 1
+series_order: 12
 ---
 
 可以为 command 和 args 自定义 template：
@@ -47,11 +47,7 @@ Options:
 zj@a:~/codes/rust/clap/clap-demo$
 ```
 
-Macros: 一般在 builder 模式中使用 macro 来快速定义 Comand/Arg。
-
-arg
-: Create an Arg from a usage string.
-    -   arg!() 宏可以更方便的创建 struct Arg 对象；<https://docs.rs/clap/latest/clap/macro.arg.html>
+在 builder 模式中使用 macro 来快速定义 Comand/Arg：
 
 command
 : Allows you to build the Command instance from your Cargo.toml at compile time.
@@ -59,6 +55,9 @@ command
     -   command!() 宏可以从 Cargo.toml 中提取 Command 的 name、about、author、version 等信息，不需要单独设
 
     定；<https://docs.rs/clap/latest/clap/macro.command.html>
+
+arg
+: Create an Arg from a usage string， arg!() 宏可以更方便的创建 [struct Arg 对象]()；
 
 crate_authors
 : Allows you to pull the authors for the command from your Cargo.toml at compile
@@ -88,9 +87,20 @@ use std::path::PathBuf;
 use clap::{arg, command, value_parser, ArgAction, Command};
 
 fn main() {
-    let matches = command!() // requires `cargo` feature，从 Cargo.toml 中读取 name/version/authors/description 信息
+
+    let m = Command::new("cmd")
+        .author(crate_authors!("\n"))
+        .version(crate_version!())
+        .about(crate_description!())
+        .get_matches();
+
+    let m = Command::new(crate_name!()).get_matches();
+
+    // command!() : requires `cargo` feature，从 Cargo.toml 中读取 name/version/authors/description
+    // 信息
+    let matches = command!()
         .arg(arg!( [name] "Optional name to operate on") )
-        .arg( arg!( -c --config <FILE> "Sets a custom config file" )
+        .arg(arg!( -c --config <FILE> "Sets a custom config file" )
             // We don't have syntax yet for optional options, so manually calling `required`
             .required(false)
             .value_parser(value_parser!(PathBuf)),
@@ -138,25 +148,12 @@ fn main() {
 }
 ```
 
-其他 create_XX 宏(需要开启 cargo feature)：
+Traits: 通过 derive macro 来实现，使用 #[derive] 定义命令和参数。
 
-```rust
-let m = Command::new("cmd")
-    .author(crate_authors!("\n"))
-    .version(crate_version!())
-    .about(crate_description!())
-    .get_matches();
-
-let m = Command::new(crate_name!())
-    .get_matches();
-```
-
-Traits: 主要通过 derive macro 来实现，使用 drive 风格定义命令和参数。
-
+-   Parser    Parse command-line arguments into Self.
 -   Args     Parse a set of arguments into a user-defined container.
 -   CommandFactory    Create a Command relevant for a user-defined container.
 -   FromArgMatches    Converts an instance of ArgMatches to a user-defined container.
--   Parser    Parse command-line arguments into Self.
 -   Subcommand    Parse a sub-command into a user-defined enum.
 -   ValueEnum    Parse arguments into enums.
 
@@ -238,6 +235,7 @@ where
 ```rust
 #[derive(Copy, Clone, Debug)]
 pub struct Custom(u32);
+
 impl clap::builder::ValueParserFactory for Custom {
     type Parser = CustomValueParser;
     fn value_parser() -> Self::Parser {
@@ -246,6 +244,7 @@ impl clap::builder::ValueParserFactory for Custom {
 }
 #[derive(Clone, Debug)]
 pub struct CustomValueParser;
+
 impl clap::builder::TypedValueParser for CustomValueParser {
     type Value = Custom;
 
@@ -524,7 +523,7 @@ where
 
 示例：
 
--   未调用 value_parser() 指定 ValueParser 时默认为 StringValueParser，所以默认解析为 String；
+-   为调用 value_parser() 指定 ValueParser 时默认为 StringValueParser，所以默认解析为 String；
 -   为调用 action() 时默认为 ArgAction::Set，对于 Vec 需要指定为 action(ArgAction::Append))；
 
 <!--listend-->
@@ -853,11 +852,7 @@ fn main() {
 }
 ```
 
-位置参数：
-
-1.  没有指定任何 clip 相关的 attr 的 filed 为位置参数；
-
-<!--listend-->
+位置参数：没有指定任何 clip 相关的 attr 的 filed 为位置参数；
 
 ```rust
 use clap::Parser;
@@ -1113,3 +1108,8 @@ fn main() {
     println!("port: {:?}", cli.port);
 }
 ```
+
+参考：
+
+1.  <https://github.com/mrjackwills/havn/blob/main/src/parse_arg.rs>
+2.  <https://github.com/franticxx/dn/blob/main/src/cli/cli.rs>

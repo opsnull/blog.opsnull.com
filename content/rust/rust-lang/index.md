@@ -2,7 +2,7 @@
 title: "Rust-个人参考手册"
 author: ["张俊(zj@opsnull.com)"]
 date: 2024-04-05T00:00:00+08:00
-lastmod: 2024-05-29T17:41:31+08:00
+lastmod: 2024-06-08T21:58:21+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -1661,6 +1661,10 @@ assert!(empty_slice_of_arrays.flatten().is_empty());
 
 slice [T] 方法：由于 array/Vec 可以被 type coerse 到 [T], 所以 array/Vec 也可以调用 slice 的方法。
 
+-   不能直接迭代 slice, 而是调用它的 iter() 或 iter_mut() 方法返回的迭代器；
+
+<!--listend-->
+
 ```rust
 impl<T> [T]
 
@@ -1753,10 +1757,10 @@ assert!(!a.as_ptr_range().contains(&y));
 
 // 交换两个位置的值
 pub fn swap(&mut self, a: usize, b: usize)
+pub unsafe fn swap_unchecked(&mut self, a: usize, b: usize)
 let mut v = ["a", "b", "c", "d", "e"];
 v.swap(2, 4);
 assert!(v == ["a", "b", "e", "d", "c"]);
-pub unsafe fn swap_unchecked(&mut self, a: usize, b: usize)
 
 // 反转 slice 元素
 pub fn reverse(&mut self)
@@ -1777,7 +1781,7 @@ let slice = ['f', 'o', 'o'];
 let mut iter = slice.windows(4);
 assert!(iter.next().is_none());
 
-// 不重叠的分组迭代
+// 不重叠的分组迭代，每次迭代返回一个切片 &[T]
 pub fn chunks(&self, chunk_size: usize) -> Chunks<'_, T>
 pub fn chunks_mut(&mut self, chunk_size: usize) -> ChunksMut<'_, T>
 pub fn chunks_exact(&self, chunk_size: usize) -> ChunksExact<'_, T>
@@ -1801,7 +1805,7 @@ assert_eq!(iter.next().unwrap(), &['r', 'e']);
 assert!(iter.next().is_none());
 assert_eq!(iter.remainder(), &['m']);
 
-// 将 slice 分为 N 个元素数组的 slice 和最后剩下的元素 slice
+// 分为 N 个元素数组的 slice 和最后剩下的元素 slice
 pub const fn as_chunks<const N: usize>(&self) -> (&[[T; N]], &[T])
 pub const fn as_rchunks<const N: usize>(&self) -> (&[T], &[[T; N]])
 pub const unsafe fn as_chunks_unchecked_mut<const N: usize>( &mut self ) -> &mut [[T; N]]
@@ -1819,7 +1823,7 @@ let (chunks, []) = slice.as_chunks::<2>() else { // 使用 let-else 来匹配剩
 };
 assert_eq!(chunks, &[['R', 'u'], ['s', 't']]);
 
-// array_chunks 是 chunks_exact 的泛型常量版本，即数组的长度是通过泛型常量参数来指定的
+// chunks_exact 的泛型常量版本，即数组的长度是通过泛型常量参数来指定的
 pub fn array_chunks<const N: usize>(&self) -> ArrayChunks<'_, T, N>
 pub fn array_chunks_mut<const N: usize>(&mut self) -> ArrayChunksMut<'_, T, N>
 pub fn array_windows<const N: usize>(&self) -> ArrayWindows<'_, T, N>
@@ -1906,7 +1910,7 @@ assert_eq!(s.split_once(|&x| x == 2), Some((
 )));
 assert_eq!(s.split_once(|&x| x == 0), None);
 
-// 是否包含值
+// 是否包含引用值
 pub fn contains(&self, x: &T) -> bool where T: PartialEq
 let v = [10, 40, 30];
 assert!(v.contains(&30));
@@ -2051,11 +2055,8 @@ if let Ok([a, b]) = v.get_many_mut([0, 2]) {
     *b = 612;
 }
 assert_eq!(v, &[413, 2, 612]);
-```
 
-其他 slice 方法：
-
-```rust
+// 其它  [T] 方法
 impl<T> [T]
 
 pub fn sort(&mut self) where T: Ord
@@ -2072,11 +2073,11 @@ assert!(v == [1, 2, -3, 4, -5]);
 
 // 从 slice 生成 Vec
 pub fn to_vec(&self) -> Vec<T> where T: Clone
+pub fn to_vec_in<A>(&self, alloc: A) -> Vec<T, A> where A: Allocator, T: Clone
+
 let s = [10, 40, 30];
 let x = s.to_vec();
 // Here, `s` and `x` can be modified independently.
-
-pub fn to_vec_in<A>(&self, alloc: A) -> Vec<T, A> where A: Allocator, T: Clone
 
 pub fn into_vec<A>(self: Box<[T], A>) -> Vec<T, A> where A: Allocator
 let s: Box<[i32]> = Box::new([10, 40, 30]);
@@ -2087,12 +2088,12 @@ assert_eq!(x, vec![10, 40, 30]);
 pub fn repeat(&self, n: usize) -> Vec<T> where T: Copy
 assert_eq!([1, 2].repeat(3), vec![1, 2, 1, 2, 1, 2]);
 
-// 将 slice T 打平为一个值 Self::Output
+// 将 slice 打平为一个值 Self::Output
 pub fn concat<Item>(&self) -> <[T] as Concat<Item>>::Output where [T]: Concat<Item>, Item: ?Sized
 assert_eq!(["hello", "world"].concat(), "helloworld");
 assert_eq!([[1, 2], [3, 4]].concat(), [1, 2, 3, 4]);
 
-// 使用指定分隔符打平 slice T
+// 使用指定分隔符打平 slice
 pub fn join<Separator>( &self, sep: Separator) -> <[T] as Join<Separator>>::Output where [T]: Join<Separator>
 assert_eq!(["hello", "world"].join(" "), "hello world");
 assert_eq!([[1, 2], [3, 4]].join(&0), [1, 2, 0, 3, 4]);
@@ -2248,6 +2249,14 @@ fn main() {
     println!("rc: {}, rc_clone: {}", rc, rc_clone);
 }
 ```
+
+指针内存布局：
+
+1.  普通引用和裸指针：占用一个机器字，一般是 isize 大小；
+2.  切片引用 &amp;[T]， 字符串引用 &amp;str：占用两个机器字，分别保存内存区域指针+元素数量；
+3.  Box&lt;T&gt;: 占用一个机器字，保存内存区域指针；
+4.  Box&lt;dyn Trait&gt; 或 &amp;dyn Trait: 占用两个机器字，保存实际对象的内存指针，以及该对象实现的各种方法的
+    vtable 指针；
 
 
 ## <span class="section-num">10</span> struct {#struct}
@@ -3225,23 +3234,18 @@ Rust 标准库提供了 std::error::Error trait，标准库中绝大部分错误
 std::fmt::Error 类型都实现了该 trait。而且标准库为 std::error::Error 实现了到 Box&lt;dyn Error + 'a&gt; 和
 Box&lt;dyn Error + Sync + Send + 'a&gt; 的 From trait 转换实现. 所以实现了 std::error:Error trait 的错误类型都可以使用 ? 转换到 Box&lt;dyn Error + 'a&gt;和 Box&lt;dyn Error + Sync + Send + 'a&gt; 类型:
 
--   加 Send + Sync 和 'static 后可以让 trait object 来跨线程返回, 例如在 aysnc spawn 场景中；
--   自定义 Error 类型也建议实现 std::error::Error trait，这样可以将函数返回值错误统一为
-    Box&lt;std::error::Error + Send + 'static&gt;
-
-<!--listend-->
-
 ```rust
 impl<'a, E> From<E> for Box<dyn Error + 'a> where E: Error + 'a,
 impl<'a, E> From<E> for Box<dyn Error + Sync + Send + 'a> where E: Error + Send + Sync + 'a,
 ```
 
+最佳实践：函数返回的 Error 类型使用 Box&lt;std::error::Error + Send + Sync + 'static&gt; ：
+
+-   加 Send + Sync + 'static 后可以让 trait object 来跨线程返回, 例如在 aysnc spawn 场景中；
+-   标准库的其他 error 类型都实现了到 std::error::Error 和上面 trait object 的转换；
+
 标准库为实现 std::error::Error trait 的类型都实现了 ToString、Display 和 Debug trait, 可以用
 println!() 直接打印:
-
--   std::error::Error trait 没有必须要实现的方法；
-
-<!--listend-->
 
 ```rust
 println!("error querying the weather: {}", err);
@@ -3302,7 +3306,7 @@ fn main() {
 自定义 Error 类型, 提供更丰富/个性化的上下文和出错信息:
 
 -   实现 fmt::Display 的 fmt() 方法；
--   实现 std::error::Error trait；
+-   实现 std::error::Error trait（ Error trait 都有默认实现，可以只是标记实现）。
 -   实现 From&lt;XX&gt; trait, 将其他类型错误 XX 转换为自定义类型错误。如果转换不一定成功，可以使用
     TryFrom&lt;XX&gt; trait, 它返回一个 Result 来指示是否转换成功。
 
@@ -5449,8 +5453,10 @@ fn main() {
     foo(3, 4);
 }
 
-// 不可失败匹配模式
+// 不可失败匹配模式, let 解构后的变量后续可以直接使用。
 let ((feet, inches), Point {x, y}) = ((3, 10), Point { x: 3, y: -10 });
+let Some(caps) = re.captures(hay) else { return };
+assert_eq!("J", &caps[1]);
 ```
 
 在进行解构时，\_ 表达式用于占位，表示匹配所有。当位于 array/tuple/slice 中表示忽略指定位置的元素。
@@ -7173,8 +7179,8 @@ fn main() {
 trait 支持关联类型, 这些类型在定义 trait 时未知，但是在实现该 trait 时需要指定具体类型：
 
 -   关联类型不需要作为 trait 的泛型参数来指定；
--   关联类型可以指定缺省值，在实现该 trait 或将 trait 作为 bound 约束时，可以指定关联类型的具体类型。
--   后续也可以对关联类型进行限界.
+-   关联类型可以指定缺省值，在实现该 trait 或将 trait 作为 bound 约束时，可以指定关联类型的具体类型;
+-   可以使用 where 对关联类型进行限界，例如 Box&lt;dyn Iterator&lt;Item=u8&gt;&gt; 或 impl Iterator&lt;Item=u8&gt;;
 
 <!--listend-->
 
@@ -7210,8 +7216,8 @@ fn main() {
 // 依次输出  2 4 6 8 10
 ```
 
-泛型 trait 的泛型参数可以有缺省类型。对于有缺省参数 + 关联类型的泛型 trait, 可以同时指定参数+关联类型, 例如, 在使用 Add 进行限界时可以使用 Add&lt;&amp;T, Output=T&gt; , 但不能使用 Add&lt;Rhs=&amp;T, Output=T&gt;, Rust
-报错没有 Rhs 关联类型;
+泛型 trait 的泛型参数可以有缺省类型, 例如各种运算符重载 trait 都指定了默认类型。对于有缺省参数 + 关联类型的泛型 trait, 可以同时指定参数+关联类型, 例如, 在使用 Add 进行限界时可以使用 Add&lt;&amp;T, Output=T&gt;
+或 Add&lt;Output=T&gt; （省略有缺省值的参数）, 但不能使用 Add&lt;Rhs=&amp;T, Output=T&gt;, Rust报错没有 Rhs 关联类型;
 
 ```rust
 pub trait Add<Rhs = Self> { // 泛型 trait，类型参数有缺省值
@@ -7220,7 +7226,6 @@ pub trait Add<Rhs = Self> { // 泛型 trait，类型参数有缺省值
     // Required method
     fn add(self, rhs: Rhs) -> Self::Output;
 }
-
 
 use std::ops::Add;
 // 定义一个包含 Add trait 作为泛型限界的结构体
@@ -7744,20 +7749,21 @@ CalSum&gt;::sum(&amp;s1, 1) 明确表示我们要调用 S1 实现的 CalSum 的 
       Box::new(value)` ;
 -   特殊的 trait Any 一般用于 downcase() 到具体的类型.
 
-dyn 语法: `dyn TypeParamBounds` , TypeParamBounds 是一系列具有如下限制的 trait bound：
+能定义 trait object 的 trait 必须是对象安全的，需要满足如下要求：
 
-1.  All traits except the first trait must be `auto traits` ；
-    -   [auto trait](https://doc.rust-lang.org/reference/special-types-and-traits.html#auto-traits) 包括：Send, Sync, Unpin, UnwindSafe 和  RefUnwindSafe。
-2.  there may not be more than `one lifetime`
-3.  opt-out bounds (e.g. ?Sized) are not allowed
-4.  paths to traits may be parenthesized.
+-   Trait 方法不返回 Self，因为 trait object 是运行时派发，编译时不能对确定 Self 类型故不能做检查；
+    -   解决办法：fn splice(&amp;self, other: &amp;Self) -&gt; Self 修正为 fn splice(&amp;self, other: &amp;dyn MyTrait) -&gt;
+        Box&lt;dyn MyTrait&gt;
+-   Trait 方法没有泛型参数。
 
-注:
+trait object，如 Box&lt;dyn Trait + Send + 'static&gt; 的要求：
 
-1.  Rust 2021 前版本 dyn 关键字是可选的;
-2.  dyn 优先级低，后面的 Bound 才是一个语法元素.
+1.  除了第一个 trait 外，其他 trait 只能是 [auto trait](https://doc.rust-lang.org/reference/special-types-and-traits.html#auto-traits) 包括：Send, Sync, Unpin, UnwindSafe 和
+    RefUnwindSafe，不支持 ?Sized trait，不支持：dyn Debug + Hash + Eq 的 trait object；
+2.  最多指定一个 lifetime；
+3.  trait 的路径可以用括号括起来，适用于复杂的定义场景；
 
-示例：
+Rust 2021 前版本 dyn 关键字是可选的。 dyn 优先级低，后面的 Bound 才是一个语法元素.
 
 ```rust
 dyn Trait
@@ -7770,12 +7776,13 @@ dyn 'static + Trait.
 dyn (Trait)
 dyn Trait + 'a // 可以为 trait object 指定 lifetime
 dyn eviction::EvictionManager + Sync  // 可以使用 path 来完整指定 trait
+&(dyn MyTrait + Send)
 ```
 
 两个 dyn trait 的 trait、lifetime 如果相同的话，则类型互为别名，例如：dyn Trait + Send + UnwindSafe
 和 dyn Trait + UnwindSafe + Send 相同。
 
-当使用 &amp;dyn Trait 时，如果要指定 Send/lifetime 等，则需要使用 `&(dyn Trait + Send + 'a) 格式` ，否则
+当使用 &amp;dyn Trait 时，如果要指定 Send/lifetime 等，则需要使用 `&mut (dyn Trait + Send + 'a) 格式` ，否则
 Rust 报错 + 号有歧义：
 
 -   当参数类型是 &amp;dyn Trait 时，需要传入实现该 Trait 的借用类型值，如 MyStruct 实现了 MyTrait, 则需要使用 &amp;dyn Trait 的地方需要传入 &amp;MyStruct 的值。
@@ -8241,7 +8248,9 @@ fn returns_closure() -> impl Fn(i32) -> i32 {
 | `== and !=`                  | PartialEq  |
 | &lt;, &gt;, &lt;=, and &gt;= | PartialOrd |
 
-类型实现 std::ops 下的各 trait， 以实现运算符重载：
+PartialEq 只包含 eq 或 ne，而 PartialOrd 只需要实现 partial_cmp() 方法，则可以实现各种大小比较关系。
+
+类型实现 std::ops 下的各 trait 以实现运算符重载：
 
 ```rust
 use std::ops;
@@ -8867,7 +8876,33 @@ pub trait IntoIterator {
 ```
 
 
-### <span class="section-num">19.15</span> Try {#try}
+### <span class="section-num">19.15</span> Extend {#extend}
+
+std::iter::Extend trait 定义：
+
+```rust
+pub trait Extend<A> {
+    // Required method
+    fn extend<T>(&mut self, iter: T)
+       where T: IntoIterator<Item = A>;
+
+    // Provided methods
+    fn extend_one(&mut self, item: A) { ... }
+    fn extend_reserve(&mut self, additional: usize) { ... }
+}
+```
+
+主要用于消费传入的迭代器，将元素插入到自身集合中。Rust 的各种集合类型都实现了 Extend trait：
+
+```rust
+// You can extend a String with some chars:
+let mut message = String::from("The first three letters are: ");
+message.extend(&['a', 'b', 'c']);
+assert_eq!("abc", &message[29..32]);
+```
+
+
+### <span class="section-num">19.16</span> Try {#try}
 
 ? 运算法可以用于 Result/Option, 它可以使用 std::ops::Try trait 来自定义:
 
@@ -8887,7 +8922,7 @@ pub trait Try: FromResidual {
 ```
 
 
-### <span class="section-num">19.16</span> AsRef/AsMut {#asref-asmut}
+### <span class="section-num">19.17</span> AsRef/AsMut {#asref-asmut}
 
 例如 std::fs:<:open> 函数的声明：open 的实现依赖于 &amp;Path，通过限定 P 实现了 AsRef&lt;Path&gt;，在 open
 内部就可以通过 P.as_ref() 方法调用返回 &amp;Path 的类型对象。
@@ -8910,7 +8945,7 @@ impl AsRef<Path> for String {
 ```
 
 
-### <span class="section-num">19.17</span> Index/IndexMut {#index-indexmut}
+### <span class="section-num">19.18</span> Index/IndexMut {#index-indexmut}
 
 a 可以实现 Index trait 和 IndexMutt trait, 前者的 index() 返回 &amp;Self::Output, 后者的 index_mut() 返回 &amp;mut Self::Output;
 
@@ -8971,7 +9006,7 @@ type Output = str
 ```
 
 
-### <span class="section-num">19.18</span> Borrow/ToOwned/Cow {#borrow-toowned-cow}
+### <span class="section-num">19.19</span> Borrow/ToOwned/Cow {#borrow-toowned-cow}
 
 Borrow 和 BorrowMut 和 AsRef/AsMut 类似，Borrow&lt;T&gt; 是从自身创建一个 &amp;T 的借用，但是它要求 &amp;T 必须和
 Self 能以相同的方式进行哈希和比较时，Self 才应该实现 Borrow&lt;T&gt;。Rust 编译器并不会强制该限制，但是
@@ -9181,7 +9216,7 @@ fn foo(s: &str, some_condition: bool) -> Cow<str> {
 ```
 
 
-### <span class="section-num">19.19</span> Deref/DerefMut {#deref-derefmut}
+### <span class="section-num">19.20</span> Deref/DerefMut {#deref-derefmut}
 
 Deref/DerefMut trait 定义：
 
@@ -9251,7 +9286,12 @@ while !*started {
 }
 ```
 
-Rust 不会自动通过 Deref trait 来解引用来满足泛型参数限界的要求:
+Rust 自动通过 Deref trait 来满足赋值或传参类型的隐式转换，但是如果函数的参数是泛型限界，则 Rust 不会通过 Deref trait 来解引用来满足泛型参数限界的要求，两种解决办法：
+
+1.  使用 as 类型转换;
+2.  手动解引用 &amp;\*V；
+
+<!--listend-->
 
 ```rust
 use std::ops::{Deref, DerefMut};
@@ -9307,7 +9347,7 @@ impl<T: ?Sized> const Deref for &T {
 ```
 
 
-### <span class="section-num">19.20</span> smart pointer {#smart-pointer}
+### <span class="section-num">19.21</span> smart pointer {#smart-pointer}
 
 实际上只要实现了 Deref trait 的类型都可以称为 smart pointer。Deref 文档列出了标准库中实现 Deref
 trait 的所有类型列表：<https://doc.rust-lang.org/std/ops/trait.Deref.html>
@@ -9443,7 +9483,7 @@ fn main() {
 ```
 
 
-### <span class="section-num">19.21</span> Box&lt;T&gt; {#box-t}
+### <span class="section-num">19.22</span> Box&lt;T&gt; {#box-t}
 
 Rust 值默认在 stack 上分配. 可以使用 Box&lt;T&gt; 将 T 值在 heap 上分配，从而解决几个问题：
 
@@ -9607,7 +9647,7 @@ fn main() {
 Box&lt;T&gt; 默认没有实现 Copy，在赋值时会被移动。其他智能指针，如 Rc/Arc/Cell/RefCell 类似。
 
 
-### <span class="section-num">19.22</span> Rc/Arc&lt;T&gt; {#rc-arc-t}
+### <span class="section-num">19.23</span> Rc/Arc&lt;T&gt; {#rc-arc-t}
 
 Rc&lt;T&gt; 和 Box&lt;T&gt; 类似, a = Rc::new(T) 都是在堆上为 T 分配内存，并 ownership 它，但是：
 
@@ -9898,7 +9938,7 @@ fn main() {
 ```
 
 
-### <span class="section-num">19.23</span> Cell&lt;T&gt;/RefCell&lt;T&gt; {#cell-t-refcell-t}
+### <span class="section-num">19.24</span> Cell&lt;T&gt;/RefCell&lt;T&gt; {#cell-t-refcell-t}
 
 在不可变对象中引入一些可变性，称为内部可变性 interior mutability。
 
@@ -10038,7 +10078,7 @@ Mutext&lt;T&gt;/RwLock&lt;T&gt;/OnceLock&lt;T&gt;/原子操作类型，提供了
 来调用它们的 mut 方法，例如 lock().
 
 
-### <span class="section-num">19.24</span> Pin/UnPin {#pin-unpin}
+### <span class="section-num">19.25</span> Pin/UnPin {#pin-unpin}
 
 由于 move 机制的存在，导致在 Rust 很难去正确表达『自引用』的结构，比如链表、树等。主要问题：move 只会进行值本身的拷贝，指针的指向则不变。如果被 move 的结构有指向其他字段的指针，那么这个指向被 move 后就是非法的，因为原始指向已经换地址了。
 
@@ -10071,7 +10111,7 @@ assert_eq!(future.as_mut().poll(&mut cx), task::Poll::Ready(10));
 ```
 
 
-### <span class="section-num">19.25</span> Send/Sync {#send-sync}
+### <span class="section-num">19.26</span> Send/Sync {#send-sync}
 
 -   Send：对象可以在多个线程中转移 move （也就是对象在多线程间转移具有原子性）；
 -   Sync：可以在多个线程中共享引用对象；
@@ -11064,7 +11104,7 @@ assert_eq!(iter.next(), Some(&3));
 assert_eq!(iter.advance_by(0), Ok(()));
 assert_eq!(iter.advance_by(100), Err(NonZeroUsize::new(99).unwrap())); // only `&4` was skipped
 
-// 返回第 n 个元素（0开始）
+// 返回第 n 个元素（0 开始）
 fn nth(&mut self, n: usize) -> Option<Self::Item> { ... }
 let a = [1, 2, 3];
 let mut iter = a.iter();
@@ -11144,7 +11184,6 @@ let (tx, rx) = channel();
 (0..5).map(|x| x * 2 + 1).for_each(move |x| tx.send(x).unwrap());
 let v: Vec<_> = rx.iter().collect();
 assert_eq!(v, vec![1, 3, 5, 7, 9]);
-
 
 // 使用 predicate 过滤元素，返回为 true 的元素的迭代器（predicate 的参数是元素的借用）
 fn filter<P>(self, predicate: P) -> Filter<Self, P> where Self: Sized, P: FnMut(&Self::Item) -> bool { ... }
@@ -11254,7 +11293,7 @@ assert_eq!(iter.next(), Some(1));
 assert_eq!(iter.next(), Some(2));
 assert_eq!(iter.next(), None);
 
-// 和 fold 类似，但返回的是可迭代对象，每次迭代返回 f 闭包执行的结果 Some，当闭包 f 返回 None 时停止迭代
+// 返回一个迭代器，每次迭代返回 f 闭包执行的结果 Some，当闭包 f 返回 None 时停止迭代
 fn scan<St, B, F>(self, initial_state: St, f: F) -> Scan<Self, St, F> where Self: Sized, F: FnMut(&mut St, Self::Item) -> Option<B> { ... }
 let a = [1, 2, 3, 4];
 let mut iter = a.iter().scan(1, |state, &x| {
@@ -11273,14 +11312,14 @@ assert_eq!(iter.next(), Some(-6));
 assert_eq!(iter.next(), None);
 
 // 先对元素进行 map F 操作，F 返回一个迭代器，然后对各 map 结果迭代器进行 flat
-fn flat_map<U, F>(self, f: F) -> FlatMap<Self, U, F> where Self: Sized, U: IntoIterator, F: FnMut(Self::Item) -> U { ... }
+fn flat_map<U, F>(self, f: F) -> FlatMap<Self, U, F> where Self: Sized, U: IntoIterator, F: FnMut(Self::Item) -> U
 let words = ["alpha", "beta", "gamma"];
 // chars() returns an iterator
 let merged: String = words.iter().flat_map(|s| s.chars()).collect();
 assert_eq!(merged, "alphabetagamma");
 
 // 返回一个将可迭代元素打平的迭代器
-fn flatten(self) -> Flatten<Self> where Self: Sized, Self::Item: IntoIterator { ... }
+fn flatten(self) -> Flatten<Self> where Self: Sized, Self::Item: IntoIterator
 let data = vec![vec![1, 2, 3, 4], vec![5, 6]];
 let flattened = data.into_iter().flatten().collect::<Vec<u8>>();
 assert_eq!(flattened, &[1, 2, 3, 4, 5, 6]);
@@ -11298,8 +11337,8 @@ assert_eq!(d2, [&[1, 2], &[3, 4], &[5, 6], &[7, 8]]);
 let d1 = d3.iter().flatten().flatten().collect::<Vec<_>>();
 assert_eq!(d1, [&1, &2, &3, &4, &5, &6, &7, &8]);
 
-// 先将元素按照 N 分组 window（window 间元素有重合），然后再对每个 window 的元素执行 f 闭包如果元素
-// 少于 N，则返回空迭代器
+// 先将元素按照 N 分组 window（window 间元素有重合），然后再对每个 window 的元素执行 f 闭包，如果元
+// 素少于 N 则返回空迭代器
 fn map_windows<F, R, const N: usize>(self, f: F) -> MapWindows<Self, F, N> where Self: Sized, F: FnMut(&[Self::Item; N]) -> R { ... }
 #![feature(iter_map_windows)]
 let strings = "abcd".chars()
@@ -11331,19 +11370,18 @@ let sum = a.iter()
     .fold(0, |sum, i| sum + i);
 println!("{sum}");
 
-// borrow 但不消耗 Self，迭代器可以继续使用
+// borrow 但不转移 Self，迭代器可以继续使用
 fn by_ref(&mut self) -> &mut Self where Self: Sized { ... }
-let mut words = ["hello", "world", "of", "Rust"].into_iter(); // words 是迭代器对象
+let mut words = ["hello", "world", "of", "Rust"].into_iter();
 // Take the first two words.
-let hello_world: Vec<_> = words.by_ref().take(2).collect(); // 不消耗  words
+let hello_world: Vec<_> = words.by_ref().take(2).collect(); // 不转移  words
 assert_eq!(hello_world, vec!["hello", "world"]);
-// Collect the rest of the words.
-// We can only do this because we used `by_ref` earlier.
+// Collect the rest of the words. We can only do this because we used `by_ref` earlier.
 let of_rust: Vec<_> = words.collect(); // words 还可以继续使用
 assert_eq!(of_rust, vec!["of", "Rust"]);
 
-// 使用 FromIterator trait 从迭代器元素生成 B 类型对象
-fn collect<B>(self) -> B where B: FromIterator<Self::Item>, Self: Sized { ... }
+// 使用 B 的 FromIterator trait 来从自身迭代器元素生成 B 类型对象
+fn collect<B>(self) -> B where B: FromIterator<Self::Item>, Self: Sized
 let doubled: Vec<i32> = a.iter() .map(|&x| x * 2) .collect();
 assert_eq!(vec![2, 4, 6], doubled);
 let a = [1, 2, 3];
@@ -11403,7 +11441,7 @@ assert!(!"IntoIterator".chars().is_partitioned(char::is_uppercase));
 fn try_fold<B, F, R>(&mut self, init: B, f: F) -> R where Self: Sized, F: FnMut(B, Self::Item) -> R, R: Try<Output = B>
 fn try_for_each<F, R>(&mut self, f: F) -> R where Self: Sized, F: FnMut(Self::Item) -> R, R: Try<Output = ()>
 
-// 将迭代器值按照 F 进行聚合，返回最后的结果
+// 将迭代器值按照 F 进行聚合，同时传入初始值，返回最后的结果
 fn fold<B, F>(self, init: B, f: F) -> B where Self: Sized, F: FnMut(B, Self::Item) -> B { ... }
 let a = [1, 2, 3];
 // the sum of all of the elements of the array
@@ -11418,7 +11456,7 @@ assert_eq!(reduced, 45);
 let folded: i32 = (1..10).fold(0, |acc, e| acc + e);
 assert_eq!(reduced, folded);
 
-fn try_reduce<F, R>( &mut self, f: F ) -> >::TryType where Self: Sized, F: FnMut(Self::Item, Self::Item) -> R, R: Try<Output = Self::Item>, <R as Try>::Residual: Residual<Option<Self::Item>> { ... }
+fn try_reduce<F, R>( &mut self, f: F ) -> >::TryType where Self: Sized, F: FnMut(Self::Item, Self::Item) -> R, R: Try<Output = Self::Item>, <R as Try>::Residual: Residual<Option<Self::Item>>
 
 // 迭代的所有元素满足 f
 fn all<F>(&mut self, f: F) -> bool where Self: Sized, F: FnMut(Self::Item) -> bool { ... }
@@ -11426,7 +11464,7 @@ fn all<F>(&mut self, f: F) -> bool where Self: Sized, F: FnMut(Self::Item) -> bo
 // 迭代的任一元素满足 f
 fn any<F>(&mut self, f: F) -> bool where Self: Sized, F: FnMut(Self::Item) -> bool { ... }
 
-// 返回 predicate 返回 true 的元素；对比：position() 返回元素的 index
+// 返回 predicate 为 true 的第一个元素或 None；对比：position() 返回元素的 index
 fn find<P>(&mut self, predicate: P) -> Option<Self::Item> where Self: Sized, P: FnMut(&Self::Item) -> bool { ... }
 let a = [1, 2, 3];
 let mut iter = a.iter();
@@ -11434,7 +11472,7 @@ assert_eq!(iter.find(|&&x| x == 2), Some(&2));
 // we can still use `iter`, as there are more elements.
 assert_eq!(iter.next(), Some(&3));
 
-// 对迭代器元素执行 f，返回第一个非 None 的结果 Option，等效于 iter.filter_map(f).next().
+// 对迭代器元素执行 f，返回第一个 f 结尾为 Some(B) 的 Option<B>，等效于 iter.filter_map(f).next().
 fn find_map<B, F>(&mut self, f: F) -> Option<B> where Self: Sized, F: FnMut(Self::Item) -> Option<B> { ... }
 let a = ["lol", "NaN", "2", "5"];
 let first_number = a.iter().find_map(|s| s.parse().ok());
@@ -11442,23 +11480,23 @@ assert_eq!(first_number, Some(2));
 
 fn try_find<F, R>( &mut self, f: F ) -> >::TryType where Self: Sized, F: FnMut(&Self::Item) -> R, R: Try<Output = bool>, <R as Try>::Residual: Residual<Option<Self::Item>> { ... }
 
-// 查找满足 predicate 的元素，返回他的 index。对比： find() 返回元素本身。
+// 查找满足 predicate 的元素，返回它的 index。对比：find() 返回元素本身。
 fn position<P>(&mut self, predicate: P) -> Option<usize> where Self: Sized, P: FnMut(Self::Item) -> bool { ... }
 let a = [1, 2, 3];
 assert_eq!(a.iter().position(|&x| x == 2), Some(1));
 assert_eq!(a.iter().position(|&x| x == 5), None);
 
-fn rposition<P>(&mut self, predicate: P) -> Option<usize> where P: FnMut(Self::Item) -> bool, Self: Sized + ExactSizeIterator + DoubleEndedIterator { ... }
+fn rposition<P>(&mut self, predicate: P) -> Option<usize> where P: FnMut(Self::Item) -> bool, Self: Sized + ExactSizeIterator + DoubleEndedIterator
 
-fn max(self) -> Option<Self::Item> where Self: Sized, Self::Item: Ord { ... }
-fn min(self) -> Option<Self::Item> where Self: Sized, Self::Item: Ord { ... }
+fn max(self) -> Option<Self::Item> where Self: Sized, Self::Item: Ord
+fn min(self) -> Option<Self::Item> where Self: Sized, Self::Item: Ord
 
 // 根据 f 闭包返回的结果来找最大值
-fn max_by_key<B, F>(self, f: F) -> Option<Self::Item> where B: Ord, Self: Sized, F: FnMut(&Self::Item) -> B { ... }
+fn max_by_key<B, F>(self, f: F) -> Option<Self::Item> where B: Ord, Self: Sized, F: FnMut(&Self::Item) -> B
 let a = [-3_i32, 0, 1, 5, -10];
 assert_eq!(*a.iter().max_by_key(|x| x.abs()).unwrap(), -10);
 
-// 根据  compare 函数的返回值来找最大值
+// 根据 compare 函数的返回值来找最大值
 fn max_by<F>(self, compare: F) -> Option<Self::Item> where Self: Sized, F: FnMut(&Self::Item, &Self::Item) -> Ordering { ... }
 let a = [-3_i32, 0, 1, 5, -10];
 assert_eq!(*a.iter().max_by(|x, y| x.cmp(y)).unwrap(), 5);
@@ -11475,8 +11513,8 @@ assert_eq!(iter.next(), Some(&2));
 assert_eq!(iter.next(), Some(&1));
 assert_eq!(iter.next(), None);
 
-// 迭代器迭代返回 (A, B), 然后返回两个分别是 A 、B 聚合后的对象
-fn unzip<A, B, FromA, FromB>(self) -> (FromA, FromB) where FromA: Default + Extend<A>, FromB: Default + Extend<B>, Self: Sized + Iterator<Item = (A, B)> { ... }
+// 迭代器迭代返回 (A, B), 然后返回两个分别是 A 、B 聚合后的对象。A，B
+fn unzip<A, B, FromA, FromB>(self) -> (FromA, FromB) where FromA: Default + Extend<A>, FromB: Default + Extend<B>, Self: Sized + Iterator<Item = (A, B)>
 let a = [(1, 2), (3, 4), (5, 6)];
 let (left, right): (Vec<_>, Vec<_>) = a.iter().cloned().unzip();
 assert_eq!(left, [1, 3, 5]);
@@ -11497,8 +11535,8 @@ let v_map: Vec<_> = a.iter().map(|&x| x).collect();
 assert_eq!(v_copied, vec![1, 2, 3]);
 assert_eq!(v_map, vec![1, 2, 3]);
 
-// 使用元素的 Clone 对象来返回一个新的迭代器，特别适合 从 &T 返回 T
-fn cloned<'a, T>(self) -> Cloned<Self> where T: 'a + Clone, Self: Sized + Iterator<Item = &'a T> { ... }
+// 使用元素的 Clone 对象来返回一个新的迭代器，适合 从 &T 返回 T
+fn cloned<'a, T>(self) -> Cloned<Self> where T: 'a + Clone, Self: Sized + Iterator<Item = &'a T>
 let a = [1, 2, 3];
 let v_cloned: Vec<_> = a.iter().cloned().collect();
 // cloned is the same as .map(|&x| x), for integers
@@ -11518,6 +11556,7 @@ assert_eq!(it.next(), Some(&2));
 assert_eq!(it.next(), Some(&3));
 assert_eq!(it.next(), Some(&1));
 
+// 返回一个迭代器，每次迭代返回 N 个元素的数组。
 fn array_chunks<const N: usize>(self) -> ArrayChunks<Self, N> where Self: Sized { ... }
 
 // 返回元素的 sum，可能会 panic。Option/Result 也实现了 Sum
@@ -14485,7 +14524,7 @@ C 常见的情况是, 传递一个指针, 然后函数内的逻辑来修改指�
 -   MaybeUninit.as_mut_ptr() 返回这个内存区域的 \*mut T 指针, 可以将他传递给 FFI 函数使用;
 -   然后调用 MaybeUninit.assume_init() 来将内存区域标记为已初始化;
 
-也可以创建外部函数调用 Rust 代码，这时需要在 Rust 函数签名前添加：extern "C"，以及 #[no_mangle] 属性：
+也可以将 Rust 代码编译为 C 动态库，然后被其它 Rust 程序或 C/C++ 等程序调用，这需要在 Rust 函数签名前添加：extern "C"，以及 #[no_mangle] 属性
 
 -   \#[no_mangle] 用于指示 Rust 编译器不要对该函数改名，从而让其它语言能正确识别该 Rust 函数。
 -   该 Rust 函数不需要标记为 unsafe。
@@ -14498,6 +14537,560 @@ pub extern "C" fn call_from_c() {
     println!("Just called a Rust function from C!");
 }
 ```
+
+如果是 Rust 程序调用 C 库函数，可以使用 dlopen2 crate。
+
+
+### <span class="section-num">26.1</span> How to build a plugin system in Rust {#how-to-build-a-plugin-system-in-rust}
+
+<https://www.arroyo.dev/blog/rust-plugin-systems#implementing-a-c-interface>
+
+Implementing a C interface
+
+So how do you go about building a C ABI in Rust? There are a number of limitations and rules to
+follow to safely call functions over a C FFI boundary.
+
+Designing our types
+
+The first thing we need to think about is data—the stuff getting passed between the host and plugin
+code. Rust gives us many powerful tools for modeling data, including structs, enums, tuples, various
+data structures… and we're going to have to give nearly all of them up. To correctly and reliably
+`pass data over a C FFI boundary`, we have to follow some very limiting rules.
+
+`Rule 1: repr(C)`
+
+Our first issue is that Rust's `data layout is ABI dependent`, and can (and does) change with
+different versions of the compiler. So we get to the first rule of building a C interface: `all data
+needs to be #[repr(C)]` .
+
+At this point I'd like to introduce an extremely helpful resource for anyone straying from the cosy,
+warm cottage of safe Rust and out into the deep dark night of unsafe: the Rustonomicon. It helpfully
+disclaims responsibility for potentially “UNLEASHING INDESCRIBABLE HORRORS THAT SHATTER YOUR PSYCHE
+AND SET YOUR MIND ADRIFT IN THE UNKNOWABLY INFINITE COSMOS.”
+
+With that warning in mind, its section on data layout and repr can be found here.
+
+Repr annotations allow developers to `specify specific data layouts for structs and enums`, where the
+default is “whatever the Rust compiler wants to do and thinks is efficient.” There are several
+support layouts, but the rules for repr(C) is pretty simple: just do whatever C does.  A
+lovecraftian monster
+
+Staring too long into the abyss of unsafe Rust can have interesting consequences
+
+To use alternative representations, we can create a data type (struct or enum) and annotate it like
+this:
+
+```rust
+#[repr(C)]
+struct MyData {
+    a: f32,
+    b: i64,
+    c: u8
+}
+```
+
+This struct demonstrates why #[repr(C)] is important. Compiling this code using the nightly-only
+rustc option `-Zprint-type-sizes` we can see that we end up with `completely different layouts` for
+\#[repr(Rust)] and #[repr(C)]:
+
+```text
+// #[repr(Rust)]
+print-type-size type: `MyData`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.b`: 8 bytes
+print-type-size     field `.a`: 4 bytes
+print-type-size     field `.c`: 1 bytes
+
+// #[repr(C)]
+print-type-size type: `MyData`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.a`: 4 bytes
+print-type-size     padding: 4 bytes
+print-type-size     field `.b`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.c`: 1 bytes
+print-type-size     end padding: 7 bytes
+```
+
+In fact, the Rust representation is much more efficient, taking up only 16 bytes instead of 24 bytes
+for the C representation. This is because Rust is `free to reorder` the fields to reduce the number of
+padding bytes needed to align to 8 bytes. C on the other hand will always lay out fields in order
+with predictable padding rules, which we see in the second version.
+
+That example struct stuck to simple, primitive data types. And that leads into rule number 2:
+
+`Rule 2: all data must be FFI safe`
+
+While #[repr(C)] allows us to create structs and enums that can be passed across an FFI boundary,
+that property is not recursive—that is, it controls the layout of fields within the struct, but
+doesn't affect the representation of the fields themselves.
+
+In fact, we are `quite limited in what data types are FFI safe`. This is not a well documented area of
+Rust, but an incomplete list of FFI safe types includes:
+
+1.  Primitive Types: u8, u16, u32, u64, i8, i16, i32, i64, usize, isize, f32, f64, and bool.
+2.  Pointers: `Raw pointers` const T and mut T; safe wrappers for nullable pointers like
+    Option&lt;NonNull&lt;T&gt;&gt;
+3.  C-compatible Enums: Enums with explicitly defined repr(C).
+4.  C-compatible Structs: Structs with repr(C) and containing only FFI-safe types.
+5.  Slices: [T], const [T], and mut [T] when length is provided separately.
+
+So `no passing String, Vec, HashMap, or random data types` from your favorite Rust crate. However, we
+do have tools for passing some useful types of data with `a little bit of transformation`. The
+std::ffi package includes `CString and CStr` which are owned and borrowed null-terminated C-style
+strings. Similarly, we can pass Vec by converting it into `a raw pointer + length + capacity` and then
+back again.
+
+Exporting functions
+
+Once we've decided on our data types, we're ready to design our actual API, by exporting
+C-compatible functions. A C FFI function is a bare Rust function with
+
+1.  A `#[no_mangle]` annotation, which tells rustc to name the symbol as `exactly the function name`,
+    instead of rewriting it (or “mangling”) to ensure uniqueness and include useful metadata
+2.  The `extern "C"` keyword, which tells rustc to `export the function for external use using the C ABI`
+    All arguments and a return type that are FFI safe3, as described above
+
+So putting that together, we can `export a C FFI function` with the following definition
+
+```rust
+#[no_mangle]
+extern "C" fn add(a: u32, b: u32) -> u32 {
+  a + b
+}
+```
+
+Within the plugin code, we can use almost any Rust construct or features, so long as nothing leaks
+into the type signature.
+
+`The biggest exception is panic`. Rust's default panicking behavior is unwinding, which means we
+travel up the call stack until we hit either a `catch_unwind call` (which stops the unwinding) or the
+top stack frame for the thread, in which case the thread exits. But this is a Rust-specific feature,
+part of the unstable Rust ABI. `Unwinding can't cross a C FFI boundary` without risking undefined
+behavior.
+
+`The words 'Don't Panic'`
+
+And important rule for hitchhiking across the galaxy and crossing FFI boundaries
+
+There are two ways to handle this: either we need to compile our plugin code with `panic='abort'`
+(which causes the process to terminate on panic) or we need to ensure that `the plugin cannot
+panic`. But even if we can ensure our own code is panic-free4, how can we make sure our
+plugin-writing-users do the same?
+
+One answer is to use a plugin interface with `a top-level catch_unwind call` that converts panics into
+an Error enum across the FFI boundary.
+
+Compiling our plugin
+
+Our plugin will be a library crate that's `built as a shared object`, in a binary format that depends
+on our operating system (.so on Linux, .dll on Windows, .dylib on MacOS).
+
+By default, Rust compiles libraries as `an rlib artifact, which is a Rust-specific static library`
+format. To tell it to instead build a dynamic system library that can be linked by other languages,
+we'll use `the cdylib type`. This can be specified in a Cargo.toml by setting the `lib.crate-type`
+option, like this:
+
+```toml
+[package]
+name = "my-plugin"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+```
+
+Calling FFI functions
+
+There are two different ways we might link and call plugin code across an FFI: at program start
+time, or `dynamically as the program is executing`. In either case, we'll use `the extern keyword again`
+but without a function body in order to tell the host side what the function signature is.
+
+If we know the name of the library at compile time, Rust provides built-in support for `loading
+system libraries using the [link] annotation`. It looks like this:
+
+```rust
+#[link(name = "my_plugin")]
+extern "C" {
+    fn add(a: u32, b: u32) -> u32;
+}
+
+fn main() {
+    unsafe { add(1, 5) };
+}
+```
+
+Rust will look for a shared library with the name my_plugin (for example, on Linux it will look for
+/usr/lib/my_plugin.so, /usr/local/lib/my_plugin.so, etc.) and attempt to link it at program start
+time, and will fail if it can't find the library. The function can be called like any other (unsafe)
+Rust function5.
+
+But for a plugin system, having to know the name of the library at compile time (and ensuring that
+it's installed in a system location) is somewhat limiting. Instead, we can turn to `dynamic loading`.
+
+The interfaces for dynamic library loading are OS-specific, but there are several crates that can
+handle the cross-platform boilerplate for us. The two most popular are `libloading and dlopen2`. For
+Arroyo we decided to use dlopen2 which has a nicer interface and stronger guarantees around thread
+safety.
+
+In dlopen2, we can define structs for each of our plugin interfaces. They look like this:
+
+```rust
+#[derive(WrapperApi)]
+pub struct PluginInterface {
+    add: extern "C" fn(a: u32, b: u32) -> u32,
+}
+
+// A plugin can be loaded and called like this:
+let container: Container<PluginInterface> = unsafe {
+	Container::load(dylib_path).unwrap()
+};
+
+unsafe { container.add(1, 3) }
+```
+
+Putting it all together
+
+So that was a lot of theory. Let's put it into practice with a complete example! We'll be working
+off a (very simplified) example plugin system found in this repo. Clone it locally to try this out
+yourself. <https://github.com/mwylde/rust-plugin-tutorial>
+
+The code is divided into two parts: `the plugin, which compiles to a shared object`, and the host,
+which loads the plugin. (In a real system, you'd likely want a few more components, including a
+common library to share definitions between the plugin and host, and a macro to do code generation,
+but we're keeping this relatively simple.)
+
+Designing the interface
+
+Before we can start writing code, we need to decide on `the contract` between the plugin and the
+host. For this example, we'll adopt a flexible contract that supports a variable number of arguments
+of various common data types, as would be needed for a UDF system.
+
+The plugin interface has two methods:
+
+```rust
+extern "C" fn plugin_metadata() -> PluginMetadata,
+
+extern "C" fn plugin_entrypoint(args: *const PluginValue, args_len: usize) -> PluginResult
+```
+
+The metadata function is called by the host to determine `the number and types of the arguments` the
+plugin expects, and the type of the data it returns, while the entrypoint function is called to
+actually execute the plugin's logic.
+
+As discussed in detail above, all of our `data types need to be FFI-safe`. For example, the
+PluginMetadata type looks like this:
+
+```rust
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub enum PluginType {
+    Bool,
+    Int,
+    UInt,
+    Double,
+    String,
+}
+
+#[repr(C)]
+pub struct PluginMetadata {
+    // should have a static lifetime
+    pub name: *const i8,
+    pub arg_types: *const PluginType, // Vec<PluginType> 内存区域的指针
+    pub arg_types_len: usize, // Vec 中对象数量
+    pub return_type: PluginType,
+}
+```
+
+Note that instead of of passing a String for the name, we pass a `*const i8`, which represents a
+null-terminated C-style string. Instead of a Vec&lt;PluginType&gt; for the args, we `pass a pointer to some
+memory and a length`.
+
+For the entrypoint function, we'll need to pass our actual data to the plugin. That relies on an
+array of values of the type PluginValue:
+
+```rust
+#[repr(C)]
+pub enum PluginValue {
+    Bool(bool),
+    Int(i64),
+    UInt(u64),
+    Double(f64),
+    // All strings are owned by the host
+    String(*const i8),
+}
+```
+
+For primitives, we can use them as-is as all Rust primitives are FFI-safe. However, strings again
+need special attention. We have two typical options for passing strings: we can pass Rust-style
+strings (with an array of chars and a length) or `C-styles strings` (whose end is determined by a null
+byte). While the former are much safer and generally preferred in modern APIs, for C interfaces the
+latter is more common as it's more easily supported by languages with a C FFI.
+
+Beyond the format of the data, we also need to consider ownership6. Once memory is allocated,
+exactly one part of our code (in this case, one side of the host/plugin divide) needs to own that
+memory. PluginValues are both created by the host (to provide data) and by the plugin (to return its
+result), but to simplify the memory management we have documented that in both cases `the host owns
+the memory and is responsible for freeing it`. This does mean the plugin code needs to be careful
+never to create an owned-object from the memory (in this case, a CString) which would free it on
+drop.
+
+Finally, we have our return type, which is just an FFI-safe Result type with a CString error
+message:
+
+```rust
+#[repr(C)]
+pub enum PluginResult {
+    Ok(PluginValue),
+    // Null-terminated c-string; he host is responsible for freeing this value
+    Err(*mut i8),
+}
+```
+
+Now that we have our common interface, let's see how they're used. We'll start with the plugin.
+
+We're using two different types of raw pointers here: `*mut and *const`. Why is that? What's the
+difference? In the context of FFI, the answer is: not much. The choice of mut vs const doesn't
+affect the generated code, and you can freely cast between them.
+
+However, they are useful for documenting intent and ownership across an FFI boundary. Using \*const
+tells the calling code that they shouldn't modify the data behind the pointer, and probably
+shouldn't free it, while \*mut indicates that it's ok to modify the data and can also communicate
+ownership.
+
+We're playing a bit fast-and-loose here, because we're using a single data type (PluginValue) for
+both our arguments—which the host creates and owns—and our return value, which the plugin creates
+but transfers to the host, so we opt for \*const to tell the plugin not to modify or free its
+arguments. However, on the host side we then have to cast it to \*mut so that we can take ownership.
+
+The plugin
+
+We're going to implement a simple plugin that takes in two arguments, a string and a number, and
+will return the string repeated that number of times: f("cool", 3) ⇒ "coolcoolcool" .
+
+The plugin is responsible for `building a shared library`, so we need to tell Cargo that's what we
+want. We do that by specifying `the crate type as cdylib, a C-compatible dynamic library`. Our
+Cargo.toml looks like this:
+
+```toml
+[package]
+name = "plugin"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+```
+
+Next is our src/lib.rs file. This will contain implementations of the plugin interface documented
+above.
+
+The first function we need to implement is plugin_metadata(), which is pretty straightforward,
+telling the host about our arguments and our return type:
+
+```rust
+#[no_mangle]
+pub extern "C" fn plugin_metadata() -> PluginMetadata {
+    PluginMetadata {
+        name: "repeat\0".as_ptr() as *const i8,
+        arg_types: [PluginType::String, PluginType::UInt].as_ptr(),
+        arg_types_len: 2,
+        return_type: PluginType::String,
+    }
+}
+```
+
+Next we'll implement our plugin's unique logic, in this case repeating a string N times. I find it
+easiest to separate this out from the boilerplate that's involved in converting to and from FFI
+types, so that when we're developing the logic we can stay in safe, normal Rust land.
+
+```rust
+fn repeat_impl(input: &str, count: u64) -> String {
+    input.repeat(count as usize)
+}
+```
+
+Nice and simple. Unfortunately, we still need the complex code to bridge the FFI and Rust
+worlds. For this example, it looks like this:
+
+```rust
+#[no_mangle]
+pub extern "C" fn plugin_entrypoint(args: *const PluginValue, args_len: usize) -> PluginResult {
+    // first we need to check if the arguments are valid
+    if args_len != 2 {
+        return plugin_error("args_len should be 2");
+    }
+
+    let PluginValue::String(string) = (unsafe { &*args.offset(0) }) else {
+        return plugin_error("arg0 is invalid; expected String");
+    };
+
+    let PluginValue::UInt(count) = (unsafe { &*args.offset(1) }) else {
+        return plugin_error("arg1 is invalid; expected UInt");
+    };
+
+    let string = match unsafe { CStr::from_ptr(*string) }.to_str() {
+        Ok(value) => value,
+        Err(_) => {
+            return plugin_error("arg0 is invalid; expected valid UTF-8 string");
+        }
+    };
+
+    // then we can call our logic with the converted arguments and re-wrap them in our Result type,
+    // catching any panics that might occur so that they don't cross the FFI boundary
+    match catch_unwind(|| repeat_impl(string, *count)) {
+        Ok(value) => PluginResult::Ok(
+            PluginValue::String(CString::new(value).unwrap().into_raw())),
+        Err(_) => plugin_error("function panicked"),
+    }
+}
+```
+
+Making your users write all of this unsafe boilerplate for every plugin isn't great UX, so you may
+want to use `a macro or just wrapper code` (if you don't need to support multiple types). You can see
+the macro for the Arroyo plugin system
+here. <https://github.com/ArroyoSystems/arroyo/blob/master/crates/arroyo-udf/arroyo-udf-macros/src/lib.rs>
+
+The host
+
+The Host from 'The Host'
+
+The host is a normal Rust application, created with cargo new. It has one dependency, dlopen2, which
+we'll use to `dynamically load our plugin`:
+
+```toml
+[dependencies]
+dlopen2 = { version = "0.7.0", features = ["derive"] }
+```
+
+The meat is in src/main.rs, which builds our binary. We need to repeat the definitions (or include
+them from a common library), but we'll also include one more, an owned version of PluginValue:
+
+```rust
+pub enum OwnedPluginValue {
+    Bool(bool),
+    Int(i64),
+    UInt(u64),
+    Double(f64),
+    String(CString),
+}
+
+impl PluginValue {
+    pub fn to_owned(self) -> OwnedPluginValue {
+        match self {
+            PluginValue::Bool(b) => OwnedPluginValue::Bool(b),
+            PluginValue::Int(i) => OwnedPluginValue::Int(i),
+            PluginValue::UInt(u) => OwnedPluginValue::UInt(u),
+            PluginValue::Double(d) => OwnedPluginValue::Double(d),
+            PluginValue::String(s) => {
+                OwnedPluginValue::String(
+                    unsafe { CString::from_raw(s as *mut i8) })
+            }
+        }
+    }
+}
+```
+
+This owned struct will allow us to ensure that values returned from the plugin (and the arguments we
+send it) are `eventually freed`.
+
+Next, we'll define the plugin interface using dlopen2's WrapperApi macro:
+
+```rust
+#[derive(WrapperApi)]
+struct PluginApi {
+    plugin_metadata: unsafe extern "C" fn() -> PluginMetadata,
+    plugin_entrypoint: unsafe extern "C" fn(args: *const PluginValue, args_len: usize) -> PluginResult,
+}
+```
+
+This let's us conveniently bundle up all of the plugin functions into a struct which we can store
+and pass around our application.
+
+Now we're ready to load the plugin and call it. I'll spare you the details of CLI argument
+processing (which you can see in the full example file). Here's the meat of it:
+
+```rust
+// load the plugin via the dlopen2's Container API
+let container: Container<PluginApi> = unsafe { Container::load(&args[1]) }.expect("Could not load plugin");
+
+// get the metadata, which will tell us which arguments to expect
+let metadata: PluginMetadata = unsafe { container.plugin_metadata() };
+
+// read the arguments from the command line
+let mut call_args: Vec<PluginValue> = vec![];
+for (i, arg) in args[2..].iter().enumerate() {
+    match unsafe { *metadata.arg_types.add(i) } {
+        PluginType::Bool => {
+            call_args.push(PluginValue::Bool(
+                arg.parse().expect("Invalid bool")))
+        }
+        //...
+    }
+}
+
+// call the plugin function
+let result = unsafe {
+    container.plugin_entrypoint(call_args.as_ptr(), call_args.len())
+};
+
+// take ownership and drop the arguments to free their memory
+drop(call_args.into_iter().map(|t| t.to_owned()));
+
+// print out the result or error to the user
+match result {
+    PluginResult::Ok(value) => {
+        println!("Plugin returned: {}", value.to_owned());
+    }
+    PluginResult::Err(err) => {
+        eprintln!("{}", unsafe { CString::from_raw(err) }.to_string_lossy());
+        std::process::exit(1);
+    }
+}
+```
+
+Let's plug in some stuff!!!
+
+Here we are. After more than 5000 words, we're going to actually dynamically load some Rust code.  A
+hand plugging a plug into a socket
+
+uhh… not like that
+
+If you want to follow along, check out the example repo
+
+```text
+$ git clone https://github.com/mwylde/rust-plugin-tutorial.git
+```
+
+Then we're going to build both the plugin and host
+
+```shell
+$ cd rust-plugin-tutorial/plugin && cargo build
+$ cd ../host && cargo build
+```
+
+Now we should have a dynamic library in plugin/target/debug and a host binary in
+host/target/debug. The dynamic library will be named something like “libplugin.dylib,”“libplugin.so,” or “libplugin.dll” depending on your operating system. Note which it is, then invoke
+the host like this:
+
+```shell
+$ host/target/debug/host plugin/target/debug/libplugin.dylib cool 3
+Loaded plugin repeat
+Plugin returned: coolcoolcool
+```
+
+If all went well, you should see the output from your plugin code (and no pesky segfaults).
+
+Wrapping up
+
+So that's the background for how we built our plugin system, and how you can build your own.
+
+Recapping a bit:
+
+1.  We defined our data types as enums and structs of FFI-safe types
+2.  We defined a plugin interface, as #[no_mangle] extern "C" functions consuming and returning those data types
+3.  We used dlopen2 to load and call our plugin interface from the host
+
+In part 2 of this series, we'll cover how this works in a real, production plugin system, including
+support for async functions. (If you're impatient, all of the code can be found here.)
 
 
 ## <span class="section-num">27</span> testing {#testing}

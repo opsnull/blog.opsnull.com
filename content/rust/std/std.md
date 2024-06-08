@@ -1,7 +1,7 @@
 ---
 title: "Rust 标准库 std 解析"
 author: ["zhangjun"]
-lastmod: 2024-04-30T15:04:48+08:00
+lastmod: 2024-06-08T21:57:41+08:00
 tags: ["rust", "std"]
 categories: ["rust"]
 draft: false
@@ -11,13 +11,10 @@ series_order: 2
 
 ## <span class="section-num">1</span> std::alloc {#std-alloc}
 
-Rust 的内存分配 APIs。
-
 标准库使用一个 global 内存分配器来为 Box&lt;T&gt;/Vec&lt;T&gt; 等分配堆内存。
 
-1.  默认情况下，使用 `std::alloc::System` 作为 global 内存分配器， System `同时实现` 了 Allocator 和
-    GlobalAlloc trait；
-    -   对于 unix/linux 系统，使用 malloc 实现。对于windows 系统，使用 HeapAlloc 实现；
+1.  默认情况下，使用 `std::alloc::System` 作为 global 内存分配器，System `同时实现` 了 Allocator 和
+    GlobalAlloc trait. 对于 unix/linux 系统，使用 malloc 实现。对于windows 系统，使用 HeapAlloc 实现；
 2.  用户程序也可以使用 `#[global_allocator]` 来为程序指定一个实现 `std::alloc::GlobalAlloc` trait 的自定义的 global 内存分配器；
 
 <!--listend-->
@@ -66,9 +63,10 @@ fn main() {
 }
 ```
 
-Trait std::alloc::Allocator 定义了内存分配的接口：
+std::alloc::Allocator trait 定义了内存分配的接口：
 
--   根据传入的 std::alloc::Layout 类型来分配内存。
+-   根据传入的 std::alloc::Layout 类型来分配内存, 包含要分配内存的 align 要求和 size;
+-   std::alloc::new::&lt;T&gt;() 为 T 类型创建 Layout；
 
 <!--listend-->
 
@@ -80,17 +78,8 @@ pub unsafe trait Allocator {
 
     //...
 }
-```
 
-std::alloc::Layout 包含要分配内存的 align 要求和 size：
-
--   std::alloc::new::&lt;T&gt;() 为 T 类型创建 Layout；
-
-<!--listend-->
-
-```rust
 pub struct Layout { /* private fields */ }
-
 
 impl Layout
 
@@ -117,9 +106,9 @@ pub fn extend_packed(&self, next: Layout) -> Result<Layout, LayoutError>
 pub fn array<T>(n: usize) -> Result<Layout, LayoutError>
 ```
 
-几个内存分配函数：
+内存分配函数：
 
-alloc⚠
+alloc
 : Allocate memory with the global allocator.
 
 alloc_zeroed
@@ -194,7 +183,7 @@ pub fn set_alloc_error_hook(hook: fn(_: Layout))
 use std::alloc::{Layout, set_alloc_error_hook};
 
 fn custom_alloc_error_hook(layout: Layout) {
-   panic!("memory allocation of {} bytes failed", layout.size());
+    panic!("memory allocation of {} bytes failed", layout.size());
 }
 
 set_alloc_error_hook(custom_alloc_error_hook);
@@ -203,9 +192,9 @@ set_alloc_error_hook(custom_alloc_error_hook);
 
 ## <span class="section-num">2</span> std::collector {#std-collector}
 
-数组 [N; T] 和各种 collector 类型默认都没有实现 Display trait, 但是实现了 Debug trait;
+数组 [N; T] 和各种容器类型都没有实现 Display trait, 但是实现了 Debug trait;
 
-Option/Result 都是 enum 类型，但是也支持迭代（实现了 IntoIterator），效果就如一个或0个元素。
+Option/Result 都是 enum 类型，但是也支持迭代（实现了 IntoIterator），效果就如一个或 0 个元素。
 
 
 ### <span class="section-num">2.1</span> Vec {#vec}
@@ -217,8 +206,7 @@ Vec 是相同类型元素，动态大小, 在 heap 上分配的连续内存块. 
 1.  有性能开销, 涉及到内存数据的复制移动;
 2.  会导致已有的 Vec Item 的引用失效, 所以在有共享引用的情况下, 不能修改 Vec;
 
-为了避免在 push 过程中容量增长带来的开销, 可以使用 Vec::with_capacity(n) 来一次性创建容量为 n 的
-Vec.
+为了避免在 push 过程中容量增长带来的开销, 可以使用 Vec::with_capacity(n) 来一次性创建容量为 n 的Vec.
 
 Vec 只能高效的在尾部进行 push/pop 操作, 如果在中间 insert/remove 元素, 则涉及后续元素的移动, 所以Vec
 越长, 中间插入和删除元素性能越差.
@@ -275,11 +263,7 @@ vec.extend(iterable)
     vec.retain(test)
 ```
 
-不能在借用 Vec 元素的情况下，修改 Vec 本身（这是由于修改 Vec 时可能会重新分配内存，从而导致借用的指针失效）：
-
--   但是 tuple/struct 是支持部分 field 修改的。
-
-<!--listend-->
+不能在借用 Vec 元素的情况下，修改 Vec 本身（这是由于修改 Vec 时可能会重新分配内存，从而导致借用的指针失效）：tuple/struct 是支持部分 field 修改的。
 
 ```rust
 // 不能同时 &mut 借用 Vec 的元素
@@ -299,10 +283,7 @@ Vec&lt;T&gt; 也支持这些运算符。当两个切片的长度和相应的元�
 
 创建 Vec 的宏 vec\![] 和 vec!() 是等效的。
 
-
-### <span class="section-num">2.2</span> Vec 方法 {#vec-方法}
-
-由于 Vec&lt;T&gt; 可以被 Deref&lt;Targe=[T]&gt;, 所以 Vec 对象也继承了 slice [T] 的方法.
+Vec 方法：由于 Vec&lt;T&gt; 可以被 Deref&lt;Targe=[T]&gt;, 所以 Vec 对象也继承了 slice [T] 的方法.
 
 ```rust
 // 创建
@@ -457,12 +438,9 @@ assert_eq!(vec, [2, 4, 8, 16]);
 
 pub fn leak<'a>(self) -> &'a mut [T] where A: 'a
 pub fn spare_capacity_mut(&mut self) -> &mut [MaybeUninit<T>]
-        pub fn split_at_spare_mut(&mut self) -> (&mut [T], &mut [MaybeUninit<T>])
-
-
-      impl<T, A> Vec<T, A> where T: Clone, A: Allocator,
-       pub fn resize(&mut self, new_len: usize, value: T)
-       let mut vec = vec!["hello"];
+pub fn split_at_spare_mut(&mut self) -> (&mut [T], &mut [MaybeUninit<T>])
+impl<T, A> Vec<T, A> where T: Clone, A: Allocator, pub fn resize(&mut self, new_len: usize, value: T)
+let mut vec = vec!["hello"];
 vec.resize(3, "world");
 assert_eq!(vec, ["hello", "world", "world"]);
 let mut vec = vec![1, 2, 3, 4];
@@ -496,19 +474,18 @@ assert_eq!(odds, vec![1, 3, 5, 9, 11, 13, 15]);
 ```
 
 
-### <span class="section-num">2.3</span> VecDeque&lt;T&gt; {#vecdeque-t}
+### <span class="section-num">2.2</span> VecDeque&lt;T&gt; {#vecdeque-t}
 
-VecDeque 也是动态大小, 在 heap 上分配内存块的环形缓冲区, 有 start 和 end 指针, 所以和 Vec 不同的是,
-数据并不是从内存区域的开始存储, 也可以在尾部回环(自动管理), 所以内存块不一定是连续的. VecDeque 支持
-index 操作, 如 deque[index], 但是在内存不一定是连续存储元素, 所以不能创建切片和继承切片的方法. 主要是能快速的开头和尾部 push/pop 元素.
+VecDeque 是动态大小, 在 heap 上分配内存块的环形缓冲区, 有 start 和 end 指针, 所以和 Vec 不同的是, 数据并不是从内存区域的开始存储, 也可以在尾部回环(自动管理), 所以内存块不一定是连续的。
+
+VecDeque 支持 index 操作, 如 deque[index], 但是在内存不一定是连续存储元素, 所以不能创建切片和继承切片的方法. 主要是能快速的开头和尾部 push/pop 元素.
 
 {{< figure src="/images/vec/2024-03-06_10-10-27_screenshot.png" width="400" >}}
 
 
-### <span class="section-num">2.4</span> BinaryHeap&lt;T&gt; {#binaryheap-t}
+### <span class="section-num">2.3</span> BinaryHeap&lt;T&gt; {#binaryheap-t}
 
-BinaryHeap&lt;T&gt; 集合始终以某种形式组织元素，其中最大的元素总是会被移动到队列的首部。这里是 BinaryHeap
-最常用的几个方法:
+BinaryHeap&lt;T&gt; 集合始终以某种形式组织元素，其中最大的元素总是会被移动到队列的首部。
 
 -   BinaryHeap 并不仅限于数字。它可以包含任何实现了内建的 Ord trait 的类型。
 
@@ -537,20 +514,20 @@ assert_eq!(heap.pop(), Some(6));
 assert_eq!(heap.pop(), Some(5));
 ```
 
-这让 BinaryHeap 可以用作一个工作队列。你可以定义一个任务结构体，然后根据任务的 优先级实现 Ord，让高优先级的任务大于低优先级的任务。然后，创建一个 BinaryHeap 来保 存所有待办的任务。它的.pop() 方法将总是返回最重要的任务。
+BinaryHeap 可以用作一个工作队列。你可以定义一个任务结构体，然后根据任务的优先级实现 Ord，让高优先级的任务大于低优先级的任务。然后，创建一个 BinaryHeap 来保 存所有待办的任务。它的.pop() 方法将总是返回最重要的任务。
 
-注意:BinaryHeap 是可迭代的对象，并且它有.iter() 方法，但这个迭代器以任意顺序产 生堆中的元素，而不是按照从大到小的顺序。为了按照大小顺序消耗 BinaryHeap 中的值，可 以使用 while 循环:
+注意:BinaryHeap 是可迭代的对象，并且它有.iter() 方法，但这个迭代器以任意顺序产生堆中的元素，而不是按照从大到小的顺序。为了按照大小顺序消耗 BinaryHeap 中的值，可以使用 while 循环:
 
 ```rust
-    while let Some(task) = heap.pop() {
-        handle(task);
+while let Some(task) = heap.pop() {
+    handle(task);
 }
 ```
 
 
-### <span class="section-num">2.5</span> HashMap {#hashmap}
+### <span class="section-num">2.4</span> HashMap {#hashmap}
 
-map(映射) 是键值对(称为条目 (entry))的集合。任何两个条目的键都不同，所有的条目按照一定结构组织，如果有一个键就可以高效地在 map 中查找到相应的值。简而言之，map 是一个查找表。
+HashMap 是键值对(称为条目 entry)的集合。任何两个条目的键都不同，所有的条目按照一定结构组织，如果有一个键就可以高效地在 map 中查找到相应的值。简而言之，map 是一个查找表。
 
 Rust 提供两者两种 map 类型: HashMap&lt;K, V&gt; 和 BTreeMap&lt;K, V&gt;。这两种类型共享了很多相同的方法;不同之处在于它们组织条目的方式。
 
@@ -562,7 +539,7 @@ Rust 提供两者两种 map 类型: HashMap&lt;K, V&gt; 和 BTreeMap&lt;K, V&gt;
 
     {{< figure src="/images/vec/2024-03-06_10-13-53_screenshot.png" width="400" >}}
 
-2.  BTreeMap按照键的顺序在树形结构中存储条目，因此它要求键的类型 K 实现了 Ord。图 16-5展示了一个
+2.  BTreeMap 按照键的顺序在树形结构中存储条目，因此它要求键的类型 K 实现了 Ord。图 16-5展示了一个
     BTreeMap。同样，深色区域表示没有被使用的空间。
 
     {{< figure src="/images/vec/2024-03-06_10-14-24_screenshot.png" width="400" >}}
@@ -576,13 +553,13 @@ Rust 提供两者两种 map 类型: HashMap&lt;K, V&gt; 和 BTreeMap&lt;K, V&gt;
 
 ```rust
 // 从键值对创建并填充新的 HashMap 或 BTreeMap。iter 必须是一个 Iterator<Item=(K, V)>。
-iter.collect()
+iter.collect();
 
 // 如果 map 里有给定 key 的条目则返回 true。
-map.contains_key(&key)
+map.contains_key(&key);
 
 // 在 map 中查找给定 key 的条目。如果找到了匹配的条目，就返回 Some(r)，其中 r 是相 应的值的引用。否则返回 None。
-map.get(&key)
+map.get(&key);
 ```
 
 在查询 map 时，传入的 key 类型 B 和 map 定义的 key 类型 K 可以不一致，需要满足 B = Borrow&lt;K&gt;;
@@ -606,7 +583,8 @@ map 支持 Entry 操作:
  let record = student_map.entry(name.to_string()).or_insert_with(Student::new);
 ```
 
-student_map.entry(name.to_string()) 返回的 Entry 值就像一个可变引用，它指向 map 中 一个已经被键值对占据 (occupied) 的位置，或者是空的 (vacant)，意思是还没有条目占据这个 位置。如果为空，条目的.or_insert_with() 方法会插入一个新的 Student。
+student_map.entry(name.to_string()) 返回的 Entry 值就像一个可变引用，它指向 map 中 一个已经被键值对占据 (occupied) 的位置，或者是空的 (vacant)，意思是还没有条目占据这个 位置。如果为空，条目的
+.or_insert_with() 方法会插入一个新的 Student。
 
 ```rust
 // 对给定的 key 返回一个 Entry。如果 map 中没有这个 key，它会返回一个空的 Entry。 这个方法以 mut 引
@@ -616,43 +594,44 @@ pub fn entry<'a>(&'a mut self, key: K) -> Entry<'a, K, V>
 // 访问权限。不幸的是，如果 map 的键的类型为 String，那么不能向这个方法传递 &str 类型的参 数。这种情
 // 况下的.entry() 方法需要一个真实的 String。因为 entry 的输入参数 key 是 K 类型, 而非 Borrow<Q> 类
 // 型;
-map.entry(key)
+map.entry(key);
 
 // 确保 map 包含给定的 key 的条目，如果需要的话用给定的 value 插入一个新的条目。它 返回新插入的或者
 // 现有的值的 mut 引用。
-map.entry(key).or_insert(value)
+map.entry(key).or_insert(value);
 
 let mut vote_counts: HashMap<String, usize> = HashMap::new();
-  for name in ballots {
-      let count = vote_counts.entry(name).or_insert(0); // .or_insert()返回一个可变引用，因此count的类型是&mut usize。
-      *count += 1;
-  }
+for name in ballots {
+    let count = vote_counts.entry(name).or_insert(0); // .or_insert()返回一个可变引用，因此count的类型是&mut usize。
+    *count += 1;
+}
 
 // 确保 map 包含给定的 key 的条目，如果需要的话用 Default::default() 返回的值插入 一个新条目
-map.entry(key).or_default()
+map.entry(key).or_default();
 
 // 这个方法也一样，除了当它需要创建新的条目时，它会调用 default_fn() 来产生默认 值。
-map.entry(key).or_insert_with(default_fn)
+map.entry(key).or_insert_with(default_fn);
+
 // 这个map中包含每个单词和出现它的文件的集合。
 let mut word_occurrence: HashMap<String, HashSet<String>> = HashMap::new(); for file in files {
-        for word in read_words(file)? {
-            let set = word_occurrence
-                .entry(word)
-                .or_insert_with(HashSet::new);
-            set.insert(file.clone());
-} }
+    for word in read_words(file)? {
+        let set = word_occurrence
+            .entry(word)
+            .or_insert_with(HashSet::new);
+        set.insert(file.clone());
+    } }
 
 
 // 如果给定的 key 的条目存在就调用 closure，把值的可变引用传进闭包。它返回一 个 Entry，因此它可以和
 // 其它方法链式调用。
-map.entry(key).and_modify(closure)
+map.entry(key).and_modify(closure);
 
 // 这个map包含给定字符串中的所有单词，
 // 以及它们出现的次数。
 let mut word_frequency: HashMap<&str, u32> = HashMap::new(); for c in text.split_whitespace() {
-        word_frequency.entry(c)
-            .and_modify(|count| *count += 1)
-            .or_insert(1);
+    word_frequency.entry(c)
+        .and_modify(|count| *count += 1)
+        .or_insert(1);
 }
 ```
 
@@ -673,7 +652,7 @@ let mut word_frequency: HashMap<&str, u32> = HashMap::new(); for c in text.split
 所有的 HashMap 迭代器都会以 `任意顺序` 访问 map 的条目。BTreeMap 的迭代器会按照 `键的顺序` 访问它们。
 
 
-### <span class="section-num">2.6</span> HashSet&lt;T&gt; 和 BTreeSet&lt;T&gt; {#hashset-t-和-btreeset-t}
+### <span class="section-num">2.5</span> HashSet&lt;T&gt; 和 BTreeSet&lt;T&gt; {#hashset-t-和-btreeset-t}
 
 map 和 set 有不同的方法，但其实一个 set 就是一个只有键而不是键值对的 map。事实上， Rust 的HashSet&lt;T&gt;
 和 BTreeSet&lt;T&gt; 被实现为 HashMap&lt;T, ()&gt; 和 BTreeMap&lt;T, ()&gt; 的包装。
@@ -690,7 +669,7 @@ set.iter() 返回一个以共享引用方式迭代 set 的迭代器。
 HashSet 迭代器类似于 HashMap 的迭代器，也会以任意顺序产生值。BTreeSet 迭代器按照顺序产生值，类似于一个排序过的 vector。
 
 
-### <span class="section-num">2.7</span> Hash {#hash}
+### <span class="section-num">2.6</span> Hash {#hash}
 
 std::hash::Hash 是标准库用于可哈希类型的 trait。HashMap 的键和 HashSet 的元素必须实现 Hash 和 Eq。
 
@@ -812,21 +791,20 @@ take_hook
 : Unregisters the current panic hook and returns it, registering the default hook in
     its place.
 
-always_abort Experimental
-: Make all future panics abort directly without running the panic hook
-    or unwinding.
+always_abort
+: Make all future panics abort directly without running the panic hook or unwinding.
 
-get_backtrace_style Experimental
-: Checks whether the standard library’s panic hook will capture
-    and print a backtrace.
+get_backtrace_style
+: Checks whether the standard library’s panic hook will capture and print a
+    backtrace.
 
-set_backtrace_style Experimental
-: Configure whether the default panic hook will capture and
-    display a backtrace.
+set_backtrace_style
+: Configure whether the default panic hook will capture and display a
+    backtrace.
 
-update_hook Experimental
-: Atomic combination of take_hook and set_hook. Use this to replace the
-    panic handler with a new panic handler that does something and then executes the old handler.
+update_hook
+: Atomic combination of take_hook and set_hook. Use this to replace the panic
+    handler with a new panic handler that does something and then executes the old handler.
 
 使用 std::panic::cach_unwinde() 来实现可以 `捕获闭包中的 panic` ，该函数返回一个 Result：
 
@@ -999,7 +977,7 @@ pub fn get_backtrace_style() -> Option<BacktraceStyle>
 Rust 提供了两种错误处理类型：
 
 1.  panic runtime 和接口；
-2.  Result 、 error trait 和用户指定错误类型；
+2.  Result 、error trait 和用户指定错误类型；
 
 panic runtime 和接口包括如下内容（参考 std::panic module 笔记）：
 
@@ -1257,7 +1235,7 @@ eprintln!("Error: {report:?}");
 
 该 module 提供了堆分配的 Box&lt;T&gt; 类型：一般情况下，开发者并不能任意在堆上分配内存，但是 Box&lt;T&gt; 提供了最简单的在堆上分配内存的机制。
 
-Box 又有分配内存的所有权，当 Box 离开 scope 时 drop 对应的内存。
+Box 拥有分配内存的所有权，当 Box 离开 scope 时 drop 对应的内存。
 
 举例：使用 Box 来将 stack 变量转换为 heap 变量：
 
@@ -1711,6 +1689,7 @@ std::mem::discriminant() 返回唯一确定 enum variant 的 tag 值：
 
 ```rust
 use std::mem;
+
 enum Foo { A(&'static str), B(i32), C(i32) }
 assert_eq!(mem::discriminant(&Foo::A("bar")), mem::discriminant(&Foo::A("baz")));
 assert_eq!(mem::discriminant(&Foo::B(1)), mem::discriminant(&Foo::B(2)));
@@ -2862,11 +2841,11 @@ Type Aliases
 
 ### <span class="section-num">15.1</span> Read {#read}
 
-必须实现的方法：最多读取 buf 大小的数据。
+必须实现的方法：最多读取 buf.len() 的数据，所以传入的 buf 类型是 slice，而非动态大小的 Vec/String
 
 -   fn read(&amp;mut self, buf: &amp;mut [u8]) -&gt; Result&lt;usize&gt;;
 
-自动实现的常用的方法：
+自动实现的常用的方法：read_to_end/read_to_string() 都是读取全部内容，大小未知，所以传入 Vec/String
 
 -   fn read_to_end(&amp;mut self, buf: &amp;mut Vec&lt;u8&gt;) -&gt; Result&lt;usize&gt; { ... }
 -   fn read_to_string(&amp;mut self, buf: &amp;mut String) -&gt; Result&lt;usize&gt; { ... }
@@ -2955,9 +2934,9 @@ fn main() -> io::Result<()> {
 
 BufRead  是内部包含一个 buffer 的 Reader，它是 Read 的子类型，它提供了几个好用的方法：
 
-1.  read_line(&amp;mut self);
-2.  split(self)： 消耗 BufRead
-3.  lines(self) : 消耗 BufRead，迭代生成的 Lines 时，返回 `io::Result<String>`;
+1.  read_line()，读取一行（包含行尾的换行）存入传入的 String buf；
+2.  split(self)： 返回一个迭代器，每次迭代 split 后的内容；
+3.  lines(self) : 返回一个迭代器，迭代返回 `io::Result<String>` ，字符串末尾不包含换行；
 
 <!--listend-->
 
@@ -2972,10 +2951,8 @@ pub trait BufRead: Read {
     fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> Result<usize> { ... }
     fn skip_until(&mut self, byte: u8) -> Result<usize> { ... }
     fn read_line(&mut self, buf: &mut String) -> Result<usize> { ... }
-    fn split(self, byte: u8) -> Split<Self> ⓘ
-       where Self: Sized { ... }
-    fn lines(self) -> Lines<Self> ⓘ
-       where Self: Sized { ... }
+    fn split(self, byte: u8) -> Split<Self> where Self: Sized { ... }
+    fn lines(self) -> Lines<Self> where Self: Sized { ... }
 }
 ```
 
@@ -2990,20 +2967,11 @@ impl BufRead for &[u8]
 impl BufRead for Empty
 impl BufRead for StdinLock<'_>
 impl<A: Allocator> BufRead for VecDeque<u8, A>
-BufRead is implemented for VecDeque<u8> by reading bytes from the front of the VecDeque.
-
 impl<B: BufRead + ?Sized> BufRead for &mut B
-
 impl<B: BufRead + ?Sized> BufRead for Box<B>
-
 impl<R: ?Sized + Read> BufRead for BufReader<R>
-
-impl<T> BufRead for Cursor<T>
-where
-    T: AsRef<[u8]>,
-
+impl<T> BufRead for Cursor<T> where T: AsRef<[u8]>,
 impl<T: BufRead> BufRead for Take<T>
-
 impl<T: BufRead, U: BufRead> BufRead for Chain<T, U>
 ```
 
@@ -3569,19 +3537,11 @@ PathBuf 实现了 Deref&lt;Target=Path&gt;，所以 PathBuf 可以使用 Path �
 ## <span class="section-num">18</span> std::fs {#std-fs}
 
 Path 是 unsized 对象，一般需要 &amp;Path 使用。PathBuf 是 &amp;Path 的 ownerd 对象，类似于 String 是 &amp;str 的
-owner 对象。
+owner 对象。类似的情况还有，OsString -》&amp;OsStr，CString -》CStr。
 
-在 struct、enum 中一般使用 ownerd 类型 PathBuf 而非 &amp;Path，这样可以避免生命周期的问题。
+Box::new(v) 是 v 的拥有型智能指针，可以避免 &amp;v 作为成员时的生命周期问题。
 
--   类似的情况还有，OsString -》&amp;OsStr，CString -》CStr。
-
-另外 Box::new(v) 也是 v 的拥有型智能指针，可以避免 &amp;v 作为成员时的生命周期问题。
-
-文件和目录操作, 于 std::path::Path/PathBuf 协作.
-
--   std::fs 下的泛型函数, 如果输入是 path, 则是 AsRef&lt;Path&gt;, 所以实现了该 trait 的对象均可.
-
-<!--listend-->
+文件和目录操作，std::fs 下的泛型函数如果输入是 path, 则是 AsRef&lt;Path&gt;, 所以实现了该 trait 的对象均可.
 
 ```rust
 impl AsRef<Path> for Cow<'_, OsStr>
@@ -3610,16 +3570,18 @@ Structs
 
 Functions
 
--   canonicalize	Returns the canonical, absolute form of a path with all intermediate components normalized and symbolic links resolved.
--   copy	Copies the contents of one file to another. This function will also copy the permission bits of the original file to the destination file.
+-   canonicalize Returns the canonical, absolute form of a path with all intermediate components
+    normalized and symbolic links resolved.
+-   copy Copies the contents of one file to another. This function will also copy the permission bits
+    of the original file to the destination file.
 -   create_dir Creates a new, empty directory at the provided path
 -   create_dir_all Recursively create a directory and all of its parent components if they are missing.
 -   hard_link Creates a new hard link on the filesystem.
 -   metadata	Given a path, query the file system to get information about a file, directory, etc.
--   read	Read the entire contents of a file into `a bytes vector`.
+-   `read` Read the entire contents of a file into `a bytes vector`.
 -   read_dir Returns an iterator over the entries within a directory.
 -   read_link Reads a symbolic link, returning the file that the link points to.
--   read_to_string Read the entire contents of a file `into a string`.
+-   `read_to_string` Read the entire contents of a file `into a string`.
 -   remove_dir Removes an empty directory.
 -   remove_dir_all Removes a directory at this path, after removing all its contents. Use carefully!
 -   remove_file Removes a file from the filesystem.
@@ -3627,16 +3589,29 @@ Functions
 -   set_permissions Changes the permissions found on a file or a directory.
 -   soft_linkDeprecated Creates a new symbolic link on the filesystem.
 -   symlink_metadata Query the metadata about a file without following symlinks.
--   write	Write a slice as the entire contents of a file.
+-   `write` Write a slice as the entire contents of a file.
 
 重点：
 
-1.  read_to_string;
+1.  read/read_to_string;
 2.  write;
 
 <!--listend-->
 
 ```rust
+use std::fs;
+
+fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
+    let data: Vec<u8> = fs::read("image.jpg")?;
+    assert_eq!(data[0..3], [0xFF, 0xD8, 0xFF]);
+    Ok(())
+
+    let message: String = fs::read_to_string("message.txt")?;
+    println!("{}", message);
+    Ok(())
+}
+
+
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io;
@@ -3877,11 +3852,13 @@ pub fn checked_sub(&self, duration: Duration) -> Option<Instant>
 ```
 
 
-## <span class="section-num">20</span> std::sync/thread {#std-sync-thread}
+## <span class="section-num">20</span> std::thread/sync {#std-thread-sync}
 
-Rust 标准库的 std::thread 使用 1:1 模型来运行 rust thread 和 os thread。
+并发编程（concurrent programming）与并行编程（parallel programming）这两种概念随着计算机设备的多核心化而变得越来越重要。前者允许程序中的不同部分相互独立地运行，而后者则允许程序中的不同部分同时执行。
 
-rust thread 使用 thread::spawn() 来运行一个 thread，它的参数是一个无输入/输出的函数，一般通过 FnOnce
+由于绿色线程的 M:N 模型需要一个较大的运行时来管理线程，所以 Rust 标准库只提供了 1:1 线程模型的实现。
+
+Rust thread 使用 thread::spawn() 来运行一个 thread，它的参数是一个无输入/输出的函数，一般通过 FnOnce
 closure 来实现 move ownership 所需的外围环境中的对象。
 
 ```rust
@@ -4015,9 +3992,10 @@ async 通过创建大量异步 task，然后使用一个 thread pool 来执行�
 
 let (tx, rx) = mpsc::channel();
 
-1.  tx 支持 clone() 从而可以在多个线程中使用；而 rx 不支持 clone()，所以只能有一个实例。
+1.  tx 支持 clone() ，从而可以在多个线程中使用, 而 rx 不支持 clone()，所以只能有一个实例。如果要在多个线程中并发访问 rx，则需要 Arc + Mutext；
 2.  tx clone 后的多个对象必须都被 drop 后, rx.recv() 才不会继续被 blocking;
-3.  tx 发送的所有数据都串行缓冲, 即使 tx 都被 drop, 内容还在, 直到 rx 接受完数据.
+3.  tx 发送的所有数据都串行缓冲, 即使 tx 都被 drop, 内容还在, 直到 rx 接受完数据;
+4.  数据发往 tx 后，所有权被转移；
 
 <!--listend-->
 
@@ -4034,7 +4012,7 @@ thread::spawn(move || {
     ];
 
     for val in vals {
-        tx1.send(val).unwrap();
+        tx1.send(val).unwrap(); // val 所有权被转移到 channel
         thread::sleep(Duration::from_secs(1));
     }
 });
@@ -4053,7 +4031,7 @@ thread::spawn(move || {
     }
 });
 
-for received in rx {
+for received in rx { // 所有权转移给接收者。
     println!("Got: {}", received);
 }
 ```
@@ -4061,54 +4039,37 @@ for received in rx {
 
 ### <span class="section-num">20.2</span> mutex {#mutex}
 
-Mutex 支持内部可变性：mutex.lock().unwrap() 返回的是一个新 MutexGuard&lt;'_, T&gt; 对象, 所以可以给它赋值给 mut 类型变量(`let mut data = data.lock().unwrap()`), 进而可以对 MutexGuard 进行修改。
-
 Mutex 可以作为全局 static 对象，用 Arc 包裹后可以在多线程环境中使用。
 
-由于 MutexGuard 实现了 DerefMut&lt;Target=T&gt;,所以可以像 &amp;mut T 一样使用 data 变量.
+由于 MutexGuard 实现了 DerefMut&lt;Target=T&gt;, 所以可以像 &amp;mut T 一样使用 data 变量.
 
--   Mutex 的内部可变性主要是由于 data.lock().unwarp() 返回了一个新 MutextGuard 对象, 所以可以用 mut 变量来代表它;
+-   Mutex 支持内部可变性：mutex.lock().unwrap() 返回的是一个新 MutexGuard&lt;'_, T&gt; 对象, 所以可以给它赋值
 
-<!--listend-->
+给 mut 类型变量(`let mut data = data.lock().unwrap()`), 进而可以对 MutexGuard 进行修改。
 
 ```rust
-// file:///Users/zhangjun/.rustup/toolchains/nightly-x86_64-apple-darwin/share/doc/rust/html/std/sync/struct.Mutex.html#examples
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex, Arc};
 use std::thread;
-use std::sync::mpsc::channel;
 
-const N: usize = 10;
+fn main() {
+    let counter = Arc::new(Mutex::new(0));
+    let mut handles = vec![];
 
-// Spawn a few threads to increment a shared variable (non-atomically), and
-// let the main thread know once all increments are done.
-//
-// Here we're using an Arc to share memory among threads, and the data inside
-// the Arc is protected with a mutex.
-let data = Arc::new(Mutex::new(0)); // data 虽然不是 mut 对象，但是 Mutex 实现了内部可变性
+    for _ in 0..10 {
+        let counter = Arc::clone(&counter);
+        let handle = thread::spawn(move || {
+            let mut num = counter.lock().unwrap();
+            *num += 1;
+        });
+        handles.push(handle);
+    }
 
-let (tx, rx) = channel();
-for _ in 0..N {
-    let (data, tx) = (Arc::clone(&data), tx.clone());
-    thread::spawn(move || {
-        // The shared state can only be accessed once the lock is held.
-        // Our non-atomic increment is safe because we're the only thread
-        // which can access the shared state when the lock is held.
-        //
-        // We unwrap() the return value to assert that we are not expecting
-        // threads to ever fail while holding the lock.
+    for handle in handles {
+        handle.join().unwrap();
+    }
 
-	// 虽然 move 进来的 data 不可变, 但是 data.lock().unwrap(); 返回了新对象 MutexGuard, 所
-	// 以可以赋值给 mut 变量。
-        let mut data = data.lock().unwrap();
-        *data += 1;
-        if *data == N {
-            tx.send(()).unwrap();
-        }
-        // the lock is unlocked here when `data` goes out of scope.
-    });
+    println!("Result: {}", *counter.lock().unwrap()); // 这里 counter 前的 * 是可选的。
 }
-
-rx.recv().unwrap();
 ```
 
 
@@ -4233,9 +4194,8 @@ pub enum Ordering {
 ### <span class="section-num">20.5</span> thread {#thread}
 
 1.  闭包一般使用 move 语法，除非没有捕获任何外围对象;
-2.  闭包的返回值可以通过 JoinHandler.join() 来获取;
-    -   JoinHandler.join() 返回的是 std::thread::Result, 如果子线程 panic 则对应 Err, 否则 Ok(value) 的
-        value 值为 spawn() 闭包函数的返回值;
+2.  闭包的返回值可以通过 JoinHandler.join() 来获取, JoinHandler.join() 返回的是 std::thread::Result,
+    如果子线程 panic 则对应 Err, 否则 Ok(value) 的value 值为 spawn() 闭包函数的返回值;
 3.  可以使用 builder 模式来自定义 thread name/stack_size 参数(默认是 2MiB，也可以通过 RUST_MIN_STACK
     环境变量来设置);
     -   thread name 是可选的。
@@ -4327,9 +4287,8 @@ parked_thread.join().unwrap();
 
 ### <span class="section-num">20.6</span> scope thread {#scope-thread}
 
-Rust 标准库 thread scope 的 RFC: <https://rust-lang.github.io/rfcs/3151-scoped-threads.html#rationale-and-alternatives>
+在标准库提供 thread scope 之前, 社区的 crossbeam crate 已经提供了 thread scope 能力.
 
--   在标准库提供 thread scope 之前, 社区的 crossbeam crate 已经提供了 thread scope 能力.
 -   Rayon also has scopes, but they work on a different abstraction level - Rayon `spawns tasks rather
         than threads`. Its API is the same as the one proposed in this RFC.
 
@@ -4380,39 +4339,39 @@ error[E0597]: `people` does not live long enough
 <!--listend-->
 
 ```rust
-  use std::thread;
+use std::thread;
 
-  let mut a = vec![1, 2, 3];
-  let mut x = 0;
+let mut a = vec![1, 2, 3];
+let mut x = 0;
 
-  thread::scope(|s| { // s 是一个 &std::thread::Scope 类型对象
-      s.spawn(|| {  // 使用 Scope.spawn() 来创建闭包
-          println!("hello from the first scoped thread");
-          // We can borrow `a` here.
-          dbg!(&a);
-      });
-      s.spawn(|| {
-          println!("hello from the second scoped thread");
-          // We can even mutably borrow `x` here,
-          // because no other threads are using it.
-          x += a[0] + a[2];
-      });
-      println!("hello from the main thread");
-  }); // thread::scope() 确保内部 spawn 的线程都执行返回后，再返回
+thread::scope(|s| { // s 是一个 &std::thread::Scope 类型对象
+    s.spawn(|| {  // 使用 Scope.spawn() 来创建闭包
+        println!("hello from the first scoped thread");
+        // We can borrow `a` here.
+        dbg!(&a);
+    });
+    s.spawn(|| {
+        println!("hello from the second scoped thread");
+        // We can even mutably borrow `x` here,
+        // because no other threads are using it.
+        x += a[0] + a[2];
+    });
+    println!("hello from the main thread");
+}); // thread::scope() 确保内部 spawn 的线程都执行返回后，再返回
 
-  // After the scope, we can modify and access our variables again:
-  a.push(4);
-  assert_eq!(x, a.len());
+// After the scope, we can modify and access our variables again:
+a.push(4);
+assert_eq!(x, a.len());
 
-  // 另一个例子
-  fn main() {
-      let mut data = vec![5];
-      std::thread::scope(|s| {
-          for _ in 0..5 {
-              s.spawn(|| println!("{:?}", data));
-          }
-      });
-  }
+// 另一个例子
+fn main() {
+    let mut data = vec![5];
+    std::thread::scope(|s| {
+        for _ in 0..5 {
+            s.spawn(|| println!("{:?}", data));
+        }
+    });
+}
 ```
 
 

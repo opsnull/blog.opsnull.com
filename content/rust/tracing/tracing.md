@@ -1,12 +1,12 @@
 ---
 title: "tracing"
 author: ["zhangjun"]
-lastmod: 2024-04-23T22:14:25+08:00
+lastmod: 2024-06-08T21:57:42+08:00
 tags: ["rust", "tracing"]
 categories: ["rust"]
 draft: false
 series: ["rust crate"]
-series_order: 2
+series_order: 7
 ---
 
 <https://docs.rs/tracing/latest/tracing/index.html>
