@@ -1,7 +1,7 @@
 ---
 title: "chrono"
 author: ["zhangjun"]
-lastmod: 2024-06-08T21:57:41+08:00
+lastmod: 2024-06-11T20:27:34+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false

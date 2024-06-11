@@ -1,7 +1,7 @@
 ---
 title: "clap"
 author: ["zhangjun"]
-lastmod: 2024-06-08T21:57:43+08:00
+lastmod: 2024-06-11T20:27:40+08:00
 tags: ["rust", "clap"]
 draft: false
 series: ["rust crate"]

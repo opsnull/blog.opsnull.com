@@ -1,7 +1,7 @@
 ---
 title: "axum"
 author: ["zhangjun"]
-lastmod: 2024-06-08T21:57:43+08:00
+lastmod: 2024-06-11T20:27:39+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -12,13 +12,10 @@ series_order: 10
 axum 是基于 hyper 实现的高层 HTTP Server，支持异步。
 
 1.  定义 Router：通过 Route.route() 方法来定义 PATH 和关联的 Service；
-
 2.  RouterMethod 类型实现了 Service trait，routing::get/post/patch() 等函数返回 RouterMehtod 对象，这些函数的输入是 Handler；
-
 3.  Handler 一般是闭包：
     1.  输入参数是 Extractor，实现 FromRequest or FromRequestParts. 来提取所需信息；
     2.  返回值是 IntoResponse 对象，而不是包含 Error 的 Result，所以 axum 不会返回 Error，如果要返回出错信息，也是自定义 Error type 并实现 IntoResponse；
-
 4.  Router/RouterMethod/Handler 三级都可以通过 layer() 方法来关联 middleware，从而在次之前先做一些处理；
     1.  Router.with_state() 对所有 req 都适用，是全局的；
     2.  RouterMethod.with_state() 只对该 PATH 的所有 Handler 适用；
@@ -1804,5 +1801,120 @@ async fn handle_timeout_error(
         StatusCode::INTERNAL_SERVER_ERROR,
         format!("`{method} {uri}` failed with {err}"),
     )
+}
+```
+
+
+## <span class="section-num">9</span> tracing log {#tracing-log}
+
+配置项目 Cargo.toml 文件，为 axum 指定 tracing feature，同时引入 tower-http 的 trace feature，后续可以为 axum Router 添加 tracer middleware：
+
+```toml
+[dependencies]
+axum = { path = "../../axum", features = ["tracing"] }
+tokio = { version = "1.0", features = ["full"] }
+tower-http = { version = "0.5.0", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+```
+
+[代码示例](https://github.com/tokio-rs/axum/blob/main/examples/tracing-aka-logging/src/main.rs)：
+
+-   RUST_LOG=debug cargo run 表示将所有 crate 的日子级别设置为 debug。
+
+<!--listend-->
+
+```rust
+//! Run with
+//!
+//! ```not_rust
+//! cargo run -p example-tracing-aka-logging
+//! ```
+
+use axum::{
+    body::Bytes,
+    extract::MatchedPath,
+    http::{HeaderMap, Request},
+    response::{Html, Response},
+    routing::get,
+    Router,
+};
+use std::time::Duration;
+use tokio::net::TcpListener;
+use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
+use tracing::{info_span, Span};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::registry()
+        .with(
+            // 在运行时如果未指定环境变量 RUST_LOG=debug，则这里指定各 crate 的缺省值
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                // axum logs rejections from built-in extractors with the `axum::rejection`
+                // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
+                "example_tracing_aka_logging=debug,tower_http=debug,axum::rejection=trace".into()
+            }),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    // build our application with a route
+    let app = Router::new()
+        .route("/", get(handler))
+        // `TraceLayer` is provided by tower-http so you have to add that as a dependency.
+        // It provides good defaults but is also very customizable.
+        //
+        // See https://docs.rs/tower-http/0.1.1/tower_http/trace/index.html for more details.
+        //
+        // If you want to customize the behavior using closures here is how.
+        .layer(
+            TraceLayer::new_for_http() // 这里是关键，只有加了 TraceLayer 后才会打印 HTTP 日志
+                .make_span_with(|request: &Request<_>| {
+                    // Log the matched route's path (with placeholders not filled in).
+                    // Use request.uri() or OriginalUri if you want the real path.
+                    let matched_path = request
+                        .extensions()
+                        .get::<MatchedPath>()
+                        .map(MatchedPath::as_str);
+
+                    info_span!(
+                        "http_request",
+                        method = ?request.method(),
+                        matched_path,
+                        some_other_field = tracing::field::Empty,
+                    )
+                })
+                .on_request(|_request: &Request<_>, _span: &Span| {
+                    // You can use `_span.record("some_other_field", value)` in one of these
+                    // closures to attach a value to the initially empty field in the info_span
+                    // created above.
+                })
+                .on_response(|_response: &Response, _latency: Duration, _span: &Span| {
+                    // ...
+                })
+                .on_body_chunk(|_chunk: &Bytes, _latency: Duration, _span: &Span| {
+                    // ...
+                })
+                .on_eos(
+                    |_trailers: Option<&HeaderMap>, _stream_duration: Duration, _span: &Span| {
+                        // ...
+                    },
+                )
+                .on_failure(
+                    |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
+                        // ...
+                    },
+                ),
+        );
+
+    // run it
+    let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
+    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn handler() -> Html<&'static str> {
+    Html("<h1>Hello, World!</h1>")
 }
 ```

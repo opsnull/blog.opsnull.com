@@ -1,7 +1,7 @@
 ---
 title: "reqwest"
 author: ["zhangjun"]
-lastmod: 2024-06-08T21:57:43+08:00
+lastmod: 2024-06-11T20:27:39+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -9,16 +9,8 @@ series: ["rust crate"]
 series_order: 11
 ---
 
-[reqwest](https://docs.rs/reqwest/latest/reqwest/) 是在 hyper 基础上实现的高层 HTTP client 库，支持异步和同步接口。
-
--   Async and blocking Clients
--   Plain bodies, JSON, urlencoded, multipart
--   Customizable redirect policy
--   HTTP Proxies
--   Uses TLS by default
--   Cookies
-
-reqwest 的 APIs 默认是 async 的，reqwest::Client 是异步的，但是也提供了 reqwest::blocking module, 它提供了各种同步版本的 APIs。（需要开启 blocking feature）。
+[reqwest](https://docs.rs/reqwest/latest/reqwest/) 是在 hyper 基础上实现的高层 HTTP client 库，支持异步和同步接口。reqwest 的 APIs 默认是 async
+的，reqwest::Client 是异步的，但是也提供了 reqwest::blocking module, 它提供了各种同步版本的 APIs。（需要开启 blocking feature）。
 
 ```rust
 let body = reqwest::get("https://www.rust-lang.org")
@@ -57,8 +49,8 @@ let res = client.post("http://httpbin.org/post")
 
 reqwest 默认支持重定向（最多 10 hops），可以通过 ClientBuilder 的 redirect::Policy 来控制。
 
-reqwest 默认是支持 Proxy 的，支持 HTTP/HTTPS/SOCKS5 等代理，支持环境变量，如 HTTPS_PROXY or
-https_proxy or no_proxy 等, 可以通过 ClientBuilder 的 Proxy 来控制。
+reqwest 默认是支持 Proxy，支持 HTTP/HTTPS/SOCKS5 等代理，支持环境变量，如 HTTPS_PROXY or https_proxy
+or no_proxy 等, 可以通过 ClientBuilder 的 Proxy 来控制。
 
 当连接 https，默认开启 TLS，而且支持通过 ClientBuilder 来控制：
 
@@ -67,7 +59,7 @@ https_proxy or no_proxy 等, 可以通过 ClientBuilder 的 Proxy 来控制。
 
 支持 gzip/bzip2/deflate/zstd 等压缩算法。
 
-request::get() 发送一个 GET 请求，每次请求都创建临时的 Client：
+request::get() 发送一个 GET 请求，每次请求都创建临时的 Client，效率不高：
 
 ```rust
 pub async fn get<T: IntoUrl>(url: T) -> Result<Response>
@@ -201,11 +193,7 @@ pub fn from_directory_path<P>(path: P) -> Result<Url, ()> where P: AsRef<Path>,
 pub fn to_file_path(&self) -> Result<PathBuf, ()>
 ```
 
-示例：
-
--   Url::parse_with_params() 的 URL 字符串和 params 字符串都会自动进行 URL 编码；
-
-<!--listend-->
+Url::parse_with_params() 的 URL 字符串和 params 字符串都会自动进行 URL 编码；
 
 ```rust
 #[tokio::main]
@@ -248,6 +236,7 @@ pub fn url_mut(&mut self) -> &mut Url
 pub fn headers(&self) -> &HeaderMap
 pub fn headers_mut(&mut self) -> &mut HeaderMap
 
+// 返回的是 reqwest::Body struct 类型
 pub fn body(&self) -> Option<&Body>
 pub fn body_mut(&mut self) -> &mut Option<Body>
 
@@ -277,13 +266,15 @@ where
     HeaderValue: TryFrom<V>,
     <HeaderValue as TryFrom<V>>::Error: Into<Error>,
 
-// 将传入的 heaers merge 到 Request 中
+// 将传入的 headers merge 到 Request 中
 pub fn headers(self, headers: HeaderMap) -> RequestBuilder
 pub fn basic_auth<U, P>( self, username: U, password: Option<P> ) -> RequestBuilder where U: Display, P: Display,
 let client = reqwest::Client::new();
 let resp = client.delete("http://httpbin.org/delete").basic_auth("admin", Some("good password")).send().await?;
 
 pub fn bearer_auth<T>(self, token: T) -> RequestBuilder where T: Display,
+
+// 设置请求 body
 pub fn body<T: Into<Body>>(self, body: T) -> RequestBuilder
 
 // 开启 Request timeout，从开始建立连接到响应 Body 结束。只影响这一次请求，重载
@@ -340,9 +331,7 @@ pub fn try_clone(&self) -> Option<RequestBuilder>
 
 ## <span class="section-num">3</span> multipart Form/Part {#multipart-form-part}
 
-使用 multipart/form 需要开启 multipart feature。
-
-`multipart/form-data` 是一种 MIME 类型，用于提交包含文件和二进制数据的表单。它允许表单字段和文件数据一起提交，适用于文件上传等场景。结构如下：
+使用 multipart/form 需要开启 multipart feature。 `multipart/form-data` 是一种 MIME 类型，用于提交包含文件和二进制数据的表单。它允许表单字段和文件数据一起提交，适用于文件上传等场景。结构如下：
 
 1.  **边界** ：开始部分 \`--boundary\`
 2.  **头部** ：包含内容描述 Header，如 \`Content-Disposition\` 和 \`Content-Type\`
@@ -350,7 +339,7 @@ pub fn try_clone(&self) -> Option<RequestBuilder>
 4.  **内容** ：表单字段或文件数据
 5.  **边界** ：结束部分 \`--boundary--\`
 
-示例：
+<!--listend-->
 
 ```text
 POST /upload HTTP/1.1
@@ -433,8 +422,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-reqwest::multipart::Part 是 multipart 的一个 part 部分，可以是表单或文件数据。作为 multipart::Form的
-part() 方法的参数来使用：
+reqwest::multipart::Part 是 multipart 的一个 part 部分，可以是表单或文件数据。作为 multipart::Form
+的 part() 方法的参数来使用：
 
 -   text() 表单数据；
 -   bytes() 任意二进制数据；
@@ -461,7 +450,7 @@ pub fn headers(self, headers: HeaderMap) -> Part
 
 两类 Body：
 
-1.  Body trait：在 [http_body crate](https://docs.rs/http-body/1.0.0/http_body/trait.Body.html) 中定义；
+1.  Body trait：在 [http_body crate](https://docs.rs/http-body/1.0.0/http_body/trait.Body.html) 中定义，在 hyper/axum/reqwest 中得到复用；
 2.  Body struct：在 reqwest::Body 中定义；
 
 reqwest::Body 没有构建方法，但是实现了多种类型 From trait 的转换：
@@ -477,7 +466,14 @@ where
     S::Error: Into<Box<dyn Error + Send + Sync>>,
     Bytes: From<S::Ok>,
 
-impl Body for Body // 实现 Body trait
+// 实现 http_body::Body trait， 返回的 Data 类型是 bytes::Bytes，可以当作 &[u8] 来使用。
+// http_body::Frame 是封装 http stream data 的类型，包括 HeaderMap + data。
+impl Body for Body
+type Data = Bytes
+type Error = Error
+fn poll_frame( self: Pin<&mut Self>, cx: &mut Context<'_> ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>>
+
+
 impl Debug for Body
 impl Default for Body
 
@@ -493,8 +489,8 @@ impl From<Vec<u8>> for Body
 
 body 的使用场景：
 
-1.  reqwest::Request::body Get the body.
-2.  reqwest::RequestBuilder::body Set the request body.
+1.  reqwest::Request::body() : 获取 body；
+2.  reqwest::RequestBuilder::body(): 设置 body；
 
 
 ## <span class="section-num">5</span> Client/ClientBuilder {#client-clientbuilder}
@@ -690,116 +686,4 @@ pub async fn upgrade(self) -> Result<Upgraded>
 
 ## <span class="section-num">7</span> header {#header}
 
-HeaderMap：用于将 HeaderName 关联 values， 使用 HeaderName 和 HeaderValue 类型：
-
-```rust
-pub struct HeaderMap<T = HeaderValue> { /* private fields */ }
-
-impl HeaderMap
-pub fn new() -> HeaderMap
-
-impl<T> HeaderMap<T>
-pub fn with_capacity(capacity: usize) -> HeaderMap<T>
-pub fn try_with_capacity( capacity: usize ) -> Result<HeaderMap<T>, MaxSizeReached>
-
-pub fn len(&self) -> usize
-pub fn keys_len(&self) -> usize
-pub fn is_empty(&self) -> bool
-pub fn clear(&mut self)
-
-pub fn capacity(&self) -> usize
-pub fn reserve(&mut self, additional: usize)
-pub fn try_reserve(&mut self, additional: usize) -> Result<(), MaxSizeReached>
-
-// 获得 header 对应的 value，这里的 key 可以是任何实现 AsHeaderName 的类型
-pub fn get<K>(&self, key: K) -> Option<&T> where K: AsHeaderName,
-pub fn get_mut<K>(&mut self, key: K) -> Option<&mut T> where K: AsHeaderName,
-pub fn get_all<K>(&self, key: K) -> GetAll<'_, T> where K: AsHeaderName,
-pub fn contains_key<K>(&self, key: K) -> bool where K: AsHeaderName,
-
-pub fn iter(&self) -> Iter<'_, T> ⓘ
-pub fn iter_mut(&mut self) -> IterMut<'_, T> ⓘ
-
-pub fn keys(&self) -> Keys<'_, T> ⓘ
-pub fn values(&self) -> Values<'_, T> ⓘ
-pub fn values_mut(&mut self) -> ValuesMut<'_, T> ⓘ
-
-pub fn drain(&mut self) -> Drain<'_, T> ⓘ
-
-pub fn entry<K>(&mut self, key: K) -> Entry<'_, T> where K: IntoHeaderName,
-pub fn try_entry<K>( &mut self, key: K) -> Result<Entry<'_, T>, InvalidHeaderName> where K: AsHeaderName,
-pub fn insert<K>(&mut self, key: K, val: T) -> Option<T> where K: IntoHeaderName,
-pub fn try_insert<K>( &mut self, key: K, val: T) -> Result<Option<T>, MaxSizeReached> where K: IntoHeaderName,
-pub fn append<K>(&mut self, key: K, value: T) -> bool where K: IntoHeaderName,
-pub fn try_append<K>( &mut self, key: K, value: T) -> Result<bool, MaxSizeReached> where K: IntoHeaderName,
-pub fn remove<K>(&mut self, key: K) -> Option<T> where K: AsHeaderName,
-
-
-// HeaderMap 实现了 Index trait，可以使用 headers[key] 操作
-impl<K, T> Index<K> for HeaderMap<T> where K: AsHeaderName,
-  fn index(&self, index: K) -> &T
-  type Output = T
-```
-
-HeaderMap 的接口设计和 HashMap 类似：
-
-```rust
-let mut headers = HeaderMap::new();
-headers.insert(HOST, "example.com".parse().unwrap());
-headers.insert(CONTENT_LENGTH, "123".parse().unwrap());
-assert!(headers.contains_key(HOST));
-assert!(!headers.contains_key(LOCATION));
-assert_eq!(headers[HOST], "example.com");
-headers.remove(HOST);
-assert!(!headers.contains_key(HOST));
-```
-
-HeaderName：代表一个 HTTP header name，在 HeaderMap 的相关方法中使用：
-
--   reqwest::header module 中提供了标准的 HeaderName, 如 CONTENT_ENCODING 等；
--   from_XX() 方法将传入的 key name 转换为 `HTTP 标准 key name` ；
-
-<!--listend-->
-
-```rust
-pub struct HeaderName { /* private fields */ }
-
-
-impl HeaderName
-// 创建 HeaderName
-pub fn from_bytes(src: &[u8]) -> Result<HeaderName, InvalidHeaderName>
-pub fn from_lowercase(src: &[u8]) -> Result<HeaderName, InvalidHeaderName>
-pub const fn from_static(src: &'static str) -> HeaderName
-pub fn as_str(&self) -> &str
-
-
-// Parsing a lower case header
-let hdr = HeaderName::from_lowercase(b"content-length").unwrap();
-assert_eq!(CONTENT_LENGTH, hdr);
-// Parsing a header that contains uppercase characters
-assert!(HeaderName::from_lowercase(b"Content-Length").is_err());
-
-// Parsing a standard header
-let hdr = HeaderName::from_static("content-length");
-assert_eq!(CONTENT_LENGTH, hdr);
-
-// Parsing a custom header
-let CUSTOM_HEADER: &'static str = "custom-header";
-
-let a = HeaderName::from_lowercase(b"custom-header").unwrap();
-let b = HeaderName::from_static(CUSTOM_HEADER);
-assert_eq!(a, b);
-```
-
-HeaderValue：
-
-```rust
-let val = HeaderValue::from_static("hello");
-assert_eq!(val, "hello");
-
-let val = HeaderValue::from_str("hello").unwrap();
-assert_eq!(val, "hello");
-
-let val = HeaderValue::from_bytes(b"hello\xfa").unwrap();
-assert_eq!(val, &b"hello\xfa"[..]);
-```
+reqwest::header 实际是 <http::header> module.

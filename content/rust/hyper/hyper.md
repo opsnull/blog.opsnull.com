@@ -1,15 +1,13 @@
 ---
 title: "hyper"
 author: ["zhangjun"]
-lastmod: 2024-06-08T21:57:42+08:00
+lastmod: 2024-06-11T20:27:38+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
 series: ["rust crate"]
 series_order: 8
 ---
-
-<https://docs.rs/hyper/latest/hyper/>
 
 hyper is a fast and correct HTTP implementation written in and for Rust. Features
 
@@ -23,7 +21,7 @@ hyper is a fast and correct HTTP implementation written in and for Rust. Feature
 “Low-level”: hyper is `a lower-level HTTP library`, meant to be a building block for libraries and
 applications. If looking for just a convenient HTTP client, consider the `reqwest` crate.
 
-hyper 提供了 HTTP1/HTTP2 的 client 和 server 实现，属于较底层的 lib。
+[hyper](https://docs.rs/hyper/latest/hyper/) 提供了 HTTP1/HTTP2 的 client 和 server 实现，属于较底层的 lib。
 
 -   对于 client 建议使用 `reqwest` ；
 -   对于 server 建议使用 `axum` 这两个高层库。

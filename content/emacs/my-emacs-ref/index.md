@@ -1,8 +1,8 @@
 ---
-title: "Emacs 个人参考手册"
+title: "My Emacs Reference"
 author: ["张俊(zj@opsnull.com)"]
 date: 2023-08-20T00:00:00+08:00
-lastmod: 2023-08-20T17:33:02+08:00
+lastmod: 2024-06-08T22:06:11+08:00
 tags: ["emacs"]
 categories: ["emacs"]
 draft: false
@@ -201,6 +201,8 @@ consult 提供了两个更方便和通用的 register 操作：
 
 -   M-x consult-register
 -   M-x consult-register-store
+
+`C-] (command abort-recursive-edit)` 命令可以在任意 buffer 关闭 minibuffer 的编辑模式。
 
 
 ## <span class="section-num">7</span> 显示 {#显示}
@@ -581,6 +583,8 @@ C-c C-c
 C-c C-k
 : kill-compilation
 
+如果安装了 wgrep-mode，则在 grep buffer 中按 C-c C-p 来进行批量编辑。
+
 
 ### <span class="section-num">14.1</span> 搜索文件内容：deadgrep {#搜索文件内容-deadgrep}
 
@@ -645,6 +649,8 @@ Query replace 过程中可以使用的快捷键：
 
 -   M-x projectile-replace：在 project 级别搜索或替换文件。
 -   M-x dired-do-find-regexp-and-replace：在 dired mode 上选中文件，按 Q 进行查询替换；
+
+在 grep buffer 中使用 wgrep 进行批量编辑。
 
 
 ## <span class="section-num">16</span> 定制 {#定制}
@@ -796,7 +802,7 @@ Shell mode：不支持终端转义字符， `不建议使用` ；
 -   C-c C-s：将上一个命令的输出保存到指定 buffer
 -   C-c C-r 或 C-M-l：将上一个命令的输出置到 window 的顶部；
 -   M-p、M-n、M-r、C-c C-n、C-c C-p：命令历史记录
--   C-c C-l：在另一个 buffer 中展示当前 shell buffer 的历史记录； 然后可以搜索，回车确定；
+-   C-c C-l：在另一个 buffer 中展示当前 shell buffer 的历史记录，然后可以搜索，回车确定；
 
 Term mode： `建议使用`, 可以使用 top、vim 等：
 
@@ -804,7 +810,7 @@ Term mode： `建议使用`, 可以使用 top、vim 等：
 -   C-c C-k：term-char-mode，切换到终端模式，输入的任何字符都会直接发送给终端（ 除了 C-c 字符外）。
 -   C-c C-c: 向 shell 进程发送 C-c 命令；
 
-C-c C-q: C-c C-q Toggle the page-at-a-time feature (term-pager-toggle). 在 line和 char mode 都可以启用，当term 输出超过一页时会暂停，按 SPACE 继续。
+C-c C-q: C-c C-q Toggle the page-at-a-time feature (term-pager-toggle). 在 line 和 char mode 都可以启用，当term 输出超过一页时会暂停，按 SPACE 继续。
 
 term 模式下不支持 Control 开头的快捷键，例如 C-\`, C-; 等。这是由于终端的限制，目前没有很好的解决办法。
 
@@ -814,7 +820,7 @@ term 模式下不支持 Control 开头的快捷键，例如 C-\`, C-; 等。这�
 ### <span class="section-num">18.1</span> vterm {#vterm}
 
 Emacs term 默认是非交互式 shell，不会调用 `~/.bash_profle` 文件，所以类似于 `PS1` 等环境变量需要设置在
-=~/.bashrc=文件中。
+`~/.bashrc` 文件中。
 
 安装了 vterm-toggle package 后，可以快捷地在当前 buffer、bottom buffer 或 side buffer 打开和关闭一个
 vterm，定义的快捷键如下：
@@ -866,10 +872,9 @@ vterm 的github 文件](https://github.com/akermu/emacs-libvterm/tree/master/etc
 | C-x M-g | magit-dispatch      | 在小的 buffer window 中显示当前可以执行的 magit 快捷键命令。 |
 | C-c M-g | magit-file-dispatch | 在小的 buffer window 中显示可以对当前 file 执行的 magit 命令。 |
 
-在 magit-status buffer 中，执行的命令与当前光标所在位置有关系，如在某一个 commit 上时，SPACE 会显示该 commit
-的内容，d 会显示前后两个 commit 的差别：
+在 magit-status buffer 中，执行的命令与当前光标所在位置有关系，如在某一个 commit 上时，SPACE 会显示该 commit 的内容，d 会显示前后两个 commit 的差别：
 
--   ? 或者 h：根据光标所在的 buffer，显示对应的帮助菜单。
+-   ?/h：根据光标所在的 buffer，显示对应的帮助菜单。
 -   $：显示 git process 的输出内容窗口，用于 debug, 用 q 关闭 debug 窗口。
 -   k：discard:
     -   当光标在 stage 位置时，丢弃 stage 和 worktree 中的内容。
@@ -882,12 +887,16 @@ vterm 的github 文件](https://github.com/akermu/emacs-libvterm/tree/master/etc
 -   U: unstage 所有的变动.
 -   g: 刷新 magit buffer.
 
-C-SPACE：标记当前 file 或 hunk，然后用 n、p 移动，最后可以用 s、u 操作标记的区域。也可以用来在 Commit 或 log
-列表中批量选中 commit，后续可以 apply 或 revert。
+C-SPACE：标记当前 file 或 hunk 区域,最后用 s(stage)、u(unstage) 操作标记的区域。也可以用来在 Commit
+或 log 列表中批量选中 commit，后续可以 apply 或 revert。
+
+移动：
 
 -   n/p: 在 section 或者 section 内部的 hunk 之间移动；
 -   M-n/M-p: 在 slibling section 之间移动；
 -   ^：移动到 section 的上一级(不是 u，u 的含义是 unstage);
+
+显示和展开：
 
 -   TAB 展开当前 section
 -   C-TAB：循环展示当前 section 和它的 children；而 TAB 是直接展开所有 children 的内容。
@@ -895,16 +904,19 @@ C-SPACE：标记当前 file 或 hunk，然后用 n、p 移动，最后可以用 
 -   1-4：分别在当前 section 的 1-4 级之间之间展开
 -   M 1-4: 分别在所有 section 的 1-4 级之间展开
 
+执行命令：
+
 -   !: 在当前工作目录或 git root 目录运行 git 或 shell 命令
 -   C-g: 终止当前的 git 命令
 
-C-c M-g: magit-file-dispatch 这个命令是针对当前文件的，可以：
+C-c M-g: magit-file-dispatch 针对当前文件，支持：
 
 1.  stage、unstage、commit 当前文件；
 2.  Diff 和 diff 当前文件与其它 commit 或 master 的差别；其中 Diff 可以查看的更多样：
     1.  dwim: 功能同 Diff range;
-    2.  Diff range: 提示输入比较的 commit ref，然后比较 workspace 当前文件与它的的差别；
-    3.  Diff paths: 提示输入两个路径的文件，然后显示他们的差别；
+    2.  Diff range: 提示输入比较的 commit ref，然后比较 workspace 当前文件与它的的差别；ref 可以使用
+        HEAD~N 语法。
+    3.  Diff paths: 提示输入两个路径的文件，然后显示差别；
     4.  Diff unstaged: 显示当前文件 unstaged changes；
     5.  Diff staged：显示当前文件 staged changes；
     6.  Diff worktree: 显示当前文件在 HEAD 和 working tree 之间的差别；
@@ -917,8 +929,8 @@ C-c M-g: magit-file-dispatch 这个命令是针对当前文件的，可以：
     4.  Local Branchs: 展示在所有本地分支中，当前文件的 commit 情况；
     5.  all branchs: 除了所有本地分支外，也包括远程分支，当前文件的 commit 情况；
     6.  all reference: 展示所有分支中当前文件的 commit 情况；
-5.  trace: 查看光标处所在函数或代码的修改历史（也可以选中区域），如下面的 main -L:sign_request 表示 main 分支的
-    sign_request 函数的修改历史：
+5.  trace: 查看光标处所在函数或代码的修改历史（也可以选中区域），如下面的 main -L:sign_request 表示
+    main 分支的sign_request 函数的修改历史：
 
     {{< figure src="images/magit/2022-08-18_08-30-40_screenshot.png" width="400" >}}
 
@@ -964,10 +976,7 @@ S: new spin-out
 
 ### <span class="section-num">19.3</span> Stash {#stash}
 
-stash 用于暂存当前的变更。git stash 使用流程：
-
-git stash
-: 保存当前工作进度，把暂存区和工作区的改动保存起来，然后当前是一个干净的工作区。
+git stash 保存当前工作进度，把暂存区和工作区的改动保存起来，然后当前是一个干净的工作区。
 
 git stash save 'message...'
 : 添加注释。
@@ -996,25 +1005,26 @@ magit 提供了 stash 和 snapshot 两种选择：<https://emacs.stackexchange.c
 
 对于 snapshot，magit 会创建一个 WIP commit，当前 working tree 内容不变。
 
-Both the "stash" and "snapshot" variants create the same stash objects. The difference is that when you create
-a snapshot, then `the stashed changes are not removed` from the files in the working tree and/or the
-index. (Just like when you take a snapshot of your friends having a good time - that doesn't cause them to
-disappear either ;-)
+Both the "stash" and "snapshot" variants create the same stash objects. The difference is that when
+you create a snapshot, then `the stashed changes are not removed` from the files in the working tree
+and/or the index. (Just like when you take a snapshot of your friends having a good time - that
+doesn't cause them to disappear either ;-)
 
-This is intended as a backup mechanism of sorts. Say you are performing some complicated refactoring and you
-just tested and the modified code still appears to work but you are not done yet. Now would be a good time to
-create a snapshot, so that you have something to go back to if you mess it up later.
+This is intended as a backup mechanism of sorts. Say you are performing some complicated refactoring
+and you just tested and the modified code still appears to work but you are not done yet. Now would
+be a good time to create a snapshot, so that you have something to go back to if you mess it up
+later.
 
 Of course you could just create `a temporary "wip" commit`, right on the branch you are working on, to
 accomplish the same. That's usually what I do.
 
-And you can also automate the process of recording work-in-progress by enabling the Wip modes. I do have these
-modes enabled as a safety net, but I still create wip commits directly on the current branch or create a
-snapshot. Those are easier to work with than the wip refs.
+And you can also automate the process of recording work-in-progress by enabling the Wip modes. I do
+have these modes enabled as a safety net, but I still create wip commits directly on the current
+branch or create a snapshot. Those are easier to work with than the wip refs.
 
-Note that Magit comes with its own stash implementation written in Elisp. That was necessary to implement the
-snapshot variants and the worktree-only and index-only stash variants. Git doesn't provide any of these
-variants.
+Note that Magit comes with its own stash implementation written in Elisp. That was necessary to
+implement the snapshot variants and the worktree-only and index-only stash variants. Git doesn't
+provide any of these variants.
 
 
 ### <span class="section-num">19.4</span> Commit {#commit}
@@ -1035,11 +1045,12 @@ w Reword
 修改历史 Commit（如果当前没有 stage 修改，则不做任何操作）：
 
 f Fixup
-: 选择一个历史 commit，然后将当前 stage 的修改合并进去，创建一个新的 commit，commit msg 是 fixup! 前缀 + 选中的历史 commit msg；
+: 选择一个历史 commit，然后将当前 stage 的修改合并进去，创建一个新的 commit，commit msg
+    是 fixup! 前缀 + 选中的历史 commit msg；
 
 s Squash
-: 选择一个历史 commit，然后将当前 stage 的修改合并进去，创建一个新的 commit，commit msg 是 squash!
-    前缀 + 选中的历史 commit msg；
+: 选择一个历史 commit，然后将当前 stage 的修改合并进去，创建一个新的 commit，commit msg
+    是 squash! 前缀 + 选中的历史 commit msg；
 
 A Argument
 : 和 s Squash 类似，也是创建一个 squash commit，但是可以修改 squash message.
@@ -1048,7 +1059,8 @@ A Argument
 
 {{< figure src="images/magit/2021-02-09_13-10-31_screenshot.png" width="600" >}}
 
-后续通过 r i (interactive) 进行 rebase 前，打开 --autosquash 选项，这样会自动将 Commit 进行 fixup 或 squash：
+后续通过 r i (interactive) 进行 rebase 前，打开 --autosquash 选项，这样会自动将 Commit 进行 fixup 或
+squash：
 
 {{< figure src="images/magit/2021-02-09_13-22-30_screenshot.png" width="600" >}}
 
@@ -1056,8 +1068,7 @@ git 使用 fixup! 或 squash! 后的 msg 来匹配历史 commit，然后 rebase 
 
 {{< figure src="images/magit/2021-02-09_13-27-33_screenshot.png" width="600" >}}
 
-上面的 Fixup、Squash 还有 Instance 版本，它们是立即启动 rebase，将当前 stage 的内容自动 rebase 到选择的历史
-commit 中：
+上面的 Fixup、Squash 还有 Instance 版本，它们是立即启动 rebase，将当前 stage 的内容自动 rebase 到选择的历史commit 中：
 
 -   F：Instance fixup
 -   S：Instance squash
@@ -1074,9 +1085,6 @@ commit 中：
 magit 模式是使用 Contex 模式来展示 diff 内容。如果想 side-by-side 则需要使用 ediff 模式。
 
 -   d p: 选择两个路径文件，然后比较内容
-
-
-### <span class="section-num">19.6</span> Ediff {#ediff}
 
 M-x ediff: 选择两个文件进行比较。
 
@@ -1202,12 +1210,12 @@ merge: 出现三个窗口，上面两个是冲突的版本，最下面是合并�
 magit-find-file：指定一个文件的 revision，可以查看该文件的内容。
 
 
-### <span class="section-num">19.7</span> Fetch {#fetch}
+### <span class="section-num">19.6</span> Fetch {#fetch}
 
 -   fa：将 remote 仓库的所有 branch、tag 等拉取到本地；
 
 
-### <span class="section-num">19.8</span> Push {#push}
+### <span class="section-num">19.7</span> Push {#push}
 
 P：push ::
 
@@ -1215,7 +1223,7 @@ P：push ::
 -   u：另一个上游仓库
 
 
-### <span class="section-num">19.9</span> Log {#log}
+### <span class="section-num">19.8</span> Log {#log}
 
 可以按作者、Commit Msg、修改的内容、 文件等条件搜索历史：
 
@@ -1246,30 +1254,28 @@ L: 修改 log 显示的信息，如 singlestat、margin 等
 小技巧：C-c M-g l 查看当前文件在 `当前分支` 的提交记录，这时按 l a 则可以看到当前文件在 `所有分支` 的提交记录，然后就可以按 A 或 a 来 Apply 某个 commit 到当前分支。
 
 
-### <span class="section-num">19.10</span> Merge {#merge}
+### <span class="section-num">19.9</span> Merge {#merge}
 
 -   i: Dissolve(merge into): 将当前分支内容 merge 到其它分支，然后删除当前分支，并切换到 merge into 的分支：
 -   a: Absorb 将另一个 branch merge 进当前 branch，然后删除那个分支。
--   s: squash merge 将指定分支的修改合并到当前分支，但是不创建 commit。注意：指定分支的多次 commit 内容会合并到当前 worktree，这样后续 commit 时，只会看到一次提交（而不管指定分支有多少次历史提交）。squash 的含义就是
-    merge 历史合并。在 rebase 时也会使用。
+-   s: squash merge 将指定分支的修改合并到当前分支，但是不创建 commit。注意：指定分支的多次 commit 内容会合并到当前 worktree，这样后续 commit 时，只会看到一次提交（而不管指定分支有多少次历史提交）。
+    squash 的含义就是merge 历史合并。在 rebase 时也会使用。
 
-如果只是想把其它分支的 commit 应用到当前分支，除了 merge 外，还可以使用 Appply（A 或 a） 或 Cherry（Y）。
+如果只是想把其它分支的 commit 应用到当前分支，除了 merge 外，还可以使用 Appply（A 或 a） 或
+Cherry（Y）。
 
 为了得到线性、干净的历史提交记录，在将当前分支 merge 到主干前，可以先将它 rebase 到主干分支（期间还可以修改历史提交记录），这样后续在 merge 时会得到一个线性的提交记录。
 
-如果 merge 出现冲突，magit 会在 `magit-status（C-x g）` buffer 的 unstage 或 stage change section，而且行首有
-unmerged 的字符串提示。可以在 unmerge 的位置按 k 丢弃 apply，或者按 e 使用 ediff 解决冲突。
+如果 merge 出现冲突，magit 会在 `magit-status（C-x g）` buffer 的 unstage 或 stage change section，而且行首有unmerged 的字符串提示。可以在 unmerge 的位置按 k 丢弃 apply，或者按 e 使用 ediff 解决冲突。
 
 
-### <span class="section-num">19.11</span> Cherry&amp;Apply {#cherry-and-apply}
+### <span class="section-num">19.10</span> Cherry/Apply {#cherry-apply}
 
-Cherry 和 Apply 都是将其它 Commit merge 到到当前分支, 所以在执行相关命令之前需要先切换到要合并到的分支。
+Cherry 和 Apply 都是将其它 Commit merge 到到当前分支, 在执行相关命令之前需要先切换到要合并到的目标分支。
 
 Y （Cherries）
-: 先输入 HEAD，再输入 UPSTREAM，显示 HEAD 可以 cherry pick 到
-
-UPSTREAM 的 commit 列表，然后使用 Aa、AA 或 a 来选择性的 apply 到当前 branch。 `需要先把当前 branch 切换到
-UPSTREAM` ，这样后续才能使用各种 Apply 命令。
+: 先输入 HEAD，再输入 UPSTREAM，显示 HEAD 可以 cherry pick 到 UPSTREAM 的 commit
+    列表，然后使用 Aa、AA 或 a 来选择性的 apply 到当前 branch。 `需要先把当前 branch 切换到 UPSTREAM` ，这样后续才能使用各种 Apply 命令。
 
 A 或 a（Apply）
 : 是 Cherry 的快捷方式，用于将一个或多个 commit 快速应用到当前分支。
@@ -1277,7 +1283,8 @@ A 或 a（Apply）
 使用流程:
 
 1.  Checkout the branch which you want to add the commit to, b b then select branch name, eg. master.
-2.  Still in Magit, l a to open the log buffer and show log for all git references (commits, stashes, etc).
+2.  Still in Magit, l a to open the log buffer and show log for all git references (commits, stashes,
+    etc).
 3.  Move the cursor to the commit you wish to cherry pick from.
 4.  `A A` to `pick + stage + commit` to the currently checked-out branch.
 5.  Or use `A` a to pick and stage if you want to `edit the change before committing it` to the currently
@@ -1288,30 +1295,27 @@ A 或 a（Apply）
 1.  Cherry head: 选择提供 commit 的分支 origin/Ark-v19.xR-zArm_fs；
 2.  Cherry upstream 选择 Ark-sm-kylin；
 3.  出现 commit cherry pick 列表：
-4.  以 - 号开始的表示已经 pick 过；
-5.  以 + 号开始的表示没有 pick 过；
+    -   以 - 号开始的表示已经 pick 过；
+    -   以 + 号开始的表示没有 pick 过；
 
 {{< figure src="images/magit/2021-01-21_16-53-33_screenshot.png" width="600" >}}
 
-Cherry pick 冲突：
+可以在 Magit 的所有 commit 上执行 AA 或 Aa 或 a 命令来 Apply 这个 commit 到当前 branch。可以使用
+C-SPC 来选中多个 commits，然后批量 Apply 或其它操作。
+
+A A：Pick(magit-cherry-copy, 为 pick+stage+commit)：
+
+-   将光标处的或者选中的多个 commit 拷贝到当前 branch，并提示 commit message，如果选中多个 commit，则直接 pick 它们，不提示编辑 commit msg。
+
+A a 或者 a 命令 (magit-cherry-apply, 为 pick+stage)：
+
+-   将光标处或选中的 commit cherry apply 到当前分支，cherry apply 只是在 worktree 中 appy changes， `并不 commit` ，后续 commit 时默认使用当前的 commit msg。如果选中了多个 commit，则直接 apply。
+
+Cherry apply 有可能失败，这时 worktree 中会提示冲突，需要解决冲突并 stage 后按 A 继续；
 
 {{< figure src="images/magit/2021-01-21_17-02-38_screenshot.png" width="600" >}}
 
 可以在 unmerge 的位置按 k 丢弃 apply，或者按 e 使用 ediff 解决冲突，然后按 A 继续、忽略或终止。
-
-基本上，可以在 Magit 的所有 commit 上执行 AA 或 Aa 或 a 命令来 Apply 这个 commit 到当前 branch。可以使用 C-SPC
-来选中多个 commits，然后批量 Apply 或其它操作。
-
-A A：Pick(magit-cherry-copy, 为 pick+stage+commit)：
-
--   将光标处的或者选中的多个 commit 拷贝到当前 branch，并提示 commit message，如果选中多个 commit，则直接 pick
-    它们，不提示编辑 commit msg。
-
-A a 或者 a 命令 (magit-cherry-apply, 为 pick+stage)：
-
--   将光标处或选中的 commit cherry apply 到当前分支，cherry apply 只是在 worktree 中 appy changes， `并不 commit`
-    ，后续 commit 时默认使用当前的 commit msg。如果选中了多个 commit，则直接 apply。
--   apply 有可能失败，这时 worktree 中会提示冲突，需要解决冲突并 stage 后按 A 继续；
 
 {{< figure src="images/magit/2021-01-21_17-39-04_screenshot.png" width="600" >}}
 
@@ -1338,25 +1342,24 @@ A s (magit-sequence-skip)
 : Skip the stopped at commit during a cherry-pick or revert sequence.
 
 A a (magit-sequence-abort)
-: Abort the current cherry-pick or revert sequence. This discards all changes
-    made since the sequence started.
+: Abort the current cherry-pick or revert sequence. This discards all
+    changes made since the sequence started.
 
 
-### <span class="section-num">19.12</span> Reset {#reset}
+### <span class="section-num">19.11</span> Reset {#reset}
 
-{{< figure src="images/magit/2021-06-27_17-28-39_screenshot.png" width="60%" >}}
+Reset 类型：
 
 -   m mixed：reset HEAD and index；
 -   s soft：reset HEAD Only；
 -   h hard：reset HEAD、index 和 files；
 -   k keep：reset HEAD 和 index，但是保存 uncommitted 的 files；
 -   i index only
--   w worktree：只 reset worktree 内容到指定 commit，HEAD 和 index 不变（即提交历史不变，已经 stage 但为 commit
-    的内容还在，但是 unstage 的内容会被 reset）；
+-   w worktree：只 reset worktree 内容到指定 commit，HEAD 和 index 不变（即提交历史不变，已经 stage 但为 commit的内容还在，但是 unstage 的内容会被 reset）；
 -   f a file：reset file 到某个 commit；
 
-mixed、soft 命令 reset HEAD 或 index 后，worktree 内容不变，即 reset 到的 commit 之后的变更都还在 worktree 的
-unstaged 区域中：
+mixed、soft 命令 reset HEAD 或 index 后，worktree 内容不变，即 reset 到的 commit 之后的变更都还在
+worktree 的unstaged 区域中：
 
 {{< figure src="images/magit/2021-06-27_17-35-06_screenshot.png" width="80%" >}}
 
@@ -1367,14 +1370,17 @@ unstaged 区域中：
 1.  指定 log 中显示的 7 位 commitid；
 2.  或者相对 commit，如 HEAD~1、HEAD~2；
 
-    {{< figure src="images/magit/2021-01-16_19-08-16_screenshot.png" width="600" >}}
+小技巧：切换到 reset 分支，然后按 l l 显示当前分支 log 历史，然后移动到要 reset 到的 commit 位置，按
+X h，这样就不需要手动输入 commitid 了。
+
+{{< figure src="images/magit/2021-01-16_19-08-16_screenshot.png" width="600" >}}
 
 `全局快捷键 x（magit-reset-quickly）` 将当前分支的 HEAD 和 index reset 到指定的 Commit，该 Commit 之后的更新保存到 worktree 的 unstated 区域中：
 
 {{< figure src="images/magit/2021-06-27_17-24-25_screenshot.png" width="80%" >}}
 
 
-### <span class="section-num">19.13</span> Revert {#revert}
+### <span class="section-num">19.12</span> Revert {#revert}
 
 Revert 是创建一个相反的 Commit 来达到清除某次提交全部或部分变更的效果。
 
@@ -1398,7 +1404,7 @@ Revert 是创建一个相反的 Commit 来达到清除某次提交全部或部�
 解决冲突后，如果 stage 不为空，则 A A 会创建一个 Revert Commit。如果 stage 为空，则说明没有需要 commit 的内容，这时可以 A a(abort) 或 A s(skip) 结束 Revert 过程。
 
 
-### <span class="section-num">19.14</span> Rebase {#rebase}
+### <span class="section-num">19.13</span> Rebase {#rebase}
 
 Rebase 原理，以将 feature1 分支 rebase 到 master 为例：
 
@@ -1407,157 +1413,174 @@ Rebase 原理，以将 feature1 分支 rebase 到 master 为例：
 3.  把 feature1 分支 HEAD 指向最新的 master 分支；
 4.  把上面保存的 patch 文件应用到 feature1 分支上；（由于以master分支为 base，应用的时候可能会有冲突）。后续，在 master 分支里 merge feature1 分支时，可以fast-forward，得到一个线性的提交历史。
 
-rebase 冲突的时候会暂停，需要解决冲突后 git add，然后用 git rebase --continue 来继续 rebase，如果要终止 rebase
-则可以用 git rebase --abort 命令，这时分支会回到rebase 前的状态。
+rebase 冲突的时候会暂停，需要解决冲突后 git add，然后用 git rebase --continue 来继续 rebase，如果要终止 rebase则可以用 git rebase --abort 命令，这时分支会回到rebase 前的状态。
 
 rebase 另外两个用途：
 
-1.  改写 commit 历史记录，如合并、删除多个 commit，修改 commit 的顺序、message 等。如 git rebase feature~5
-    feature，可以实现将 feature 分支的最近 5 次提交合并为一个。这可以使用 rebase 的interactive 模式来轻松实现。
-2.  变基，如有三个分支 master、feature1、feature2，feature1 从 master checkout 出来，做了几次commit，然后
-    feature2 从 feature1 checkout 出来，也做了几次提交。如果希望将 feature2 的修改合并到 master，但是 feature1
-    不变的话，就需要变基了，即用命令 git rebase --onto master feature1 feature2；
+1.  改写 commit 历史记录，如合并、删除多个 commit，修改 commit 的顺序、message 等。如 git rebase
+    feature~5 feature，可以实现将 feature 分支的最近 5 次提交合并为一个。这可以使用 rebase 的
+    interactive 模式来轻松实现。
+2.  变基，如有三个分支 master、feature1、feature2，feature1 从 master checkout 出来，做了几次commit，然后feature2 从 feature1 checkout 出来，也做了几次提交。如果希望将 feature2 的修改合并到 master，但是 feature1不变的话，就需要变基了，即用命令 git rebase --onto master feature1 feature2；
 
 rebase(r):
 
--   i: interactively: 交互式 rebase，在当前分支 commit history 中选择一个 commit，然后交互式的 rebase 从该
-    commit 开始的后续 commit。用于修改对当前分支提交历史。
--   s: a subset： 选择一个 target newbase，然后在当前分支选择一个 START commit，将START 到 HEAD 的 commit 都
-    rebase 到 newbase 上。用于变基合并。
+-   i: interactively: 交互式 rebase，在当前分支 commit history 中选择一个 commit，然后交互式的 rebase
+    从该 commit 开始的后续 commit。用于修改对当前分支提交历史。
+-   s: a subset： 选择一个 target newbase，然后在当前分支选择一个 START commit，将 START 到 HEAD 的
+    commit 都 rebase 到 newbase 上。用于变基合并。
 
 {{< figure src="images/magit/2021-01-17_15-28-02_screenshot.png" width="600" >}}
 
-如果当前 commit 已经 push 到远程仓库，则后续执行 rebase 操作后，需要 force push到原仓库，否则会 push 失败。
+如果当前 commit 已经 push 到远程仓库，则后续执行 rebase 操作后，需要 force push到原仓库，否则会 push
+失败。
 
 {{< figure src="images/magit/2021-02-09_11-59-55_screenshot.png" width="600" >}}
 
+<!--list-separator-->
 
-#### <span class="section-num">19.14.1</span> rebase on 其它分支-全部 {#rebase-on-其它分支-全部}
+1.  rebase on 其它分支-全部
 
-按 r e，然后选择将当前分支 rebase 到的其它分支，这会将当前分支的所有 commit rebase 到其它分支：
+    按 r e，然后选择将当前分支 rebase 到的其它分支，这会将当前分支的所有 commit rebase 到其它分支：
 
-{{< figure src="images/magit/2021-02-07_09-50-40_screenshot.png" width="600" >}}
+    {{< figure src="images/magit/2021-02-07_09-50-40_screenshot.png" width="600" >}}
+
+<!--list-separator-->
+
+2.  rebase on 其它分支-部分
+
+    使用 l a 命令，定位到要 rabase onto 的分支 commit，然后执行 r s（subset) 命令，选择要 rebase onto 的分支
+    commit 位置：
+
+    {{< figure src="images/magit/2021-01-17_17-25-57_screenshot.png" width="600" >}}
+
+    选择当前分支的 start commit，例如 deb7，然后按 e，这时从这个 commit 开始到 HEAD的 commit 都会rebase 到第一步的新 base 上：
+
+    {{< figure src="images/magit/2021-01-17_17-26-51_screenshot.png" width="600" >}}
+
+    出现了合并冲突：
+
+    {{< figure src="images/magit/2021-01-17_17-28-32_screenshot.png" width="600" >}}
+
+    解决冲突后，按 A r 继续 rebase：
+
+    {{< figure src="images/magit/2021-01-17_17-30-54_screenshot.png" width="600" >}}
+
+    结束后，可以看到当前分支已经 rebase 到了 master 分支上了：
+
+    {{< figure src="images/magit/2021-01-17_17-32-43_screenshot.png" width="600" >}}
+
+<!--list-separator-->
+
+3.  rebase 修改历史
+
+    通过 rebase interactive 实现当前分支 commit 合并、删除、修改、msg 修改。
+
+    -   pick = use commit
+    -   reword = use commit, but edit the commit message
+    -   edit = use commit, but stop for amending
+    -   squash = use commit, but meld into previous commit
+    -   fixup = like "squash", but discard this commit's log message
+    -   exec = run command (the rest of the line) using shell
+
+    例如将下面红框中的 5 个 commit 合并为 2 两个：
+
+    {{< figure src="images/magit/2021-01-17_17-44-57_screenshot.png" width="600" >}}
+
+    首先将光标移动到 start commit，然后输入 r i（interactive）：
+
+    {{< figure src="images/magit/2021-01-17_17-46-03_screenshot.png" width="600" >}}
+
+    修改历史 commit 的 rebase 方式（从旧到新），结束后 按 C-c C-c 开始：
+
+    {{< figure src="images/magit/2021-01-17_17-48-56_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_11-56-34_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_12-01-37_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_14-52-40_screenshot.png" width="600" >}}
+
+    rebase 过程中，对 pick 类型的 commit，都可以修改它的 commit message：
+
+    {{< figure src="images/magit/2021-01-17_14-56-05_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_15-14-59_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_15-19-29_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_15-21-13_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_15-21-40_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_15-22-50_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_15-24-06_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_15-11-54_screenshot.png" width="600" >}}
+
+<!--list-separator-->
+
+4.  rebase: modify a commit
+
+    {{< figure src="images/magit/2021-01-17_15-49-25_screenshot.png" width="600" >}}
+
+    {{< figure src="images/magit/2021-01-17_15-52-40_screenshot.png" width="600" >}}
+
+    这时将 worktree 恢复到 7983d0b，可以修改文件和内容：
+
+    {{< figure src="images/magit/2021-01-17_15-58-48_screenshot.png" width="600" >}}
+
+    只有 stage 修改后的内容，才能继续 rebase。
+
+    如果按 e（edit），则出现当前分支到 HEAD 位置的 rebase 界面，可以调整后续 commit的 rebase 行为。
+
+    {{< figure src="images/magit/2021-01-17_15-54-30_screenshot.png" width="600" >}}
+
+<!--list-separator-->
+
+5.  rebase：remove commit
+
+    删除一个 commit 时，会将该 commit 后面的 commit 合并到前一个 commit，这时可能会出现冲突(因为删除后面的 commit
+    还可能含有被删除 commit 涉及的变更)：
+
+    {{< figure src="images/magit/2021-01-17_16-05-13_screenshot.png" width="600" >}}
+
+    提示合并冲突：
+
+    {{< figure src="images/magit/2021-01-17_16-07-54_screenshot.png" width="600" >}}
+
+    删除 commit 结束：
+
+    {{< figure src="images/magit/2021-01-17_16-10-14_screenshot.png" width="600" >}}
+
+<!--list-separator-->
+
+6.  rebase: reword a commit
+
+    用于修改一个 commit 的 message，选择当前分支的某个 commit（ rebase 操作的都是当前分支的 commit，其它分支的不行）：
+
+    {{< figure src="images/magit/2021-01-17_16-12-55_screenshot.png" width="600" >}}
+
+    修改的 commit 即以后的 commit 都会以 rebase 的方式重新提交。
 
 
-#### <span class="section-num">19.14.2</span> rebase on 其它分支-部分 {#rebase-on-其它分支-部分}
-
-使用 l a 命令，定位到要 rabase onto 的分支 commit，然后执行 r s（subset) 命令，选择要 rebase onto 的分支
-commit 位置：
-
-{{< figure src="images/magit/2021-01-17_17-25-57_screenshot.png" width="600" >}}
-
-选择当前分支的 start commit，例如 deb7，然后按 e，这时从这个 commit 开始到 HEAD的 commit 都会rebase 到第一步的新 base 上：
-
-{{< figure src="images/magit/2021-01-17_17-26-51_screenshot.png" width="600" >}}
-
-出现了合并冲突：
-
-{{< figure src="images/magit/2021-01-17_17-28-32_screenshot.png" width="600" >}}
-
-解决冲突后，按 A r 继续 rebase：
-
-{{< figure src="images/magit/2021-01-17_17-30-54_screenshot.png" width="600" >}}
-
-结束后，可以看到当前分支已经 rebase 到了 master 分支上了：
-
-{{< figure src="images/magit/2021-01-17_17-32-43_screenshot.png" width="600" >}}
-
-
-#### <span class="section-num">19.14.3</span> rebase 修改历史 {#rebase-修改历史}
-
-通过 rebase interactive 实现当前分支 commit 合并、删除、修改、msg 修改。
-
--   pick = use commit
--   reword = use commit, but edit the commit message
--   edit = use commit, but stop for amending
--   squash = use commit, but meld into previous commit
--   fixup = like "squash", but discard this commit's log message
--   exec = run command (the rest of the line) using shell
-
-例如将下面红框中的 5 个 commit 合并为 2 两个：
-
-{{< figure src="images/magit/2021-01-17_17-44-57_screenshot.png" width="600" >}}
-
-首先将光标移动到 start commit，然后输入 r i（interactive）：
-
-{{< figure src="images/magit/2021-01-17_17-46-03_screenshot.png" width="600" >}}
-
-修改历史 commit 的 rebase 方式（从旧到新），结束后 按 C-c C-c 开始：
-
-{{< figure src="images/magit/2021-01-17_17-48-56_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_11-56-34_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_12-01-37_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_14-52-40_screenshot.png" width="600" >}}
-
-rebase 过程中，对 pick 类型的 commit，都可以修改它的 commit message：
-
-{{< figure src="images/magit/2021-01-17_14-56-05_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_15-14-59_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_15-19-29_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_15-21-13_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_15-21-40_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_15-22-50_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_15-24-06_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_15-11-54_screenshot.png" width="600" >}}
-
-
-#### <span class="section-num">19.14.4</span> rebase: modify a commit {#rebase-modify-a-commit}
-
-{{< figure src="images/magit/2021-01-17_15-49-25_screenshot.png" width="600" >}}
-
-{{< figure src="images/magit/2021-01-17_15-52-40_screenshot.png" width="600" >}}
-
-这时将 worktree 恢复到 7983d0b，可以修改文件和内容：
-
-{{< figure src="images/magit/2021-01-17_15-58-48_screenshot.png" width="600" >}}
-
-只有 stage 修改后的内容，才能继续 rebase。
-
-如果按 e（edit），则出现当前分支到 HEAD 位置的 rebase 界面，可以调整后续 commit的 rebase 行为。
-
-{{< figure src="images/magit/2021-01-17_15-54-30_screenshot.png" width="600" >}}
-
-
-#### <span class="section-num">19.14.5</span> rebase：remove commit {#rebase-remove-commit}
-
-删除一个 commit 时，会将该 commit 后面的 commit 合并到前一个 commit，这时可能会出现冲突(因为删除后面的 commit
-还可能含有被删除 commit 涉及的变更)：
-
-{{< figure src="images/magit/2021-01-17_16-05-13_screenshot.png" width="600" >}}
-
-提示合并冲突：
-
-{{< figure src="images/magit/2021-01-17_16-07-54_screenshot.png" width="600" >}}
-
-删除 commit 结束：
-
-{{< figure src="images/magit/2021-01-17_16-10-14_screenshot.png" width="600" >}}
-
-
-#### <span class="section-num">19.14.6</span> rebase: reword a commit {#rebase-reword-a-commit}
-
-用于修改一个 commit 的 message，选择当前分支的某个 commit（ rebase 操作的都是当前分支的 commit，其它分支的不行）：
-
-{{< figure src="images/magit/2021-01-17_16-12-55_screenshot.png" width="600" >}}
-
-修改的 commit 即以后的 commit 都会以 rebase 的方式重新提交。
-
-
-### <span class="section-num">19.15</span> Refers {#refers}
+### <span class="section-num">19.14</span> Refers {#refers}
 
 y：show refers，查看本地或 remote 所有的 branch、tags 等信息。
 
-在分支上，执行 k 命令可以用来删除 branch，使用 b checkout 新的分支，使用空格查看commit diff。
+在分支上，执行 k 命令可以用来删除 branch，使用 b checkout 新的分支，使用空格查看 commit diff。
+
+
+### <span class="section-num">19.15</span> 案例 {#案例}
+
+修改 commit 的作者信息（ Name 和 Email）：
+
+1.  切换到 commit 所在分支；
+2.  执行 r i 命令（interactive rebase）；
+3.  光标移动到要修改的 commit 上，按 C-c C-c；
+4.  按 m，表示 edit 该 commit，然后 C-c C-c；
+5.  rebase 暂停，这时按 c -A, -A 表示重写 commit author，这时提示选择一个 author；
+6.  按 R c，继续完成 Rebase。
 
 
 ## <span class="section-num">20</span> org {#org}
@@ -1572,12 +1595,12 @@ org-mode 在 export 时会忽略 comment 内容:
 
 所以 org-mode 使用 #+ 来配置 org-mode 的一些特性。
 
-`In-buffer settings` start with `‘#+’`, followed by a `keyword`, a `colon`, one or more `spaces`, and then a word for
-each setting. Org accepts multiple settings on the same line. Org also accepts `multiple lines` for a
-keyword. This manual describes these settings throughout. A summary follows here.
+`In-buffer settings` start with `‘#+’`, followed by a `keyword`, a `colon`, one or more `spaces`, and then a
+word for each setting. Org accepts multiple settings on the same line. Org also accepts `multiple
+lines` for a keyword. This manual describes these settings throughout. A summary follows here.
 
-`C-c C-c` activates any changes to the in-buffer settings. Closing and reopening the Org file in Emacs also
-activates the changes.
+`C-c C-c` activates any changes to the in-buffer settings. Closing and reopening the Org file in Emacs
+also activates the changes.
 
 ‘#+ARCHIVE: %s_done::’
 : Sets the archive location of the agenda file. The corresponding variable is
@@ -1616,7 +1639,7 @@ activates the changes.
 : 配置第一次打开文件时生效的配置。
 
 
-### <span class="section-num">20.2</span> ‘#+STARTUP:’ {#plus-startup}
+### <span class="section-num">20.2</span> #+STARTUP: {#plus-startup}
 
 参考 [17.8 Summary of In-Buffer Settings](https://orgmode.org/org.html#Table-of-Contents)
 
@@ -1959,8 +1982,8 @@ C-c C-,
 
 ### <span class="section-num">20.11</span> Built-in Table Editor {#built-in-table-editor}
 
-Any line with ‘|’ as the `first non-whitespace character` is considered part of a table. Moreover, a line
-starting with `‘|-’` is a horizontal rule.
+Any line with ‘|’ as the `first non-whitespace character` is considered part of a table. Moreover, a
+line starting with `‘|-’` is a horizontal rule.
 
 C-c | (org-table-create-or-convert-from-region)
 : Convert the active region to table
@@ -1974,13 +1997,15 @@ C-c C-c (org-table-align)
 : Re-align the table without moving point.
 
 TAB (org-table-next-field)
-: Re-align the table, move to the next field. Creates a new row if necessary.
+: Re-align the table, move to the next field. Creates a new row if
+    necessary.
 
 S-TAB (org-table-previous-field)
 : Re-align, move to previous field.
 
 RET (org-table-next-row)
-: Re-align the table and move down to next row. Creates a new row if necessary
+: Re-align the table and move down to next row. Creates a new row if
+    necessary
 
 M-a
 : org-table-beginning-of-field
@@ -1999,8 +2024,8 @@ M-S-LEFT (org-table-delete-column)
 : `Kill` the current column.
 
 M-S-RIGHT (org-table-insert-column)
-: Insert a new column at point position. Move the recent column and all cells to
-    the right of this column to the right.
+: Insert a new column at point position. Move the recent
+    column and all cells to the right of this column to the right.
 
 
 M-UP (org-table-move-row-up)
@@ -2013,38 +2038,41 @@ M-S-UP (org-table-kill-row)
 : `Kill` the current row or horizontal line.
 
 M-S-DOWN (org-table-insert-row)
-: `Insert` a new row above the current row. With a prefix argument, the line
-    is created below the current one.
+: `Insert` a new row above the current row. With a prefix argument,
+    the line is created below the current one.
 
 
 C-c - (org-table-insert-hline)
-: Insert `a horizontal line` below current row. With a prefix argument, the
-    line is created above the current line.  插入一个水平线。
+: Insert `a horizontal line` below current row. With a prefix
+    argument, the line is created above the current line.  插入一个水平线。
 
 C-c RET (org-table-hline-and-move)
-: Insert a horizontal line below current row, and move point into the
-    row below that line. 插入一个水平线，同时在水平线下方插入一行。
+: Insert a horizontal line below current row, and move point
+    into the row below that line. 插入一个水平线，同时在水平线下方插入一行。
 
 C-c ^
 : org-table-sort-lines
 
 
 C-c C-x M-w (org-table-copy-region)
-: Copy a rectangular region from a table to a special clipboard.
+: Copy a rectangular region from a table to a special
+    clipboard.
 
 C-c C-x C-w (org-table-cut-region)
-: Copy a rectangular region from a table to a special clipboard,
+: Copy a rectangular region from a table to a special
+    clipboard,
 
 C-c C-x C-y (org-table-paste-rectangle)
 : Paste a rectangular region into a table.
 
 M-RET (org-table-wrap-region)
-: Split the current field at point position and move the rest to the line below.
+: Split the current field at point position and move the rest to
+    the line below.
 
 
 C-c \` (org-table-edit-field)
 : Edit the current field in a separate window.
-    -   当 org-table 因为 line word wrap 被隐藏时，C-c \` 命令就非常有用。
+    -   当 org-table 因为 line word wrap 被隐藏时，C-c \` 命令非常有用。
 
 M-x org-table-export
 
@@ -2065,13 +2093,13 @@ C-u C-u C-c TAB (org-table-expand)
 
 可以通过配置 `#+STARTUP: shrink` 来说设置文档级别的 table shrink 属性。
 
-If you would like to overrule the automatic alignment of number-rich columns to the right and of string-rich
-columns to the left, you can use `‘<r>’, ‘<c>’ or ‘<l>’` in a similar fashion. You may also combine alignment
-and field width like this: ‘&lt;r10&gt;'
+If you would like to overrule the automatic alignment of number-rich columns to the right and of
+string-rich columns to the left, you can use `‘<r>’, ‘<c>’ or ‘<l>’` in a similar fashion. You may
+also combine alignment and field width like this: ‘&lt;r10&gt;'
 
-you can use `a special row` where the first field contains only `/`. The further fields can either contain ‘&lt;’ to
-indicate that this column should `start a group`, ‘&gt;’ to indicate the end of a column, or ‘&lt;&gt;’ (no space between
-‘&lt;’ and ‘&gt;’) to make a column a group of its own.
+you can use `a special row` where the first field contains only `/`. The further fields can either
+contain ‘&lt;’ to indicate that this column should `start a group`, ‘&gt;’ to indicate the end of a column,
+or ‘&lt;&gt;’ (no space between ‘&lt;’ and ‘&gt;’) to make a column a group of its own.
 
 | N || N^2 | N^3 | N^4 || sqrt(n) | sqrt[4](N) |
 |---|-----|-----|-----|---------|------------|
@@ -2116,8 +2144,8 @@ angular brackets, like `‘<<My Target>>’`.
 
 -   dedicated target 是在链接目的地定义一个用两个 &lt; 和 &gt; 包围的字符串，例如 <span class="org-target" id="org-target-------Target"></span>, 然后在文档的其他地方插入一个 LINK 值为相同字符串的链接如 [1](#org-target-------Target)
 
-If no dedicated target exists, the link tries to match `the exact name of an element` within the buffer. Naming is done,
-unsurprisingly, with `the ‘NAME’ keyword`:
+If no dedicated target exists, the link tries to match `the exact name of an element` within the
+buffer. Naming is done, unsurprisingly, with `the ‘NAME’ keyword`:
 
 ```text
 #+NAME: My Target
@@ -2778,76 +2806,7 @@ attachments 是位于隶属于某个 node, org-mode Node 可以使用 ID 或 DIR
     -   如果要插入 attachment link，则 C-c C-l 时选择 attachment 类型的 schema 即可，org-mode 会自动补全文件路径。
 
 
-### <span class="section-num">20.22</span> org-protocol {#org-protocol}
-
-打开 MAC “脚本编辑器” ，写入如下内容，保存为 “EmacsClient-Org”，文件格式为 “应用程序”，保存到 /Applications 目录。
-
-```shell
-on open location this_URL
-    do shell script "/usr/local/bin/emacsclient \"" & this_URL & "\" && open -a Emacs"
-end open location
-```
-
--   如果是自编译的 Emmacs, 则 emacsclient 位于 /usr/local/bin 目录下，否则位于 /Applications/Emacs 包中。
-
-编辑 "/Applications/EmacsClient-Org.app/Contents/Info.plist" 文件，在 plist-&gt;dict 部分添加如下内容：
-
-```xml
-  <key>CFBundleURLTypes</key>
-  <array>
-    <dict>
-      <key>CFBundleURLName</key>
-      <string>org-protocol handler</string>
-      <key>CFBundleURLSchemes</key>
-      <array>
-        <string>org-protocol</string>
-      </array>
-    </dict>
-  </array>
-```
-
-然后执行命令：
-
-```shell
-xattr -r -d com.apple.quarantine /Applications/EmacsClient-Org.app
-```
-
-双击刚才保存到应用程序目录中的 EmacsClient-Org 程序图标，激活 org-proto 协议。
-
-Emacs 开启 server 模式：
-
-```emacs-lisp
-(server-start)
-(require 'org-protocol)
-```
-
-新建一个浏览器书签，Location 内容如下，然后点击该书签，确认 Emacs 有反应：
-
-```javascript
-javascript:location.href='org-protocol://store-link?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)
-```
-
--   在 Emacs 内按 C-c C-l 自动补全 URL 和 Title.
-
-新建一个 capture template：
-
-```emacs-lisp
-(require 'org-protocol)
-(require 'org-capture)
-(add-to-list 'org-capture-templates
-             '("c" "Capture" entry (file+headline "~/docs/inbox.org" "Capture")
-                  "* %^{Title}\nDate: %U\nSource: %:annotation\nContent:\n%:initial"
-                  :empty-lines 1))
-```
-
-新建一个浏览器书签，内容如下：
-
-```javascript
-javascript:location.href='org-protocol://capture?template=c'+'&url='+encodeURIComponent(window.location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
-```
-
-
-### <span class="section-num">20.23</span> Agenda Views {#agenda-views}
+### <span class="section-num">20.22</span> Agenda Views {#agenda-views}
 
 The information to be shown is normally collected from all agenda files, the files listed in the variable
 `org-agenda-files`. If `a directory` is part of this list, all files with the extension ‘.org’ in this directory are part of
@@ -2984,300 +2943,314 @@ C-x C-w (org-agenda-write)
 : Write the agenda view to a file.
 
 
-### <span class="section-num">20.24</span> Markup for Rich Contents {#markup-for-rich-contents}
+### <span class="section-num">20.23</span> Markup for Rich Contents {#markup-for-rich-contents}
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.1</span> Paragraphs {#paragraphs}
+1.  Paragraphs
 
-Paragraphs are separated by at least `one empty line`. If you need to enforce a line break within a paragraph,
-use `‘\\’` at the end of a line.
+    Paragraphs are separated by at least `one empty line`. If you need to enforce a line break within a
+    paragraph, use `‘\\’` at the end of a line.
 
-`VERSE Block` 可用于保持内容的格式(换行、缩进、空白符等)：
+    `VERSE Block` 可用于保持内容的格式(换行、缩进、空白符等)：
 
-<div class="verse">
+    <div class="verse">
 
-Great clouds overhead<br />
-Tiny black birds rise and fall<br />
-Snow covers Emacs<br />
-<br />
-&nbsp;&nbsp;&nbsp;---AlexSchroeder<br />
+    Great clouds overhead<br />
+    Tiny black birds rise and fall<br />
+    Snow covers Emacs<br />
+    <br />
+    &nbsp;&nbsp;&nbsp;---AlexSchroeder<br />
 
-</div>
+    </div>
 
-如果要引用别人的内容，可以用 `QUOTE Block`, 后续格式化输出时会自动在内容左右加缩进：
+    如果要引用别人的内容，可以用 `QUOTE Block`, 后续格式化输出时会自动在内容左右加缩进：
 
-> Everything should be made as simple as possible,
-> but not any simpler ---Albert Einstein
+    > Everything should be made as simple as possible,
+    > but not any simpler ---Albert Einstein
 
-如果要居中内容，可以用 `CENTER Block`:
+    如果要居中内容，可以用 `CENTER Block`:
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.2</span> Emphasis and Monospace {#emphasis-and-monospace}
+2.  Emphasis and Monospace
 
-You can make words ‘\*bold\*’, ‘/italic/’, ‘_underlined\_’, ‘=verbatim=’ and ‘~code~’, and, if you must,
-‘+strike-through+’. Text in the code and verbatim string is `not processed for Org specific syntax`; it is
-`exported verbatim`.
+    You can make words ‘\*bold\*’, ‘/italic/’, ‘_underlined\_’, ‘=verbatim=’ and ‘~code~’, and, if you
+    must, ‘+strike-through+’. Text in the code and verbatim string is `not processed for Org specific
+    syntax`; it is `exported verbatim`.
 
-verbatim 和 code 的内容, org 不会做特殊语法解释, 即按输入原样输出。
+    verbatim 和 code 的内容, org 不会做特殊语法解释, 即按输入原样输出。
 
-To turn off fontification for marked up text, you can set `org-fontify-emphasized-text` to nil. To narrow down the list of
-available markup syntax, you can customize `org-emphasis-alist`.
+    To turn off fontification for marked up text, you can set `org-fontify-emphasized-text` to nil. To
+    narrow down the list of available markup syntax, you can customize `org-emphasis-alist`.
 
-C-c C-x \\ (org-toggle-pretty-entities)
-: This command formats sub- and superscripts in a WYSIWYM way.
+    C-c C-x \\ (org-toggle-pretty-entities)
+    : This command formats sub- and superscripts in a WYSIWYM way.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.3</span> Subscripts and Superscripts {#subscripts-and-superscripts}
+3.  Subscripts and Superscripts
 
-`‘^’ and ‘_’` are used to indicate super- and subscripts. To increase the readability of ASCII text, it is not necessary,
-but OK, to surround multi-character sub- and superscripts with `curly braces`. For example
+    `‘^’ and ‘_’` are used to indicate super- and subscripts. To increase the readability of ASCII text,
+    it is not necessary, but OK, to surround multi-character sub- and superscripts with `curly
+    braces`. For example
 
-```text
-The radius of the sun is R_sun = 6.96 x 10^8 m.  On the other hand, the radius of Alpha Centauri is R_{Alpha Centauri}
-1.28 x R_{sun}.
-```
+    ```text
+    The radius of the sun is R_sun = 6.96 x 10^8 m.  On the other hand, the radius of Alpha Centauri is R_{Alpha Centauri}
+    1.28 x R_{sun}.
+    ```
 
-You can set `org-use-sub-superscripts` in a file using the export option ‘^:’ (see Export Settings). For example,
-`‘#+OPTIONS: ^:{}’` sets org-use-sub-superscripts to {} and limits super- and subscripts to the curly bracket notation.
+    You can set `org-use-sub-superscripts` in a file using the export option ‘^:’ (see Export
+    Settings). For example, `‘#+OPTIONS: ^:{}’` sets org-use-sub-superscripts to {} and limits super- and
+    subscripts to the curly bracket notation.
 
-如果将 org-use-sub-superscripts 设置为 nil 或者在文件中配置 #+OPTIONS: ^:{} ，则 orgmode 将只使用 ^{} 或者 \_{} 语法来表示上标或下标。
+    如果将 org-use-sub-superscripts 设置为 nil 或者在文件中配置 #+OPTIONS: ^:{} ，则 orgmode 将只使用
+    ^{} 或者 \_{} 语法来表示上标或下标。
 
-C-c C-x \\ (org-toggle-pretty-entities)
-: This command formats sub- and superscripts in a WYSIWYM way.
+    C-c C-x \\ (org-toggle-pretty-entities)
+    : This command formats sub- and superscripts in a WYSIWYM
+        way.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.4</span> Special Symbols {#special-symbols}
+4.  Special Symbols
 
-You can use LaTeX-like syntax to insert special symbols—named entities—like ‘&alpha;’ to indicate the Greek letter, or ‘&rarr;’ to
-indicate an arrow.
+    You can use LaTeX-like syntax to insert special symbols—named entities—like ‘&alpha;’ to indicate the Greek letter, or ‘&rarr;’ to
+    indicate an arrow.
 
-特殊符号可以使用 \\ + M-TAB 来自动补全。
+    特殊符号可以使用 \\ + M-TAB 来自动补全。
 
-Completion for these symbols is available, just type `‘\’` and maybe a few letters, and press `M-TAB` to see possible
-completions. If you need such a symbol inside a word, terminate it with `a pair of curly brackets`. For example
+    Completion for these symbols is available, just type `‘\’` and maybe a few letters, and press `M-TAB` to see possible
+    completions. If you need such a symbol inside a word, terminate it with `a pair of curly brackets`. For example
 
-<div class="verse">
+    <div class="verse">
 
-Pro tip: Given a circle &Gamma; of diameter d, the length of its<br />
-circumference is &pi;d.<br />
+    Pro tip: Given a circle &Gamma; of diameter d, the length of its<br />
+    circumference is &pi;d.<br />
 
-</div>
+    </div>
 
-A large number of entities is provided, with names taken from both HTML and LaTeX; you can comfortably browse the
-complete list from a dedicated buffer using the command `org-entities-help`.
+    A large number of entities is provided, with names taken from both HTML and LaTeX; you can comfortably browse the
+    complete list from a dedicated buffer using the command `org-entities-help`.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.5</span> Literal Examples {#literal-examples}
+5.  Literal Examples
 
-You can include literal examples that should `not be subjected to markup`. Such examples are typeset in
-`monospace`, so this is well suited for source code and similar examples. Example 的内容会用 `等宽字体` 排列。
+    You can include literal examples that should `not be subjected to markup`. Such examples are typeset in
+    `monospace`, so this is well suited for source code and similar examples. Example 的内容会用 `等宽字体` 排列。
 
-```text
-  Some example from a text file.
-```
+    ```text
+      Some example from a text file.
+    ```
 
-There is one limitation, however. You must insert `a comma right before lines starting with either ‘*’, ‘,*’,
-‘#+’ or ‘,#+’`, as those may be interpreted as outlines nodes or some other special syntax. Org `transparently
-strips` these additional commas whenever it accesses the contents of the block.
+    There is one limitation, however. You must insert `a comma right before lines starting with either ‘*’, ‘,*’,
+    ‘#+’ or ‘,#+’`, as those may be interpreted as outlines nodes or some other special syntax. Org `transparently
+    strips` these additional commas whenever it accesses the contents of the block.
 
--   可以先 region 选择内容, 然后 C-c C- e, 这时自动将 region 内 \*/#+ 开头的行添加逗号前缀。
+    -   可以先 region 选择内容, 然后 C-c C- e, 这时自动将 region 内 \*/#+ 开头的行添加逗号前缀。
 
-<!--listend-->
+    <!--listend-->
 
-```text
-* I am no real headline
-```
+    ```text
+    * I am no real headline
+    ```
 
-For simplicity when using small examples, you can also start the example lines with `a colon followed by a
-space`. There may also be `additional whitespace` before the colon:
+    For simplicity when using small examples, you can also start the example lines with `a colon followed by a
+    space`. There may also be `additional whitespace` before the colon:
 
-Here is an example
+    Here is an example
 
-```text
-Some example from a text file.
-```
+    ```text
+    Some example from a text file.
+    ```
 
-对于代码，可以使用 `SRC Block` 并指定源码类型(major-mode name)：
+    对于代码，可以使用 `SRC Block` 并指定源码类型(major-mode name)：
 
-```emacs-lisp
-(defun org-xor (a b)
-  "Exclusive or."
-  (if a (not b) b))
-```
+    ```emacs-lisp
+    (defun org-xor (a b)
+      "Exclusive or."
+      (if a (not b) b))
+    ```
 
-在 SRC 行最后可以加 `-n` 参数，表示 export 时对源码加行号:
+    在 SRC 行最后可以加 `-n` 参数，表示 export 时对源码加行号:
 
--   -n 20 标识行号的开始序号;
--   +n 表示继续 follow 上一个 SRC Block 加行号;
--   +n 10 表示在上一个 SRC Block 的基础上加 10 再标记;
+    -   -n 20 标识行号的开始序号;
+    -   +n 表示继续 follow 上一个 SRC Block 加行号;
+    -   +n 10 表示在上一个 SRC Block 的基础上加 10 再标记;
 
-<!--listend-->
+    <!--listend-->
 
-```emacs-lisp { linenos=true, linenostart=20 }
-;; This exports with line number 20.
-(message "This is line 21")
-```
+    ```emacs-lisp { linenos=true, linenostart=20 }
+    ;; This exports with line number 20.
+    (message "This is line 21")
+    ```
 
-```emacs-lisp { linenos=true, linenostart=31 }
-;; This is listed as line 31.
-(message "This is line 32")
-```
+    ```emacs-lisp { linenos=true, linenostart=31 }
+    ;; This is listed as line 31.
+    (message "This is line 32")
+    ```
 
-In literal examples, Org interprets strings like `‘(ref:name)’` as labels, and use them as targets for special hyperlinks
-like `‘[[(name)]]’`
+    In literal examples, Org interprets strings like `‘(ref:name)’` as labels, and use them as targets for special hyperlinks
+    like `‘[[(name)]]’`
 
-You can also add a `‘-r’` switch which `removes the labels` from the source code. With the `‘-n’` switch, links to these
-references are labeled by the line numbers from the code listing.
+    You can also add a `‘-r’` switch which `removes the labels` from the source code. With the `‘-n’` switch, links to these
+    references are labeled by the line numbers from the code listing.
 
-加了 -r 参数后, 格式化输出的代码内不出现 (ref:name) 的引用（防止语法错误），而是通过行号来引用。为了更直观显示引用的行号，可以加上 -n 参数，所以 `-r -n 一般结合使用` 。
+    加了 -r 参数后, 格式化输出的代码内不出现 (ref:name) 的引用（防止语法错误），而是通过行号来引用。为了更直观显示引用的行号，可以加上 -n 参数，所以 `-r -n 一般结合使用` 。
 
-However, you can use the ‘-i’ switch to also `preserve the global indentation`, if it does matter.
+    However, you can use the ‘-i’ switch to also `preserve the global indentation`, if it does matter.
 
-```emacs-lisp { linenos=true, anchorlinenos=true, lineanchors=org-coderef--c1cbed }
-(save-excursion
-   (goto-char (point-min))
-```
+    ```emacs-lisp { linenos=true, anchorlinenos=true, lineanchors=org-coderef--c1cbed }
+    (save-excursion
+       (goto-char (point-min))
+    ```
 
-In line [1](#org-coderef--c1cbed-1) we remember the current position. [Line 2](#org-coderef--c1cbed-2) jumps to point-min.
+    In line [1](#org-coderef--c1cbed-1) we remember the current position. [Line 2](#org-coderef--c1cbed-2) jumps to point-min.
 
-If the syntax for the label format conflicts with the language syntax, use a `‘-l’` switch to change the format,
-for example
+    If the syntax for the label format conflicts with the language syntax, use a `‘-l’` switch to change the format,
+    for example
 
-```go { linenos=true, linenostart=1, anchorlinenos=true, lineanchors=org-coderef--3e53a1 }
-  package main
+    ```go { linenos=true, linenostart=1, anchorlinenos=true, lineanchors=org-coderef--3e53a1 }
+      package main
 
-  import "os"
+      import "os"
 
-  func main() {
-      os.Exit(1)
-  }
-```
+      func main() {
+          os.Exit(1)
+      }
+    ```
 
-jump to or [5](#org-coderef--3e53a1-5)
+    jump to [BROKEN LINK: import-line ] or [5](#org-coderef--3e53a1-5)
 
-如果 Example 或 SRC 内容比较长，可以用 `C-c ' (org-edit-special)` 来在另一个 buffer 中编辑内容。编辑结束后用 `C-c
-'` 来保存， `C-c C-k` 来关闭。在这个 buffer 中，可以用 `C-c l(org-store-link)` 来为当前光标行添加 ref label, 然后用
-`C-c C-l` 插入这个 ref 的链接, 这样不需要自己手动在代码中添加引用标记。
+    如果 Example 或 SRC 内容比较长，可以用 `C-c ' (org-edit-special)` 来在另一个 buffer 中编辑内容。编辑结束后用 `C-c
+    '` 来保存， `C-c C-k` 来关闭。在这个 buffer 中，可以用 `C-c l(org-store-link)` 来为当前光标行添加 ref label, 然后用
+    `C-c C-l` 插入这个 ref 的链接, 这样不需要自己手动在代码中添加引用标记。
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.6</span> Images {#images}
+6.  Images
 
-An image is a link to an image file118 that `does not have a description part`, for example:
+    An image is a link to an image file118 that `does not have a description part`, for example:
 
-./img/cat.jgp
+    ./img/cat.jgp
 
-If you wish to define a `caption` for the image (see Captions) and maybe `a label` for internal cross references
-(see Internal Links), make sure that the link is `on a line by itself` and precede it with `‘CAPTION’ and ‘NAME’`
-keywords as follows:
+    If you wish to define a `caption` for the image (see Captions) and maybe `a label` for internal cross
+    references (see Internal Links), make sure that the link is `on a line by itself` and precede it with
+    `‘CAPTION’ and ‘NAME’` keywords as follows:
 
-```text
-,#+CAPTION: This is the caption for the next figure link (or table)
-,#+NAME:   fig:SED-HR4049
-[​[~./img/a.jpg]]
-```
+    ```text
+    ,#+CAPTION: This is the caption for the next figure link (or table)
+    ,#+NAME:   fig:SED-HR4049
+    [​[~./img/a.jpg]]
+    ```
 
-添加 CAPTION 后，html export 会在图片的下方显示 `Figure 1: xxxx` 的标题。
+    添加 CAPTION 后，html export 会在图片的下方显示 `Figure 1: xxxx` 的标题。
 
-Such images (使用 `[​[xxx]]` 格式的 image) can be displayed within the buffer with the following command:
+    Such images (使用 `[​[xxx]]` 格式的 image) can be displayed within the buffer with the following command:
 
--   C-c C-x C-v (org-toggle-inline-images)
--   C-c C-x C-M-v (org-redisplay-inline-images)
+    -   C-c C-x C-v (org-toggle-inline-images)
+    -   C-c C-x C-M-v (org-redisplay-inline-images)
 
-缺省情况下， org-mode 使用照片的实际宽度来显示，可以使用 `#+ATTR_HTML :width 100` 来指定照片显示的宽度:
+    缺省情况下， org-mode 使用照片的实际宽度来显示，可以使用 `#+ATTR_HTML :width 100` 来指定照片显示的宽度:
 
--   org-mode 在线显示照片需要编译时开启 imagemagick 特性, 检查方式: `(image-type-available-p 'imagemagick)`
+    -   org-mode 在线显示照片需要编译时开启 imagemagick 特性, 检查方式: `(image-type-available-p 'imagemagick)`
 
-,#+ATTR_HTML: :alt my picture style="float:left" :width 300px
+    ,#+ATTR_HTML: :alt my picture style="float:left" :width 300px
 
-Toggle the inline display of linked images. When called with a prefix argument, also display images that `do have` a link
-description. You can ask for inline images to be displayed at startup by configuring the variable
-`org-startup-with-inline-images`
+    Toggle the inline display of linked images. When called with a prefix argument, also display images that `do have` a link
+    description. You can ask for inline images to be displayed at startup by configuring the variable
+    `org-startup-with-inline-images`
 
-The variable org-startup-with-inline-images can be set within a buffer with the `‘#+STARTUP’` options
-`‘inlineimages’` and `‘noinlineimages’`.
+    The variable org-startup-with-inline-images can be set within a buffer with the `‘#+STARTUP’` options
+    `‘inlineimages’` and `‘noinlineimages’`.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.7</span> Captions {#captions}
+7.  Captions
 
-You can assign a caption to a specific part of a document by inserting a `‘#+CAPTION’` keyword `immediately`
-before it:
+    You can assign a caption to a specific part of a document by inserting a `‘#+CAPTION’` keyword `immediately`
+    before it:
 
-```text
-#+CAPTION: This is the caption for the next table (or link)
-| ... | ... |
-|-----+-----|
-```
+    ```text
+    #+CAPTION: This is the caption for the next table (or link)
+    | ... | ... |
+    |-----+-----|
+    ```
 
-Optionally, the caption can take the form:
+    Optionally, the caption can take the form:
 
-```text
-#+CAPTION[Short caption]: Longer caption.
-```
+    ```text
+    #+CAPTION[Short caption]: Longer caption.
+    ```
 
-Even though `images and tables` are prominent examples of captioned structures, the same caption mechanism can
-apply to `many others` —e.g., LaTeX equations, `source code blocks`. Depending on the export back-end, those may
-or may not be handled.
+    Even though `images and tables` are prominent examples of captioned structures, the same caption mechanism can
+    apply to `many others` —e.g., LaTeX equations, `source code blocks`. Depending on the export back-end, those may
+    or may not be handled.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.8</span> Horizontal Rules {#horizontal-rules}
+8.  Horizontal Rules
 
-A line consisting of only dashes, and `at least 5` of them, is exported as a horizontal line.
+    A line consisting of only dashes, and `at least 5` of them, is exported as a horizontal line.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.24.9</span> Creating Footnotes {#creating-footnotes}
+9.  Creating Footnotes
 
-A footnote is started by a footnote marker in `square brackets in column 0`, no indentation allowed. It ends at
-the next footnote definition, headline, or after `two consecutive` empty lines. The footnote reference is simply
-the marker in `square brackets`, inside text. Markers always start with `‘fn:’`. For example:
+    A footnote is started by a footnote marker in `square brackets in column 0`, no indentation allowed. It ends at
+    the next footnote definition, headline, or after `two consecutive` empty lines. The footnote reference is simply
+    the marker in `square brackets`, inside text. Markers always start with `‘fn:’`. For example:
 
-```text
-The Org homepage [fn:1] now looks a lot better than it used to.
-...
-[fn:1] The link is: https://orgmode.org
-```
+    ```text
+    The Org homepage [fn:1] now looks a lot better than it used to.
+    ...
+    [fn:1] The link is: https://orgmode.org
+    ```
 
-Org mode extends the number-based syntax to `named footnotes` and `optional inline definition`. Here are the valid
-references:
+    Org mode extends the number-based syntax to `named footnotes` and `optional inline definition`. Here are the valid
+    references:
 
--   named footnotes: 引用和定义相分离，定义位于变量 org-footnote-section 控制的 `Footnotes` section.
--   inline definition: 在引用的位置直接定义 footnote.
+    -   named footnotes: 引用和定义相分离，定义位于变量 org-footnote-section 控制的 `Footnotes` section.
+    -   inline definition: 在引用的位置直接定义 footnote.
 
-默认为 named 类型， 可以通过设置变量  org-footnote-define-inline 为 t 来使用 inline 类型。对于 inline 类型可以直接原地定义。
+    默认为 named 类型， 可以通过设置变量  org-footnote-define-inline 为 t 来使用 inline 类型。对于 inline 类型可以直接原地定义。
 
-```text
-‘[fn:NAME]’
-A named footnote reference, where NAME is a unique label word, or, for simplicity of automatic creation, a number.
+    ```text
+    ‘[fn:NAME]’
+    A named footnote reference, where NAME is a unique label word, or, for simplicity of automatic creation, a number.
 
-‘[fn:: This is the inline definition of this footnote]’
-An anonymous footnote where the definition is given directly at the reference point.
+    ‘[fn:: This is the inline definition of this footnote]’
+    An anonymous footnote where the definition is given directly at the reference point.
 
-‘[fn:NAME: a definition]’
-An inline definition of a footnote, which also specifies a name for the note.
-```
+    ‘[fn:NAME: a definition]’
+    An inline definition of a footnote, which also specifies a name for the note.
+    ```
 
-C-c C-x f
-: The footnote action command.
-    -   不能在行首执行该命令，也就是不支持在行首插入 footnote;
-    -   当位于 footnote 定义或 mark 位置时, 相互跳转;
+    C-c C-x f
+    : The footnote action command.
+        -   不能在行首执行该命令，也就是不支持在行首插入 footnote;
+        -   当位于 footnote 定义或 mark 位置时, 相互跳转;
 
-C-u C-c C-x f
-: 显示 footnote 操作 menu , 可以排序、重命名， 删除等；
+    C-u C-c C-x f
+    : 显示 footnote 操作 menu , 可以排序、重命名， 删除等；
 
-C-c C-c
-: 在 footnote 定义和引用之间跳转。
+    C-c C-c
+    : 在 footnote 定义和引用之间跳转。
 
-C-c C-o
-: Footnote labels are also links to the corresponding definition or reference
+    C-c C-o
+    : Footnote labels are also links to the corresponding definition or reference
 
 
-### <span class="section-num">20.25</span> Exporting {#exporting}
+### <span class="section-num">20.24</span> Exporting {#exporting}
 
-Users can install libraries for additional formats from the Emacs packaging system. For easy discovery, these
-packages have a common naming scheme: `ox-NAME`, where NAME is a format. For example, ‘ox-koma-letter’ for
-<span class="underline">koma-letter</span> back-end. More libraries can be found in the `‘org-contrib’` repository.
+Users can install libraries for additional formats from the Emacs packaging system. For easy
+discovery, these packages have a common naming scheme: `ox-NAME`, where NAME is a format. For example,
+‘ox-koma-letter’ for <span class="underline">koma-letter</span> back-end. More libraries can be found in the `‘org-contrib’`
+repository.
 
-The libraries responsible for translating Org files to other formats are called <span class="underline">back-ends</span>.  Org ships with
-support for the following back-ends:
+The libraries responsible for translating Org files to other formats are called <span class="underline">back-ends</span>.  Org
+ships with support for the following back-ends:
 
 -   ascii (ASCII format)
 -   beamer (LaTeX Beamer format)
@@ -3291,9 +3264,9 @@ support for the following back-ends:
 -   man (Man page format)
 
 Org only loads back-ends for the following formats by default: `ASCII, HTML, iCalendar, LaTeX, and
-ODT`. Additional back-ends can be loaded in either of two ways: by configuring the `org-export-backends`
-variable, or by `requiring libraries` in the Emacs init file. For example, to load the Markdown back-end, add
-this to your Emacs config:
+ODT`. Additional back-ends can be loaded in either of two ways: by configuring the
+`org-export-backends` variable, or by `requiring libraries` in the Emacs init file. For example, to load
+the Markdown back-end, add this to your Emacs config:
 
 ```text
 (require 'ox-md)
@@ -3302,9 +3275,9 @@ this to your Emacs config:
 C-c C-e (org-export)
 : Invokes the export dispatcher interface.
 
-Org exports the `entire buffer` by default. If the Org buffer has an active region, then Org exports `just that
-region`. Within the dispatcher interface, the following key combinations can further alter what is exported,
-and how.
+Org exports the `entire buffer` by default. If the Org buffer has an active region, then Org exports
+`just that region`. Within the dispatcher interface, the following key combinations can further alter
+what is exported, and how.
 
 C-a
 : Toggle asynchronous export.
@@ -3318,561 +3291,625 @@ C-s
 C-v
 : Toggle visible-only export.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.25.1</span> Export Settings #+OPTIONS: {#export-settings-plus-options}
+1.  Export Settings #+OPTIONS:
 
-Export options can be set: `globally` with variables; for an `individual file` by making variables buffer-local
-with in-buffer settings. by setting individual keywords or specifying them `in compact form` with the `‘OPTIONS’`
-keyword; or for a tree by setting `properties` (see Properties and Columns). Options set at a `specific level`
-`override` options set at a more general level.
+    Export options can be set: `globally` with variables; for an `individual file` by making variables
+    buffer-local with in-buffer settings. by setting individual keywords or specifying them `in compact
+    form` with the `‘OPTIONS’` keyword; or for a tree by setting `properties` (see Properties and
+    Columns). Options set at a `specific level` `override` options set at a more general level.
 
-In-buffer settings may `appear anywhere` in the file, either directly or indirectly through a file included
-using `‘#+SETUPFILE: filename or URL’ syntax`.  Option keyword sets tailored to a particular back-end can be
-inserted from the export dispatcher (see \*note The Export Dispatcher::) using the ‘Insert template’ command by
-pressing ‘#’.  To insert keywords individually, a good way to make sure the keyword is correct is to type ‘#+’
-and then to use `‘M-<TAB>’(1) for completion`.
+    In-buffer settings may `appear anywhere` in the file, either directly or indirectly through a file included
+    using `‘#+SETUPFILE: filename or URL’ syntax`.  Option keyword sets tailored to a particular back-end can be
+    inserted from the export dispatcher (see \*note The Export Dispatcher::) using the ‘Insert template’ command by
+    pressing ‘#’.  To insert keywords individually, a good way to make sure the keyword is correct is to type ‘#+’
+    and then to use `‘M-<TAB>’(1) for completion`.
 
-配置是通过各种 `#+KEYWORD` 来指定的, 可以按 M-TAB 自动补全 KEYWORD, 按 : M-TAB 来补全命令的参数。
+    配置是通过各种 `#+KEYWORD` 来指定的, 可以按 M-TAB 自动补全 KEYWORD, 按 : M-TAB 来补全命令的参数。
 
-The export keywords `available for every back-end`, and their equivalent global variables, include:
+    The export keywords `available for every back-end`, and their equivalent global variables, include:
 
-‘AUTHOR’
-: The document author (user-full-name).
+    ‘AUTHOR’
+    : The document author (user-full-name).
 
-‘CREATOR’
-: Entity responsible for output generation (org-export-creator-string).
+    ‘CREATOR’
+    : Entity responsible for output generation (org-export-creator-string).
 
-‘DATE’
-: A date or a time-stamp123.
+    ‘DATE’
+    : A date or a time-stamp123.
 
-‘EMAIL’
-: The email address (user-mail-address).
+    ‘EMAIL’
+    : The email address (user-mail-address).
 
-‘LANGUAGE’
-: Language to use for translating certain strings (org-export-default-language). With
-    ‘#+LANGUAGE: fr’, for example, Org translates ‘Table of contents’ to the French ‘Table des matières’124.
-    -   对于中文，需要使用 zh-CN, 这时输出的 toc 标题才会是中文。
+    ‘LANGUAGE’
+    : Language to use for translating certain strings (org-export-default-language). With
+        ‘#+LANGUAGE: fr’, for example, Org translates ‘Table of contents’ to the French ‘Table des matières’124.
+        -   对于中文，需要使用 zh-CN, 这时输出的 toc 标题才会是中文。
 
-‘SELECT_TAGS’
-: The default value is ‘("export")’. When a tree is tagged with `‘export’`
-    (org-export-select-tags), Org selects that tree and its subtrees for export. Org excludes trees with
-    `‘noexport’ tags`, see below. When selectively exporting files with ‘export’ tags set, Org does not export
-    any text that appears before the first headline.
+    ‘SELECT_TAGS’
+    : The default value is ‘("export")’. When a tree is tagged with `‘export’`
+        (org-export-select-tags), Org selects that tree and its subtrees for export. Org excludes trees with
+        `‘noexport’ tags`, see below. When selectively exporting files with ‘export’ tags set, Org does not export
+        any text that appears before the first headline.
 
-‘EXCLUDE_TAGS’
-: The default value is ‘("noexport")’. When a tree is tagged with ‘noexport’
-    (org-export-exclude-tags), Org excludes that tree and its subtrees from export. Entries tagged with
-    ‘noexport’ are unconditionally excluded from the export, even if they have an ‘export’ tag. Even if a
-    subtree is not exported, Org executes any code blocks contained there.
+    ‘EXCLUDE_TAGS’
+    : The default value is ‘("noexport")’. When a tree is tagged with ‘noexport’
+        (org-export-exclude-tags), Org excludes that tree and its subtrees from export. Entries tagged with
+        ‘noexport’ are unconditionally excluded from the export, even if they have an ‘export’ tag. Even if a
+        subtree is not exported, Org executes any code blocks contained there.
 
-‘TITLE’
-: Org displays this title. For long titles, use `multiple ‘#+TITLE’ lines`.
+    ‘TITLE’
+    : Org displays this title. For long titles, use `multiple ‘#+TITLE’ lines`.
 
-‘EXPORT_FILE_NAME’
-: The name of the output file to be generated. Otherwise, Org generates the file name
-    based on the buffer name and the extension based on the back-end format.
+    ‘EXPORT_FILE_NAME’
+    : The name of the output file to be generated. Otherwise, Org generates the file name
+        based on the buffer name and the extension based on the back-end format.
 
 
-broken-links
-: Toggles if Org should continue exporting upon finding a broken internal link. When set to mark, Org
-    clearly marks the problem link in the output (org-export-with-broken-links).
+    broken-links
+    : Toggles if Org should continue exporting upon finding a broken internal link. When set to mark, Org
+        clearly marks the problem link in the output (org-export-with-broken-links).
 
-toc
-: Toggle inclusion of the table of contents, or set the level limit (org-export-with-toc).
+    toc
+    : Toggle inclusion of the table of contents, or set the level limit (org-export-with-toc).
 
-The `‘OPTIONS’` keyword is a compact form. To configure multiple options, use `several ‘OPTIONS’ lines`.
+    The `‘OPTIONS’` keyword is a compact form. To configure multiple options, use `several ‘OPTIONS’ lines`.
 
--   单个 OPTIONS 行中的各 option 用空格分开，option 使用 : 来分割可选的参数，例如：
+    -   单个 OPTIONS 行中的各 option 用空格分开，option 使用 : 来分割可选的参数，例如：
 
-<!--listend-->
+    <!--listend-->
 
-```text
-#+OPTIONS: toc:2 date prop:t ^:nil
-```
+    ```text
+    #+OPTIONS: toc:2 date prop:t ^:nil
+    ```
 
-对于特定 exporter 模式，有对应的 BEGIN_EXPORT Block 和 ATTR:
+    对于特定 exporter 模式，有对应的 BEGIN_EXPORT Block 和 ATTR:
 
-```text
-#+BEGIN_EXPORT ascii
-Org exports text in this block only when using ASCII back-end.
-#+END_EXPORT
+    ```text
+    #+BEGIN_EXPORT ascii
+    Org exports text in this block only when using ASCII back-end.
+    #+END_EXPORT
 
-#+ATTR_ASCII: :width 10
-```
+    #+ATTR_ASCII: :width 10
+    ```
 
-OPTIONS 支持的 export 配置参数列表:
+    OPTIONS 支持的 export 配置参数列表:
 
-'
-: Toggle smart quotes (org-export-with-smart-quotes). Depending on the language used, when activated, Org
-    treats pairs of double quotes as primary quotes, pairs of single quotes as secondary quotes, and single
-    quote marks as apostrophes.
+    '
+    : Toggle smart quotes (org-export-with-smart-quotes). Depending on the language used, when
+        activated, Org treats pairs of double quotes as primary quotes, pairs of single quotes as
+        secondary quotes, and single quote marks as apostrophes.
 
-\*
-: Toggle emphasized text (org-export-with-emphasize).
+    \*
+    : Toggle emphasized text (org-export-with-emphasize).
 
--
-: Toggle conversion of special strings (org-export-with-special-strings).
+    -
+    : Toggle conversion of special strings (org-export-with-special-strings).
 
-:
-: Toggle fixed-width sections (org-export-with-fixed-width).
+    :
+    : Toggle fixed-width sections (org-export-with-fixed-width).
 
-&lt;
-: Toggle inclusion of time/date active/inactive stamps (org-export-with-timestamps).
+    &lt;
+    : Toggle inclusion of time/date active/inactive stamps (org-export-with-timestamps).
 
-\\n
-: Toggles whether to preserve line breaks (org-export-preserve-breaks).
+    \\n
+    : Toggles whether to preserve line breaks (org-export-preserve-breaks).
 
-^
-: Toggle TeX-like syntax for sub- and superscripts. If you write ‘^:{}’, ‘a<sub>b</sub>’ is interpreted, but the
-    simple ‘a_b’ is left as it is (org-export-with-sub-superscripts).
+    ^
+    : Toggle TeX-like syntax for sub- and superscripts. If you write ‘^:{}’, ‘a<sub>b</sub>’ is interpreted,
+        but the simple ‘a_b’ is left as it is (org-export-with-sub-superscripts).
 
-arch
-: Configure how archived trees are exported. When set to headline, the export process skips the
-    contents and processes only the headlines (org-export-with-archived-trees).
+    arch
+    : Configure how archived trees are exported. When set to headline, the export process skips
+        the contents and processes only the headlines (org-export-with-archived-trees).
 
-author
-: Toggle inclusion of author name into exported file (org-export-with-author).
+    author
+    : Toggle inclusion of author name into exported file (org-export-with-author).
 
-broken-links
-: Toggles if Org should continue exporting upon finding a broken internal link. When set to
-    mark, Org clearly marks the problem link in the output (org-export-with-broken-links).
+    broken-links
+    : Toggles if Org should continue exporting upon finding a broken internal link. When
+        set to mark, Org clearly marks the problem link in the output (org-export-with-broken-links).
 
-c
-: Toggle inclusion of ‘CLOCK’ keywords (org-export-with-clocks).
+    c
+    : Toggle inclusion of ‘CLOCK’ keywords (org-export-with-clocks).
 
-creator
-: Toggle inclusion of creator information in the exported file (org-export-with-creator).
+    creator
+    : Toggle inclusion of creator information in the exported file (org-export-with-creator).
 
-d
-: Toggles inclusion of drawers, or list of drawers to include, or list of drawers to exclude
-    (org-export-with-drawers).
+    d
+    : Toggles inclusion of drawers, or list of drawers to include, or list of drawers to exclude
+        (org-export-with-drawers).
 
-date
-: Toggle inclusion of a date into exported file (org-export-with-date).
+    date
+    : Toggle inclusion of a date into exported file (org-export-with-date).
 
-e
-: Toggle inclusion of entities (org-export-with-entities).
+    e
+    : Toggle inclusion of entities (org-export-with-entities).
 
-email
-: Toggle inclusion of the author’s e-mail into exported file (org-export-with-email).
+    email
+    : Toggle inclusion of the author’s e-mail into exported file (org-export-with-email).
 
-f
-: Toggle the inclusion of footnotes (org-export-with-footnotes).
+    f
+    : Toggle the inclusion of footnotes (org-export-with-footnotes).
 
-H
-: Set the number of `headline levels for export` (org-export-headline-levels). Below that level, headlines
-    are treated differently. In most back-ends, they become list items.
+    H
+    : Set the number of `headline levels for export` (org-export-headline-levels). Below that level,
+        headlines are treated differently. In most back-ends, they become list items.
 
-inline
-: Toggle inclusion of inlinetasks (org-export-with-inlinetasks).
+    inline
+    : Toggle inclusion of inlinetasks (org-export-with-inlinetasks).
 
-num
-: Toggle section-numbers (org-export-with-section-numbers). When set to number N, Org numbers only
-    those headlines at level N or above. Set ‘UNNUMBERED’ property to non-nil to disable numbering of heading
-    and subheadings entirely. Moreover, when the value is ‘notoc’ the headline, and all its children, do not
-    appear in the table of contents either (see Table of Contents).
+    num
+    : Toggle section-numbers (org-export-with-section-numbers). When set to number N, Org numbers
+        only those headlines at level N or above. Set ‘UNNUMBERED’ property to non-nil to disable
+        numbering of heading and subheadings entirely. Moreover, when the value is ‘notoc’ the headline,
+        and all its children, do not appear in the table of contents either (see Table of Contents).
 
-p
-: Toggle export of planning information (org-export-with-planning). “Planning information” comes from
-    lines located right after the headline and contain any combination of these cookies: ‘SCHEDULED’,
-    ‘DEADLINE’, or ‘CLOSED’.
+    p
+    : Toggle export of planning information (org-export-with-planning). “Planning information”
+        comes from lines located right after the headline and contain any combination of these cookies:
+        ‘SCHEDULED’, ‘DEADLINE’, or ‘CLOSED’.
 
-pri
-: Toggle inclusion of priority cookies (org-export-with-priority).
+    pri
+    : Toggle inclusion of priority cookies (org-export-with-priority).
 
-prop
-: Toggle inclusion of property drawers, or list the properties to include (org-export-with-properties).
+    prop
+    : Toggle inclusion of property drawers, or list the properties to include
+        (org-export-with-properties).
 
-stat
-: Toggle inclusion of statistics cookies (org-export-with-statistics-cookies).
+    stat
+    : Toggle inclusion of statistics cookies (org-export-with-statistics-cookies).
 
-tags
-: Toggle inclusion of tags, may also be not-in-toc (org-export-with-tags).
+    tags
+    : Toggle inclusion of tags, may also be not-in-toc (org-export-with-tags).
 
-tasks
-: Toggle inclusion of tasks (TODO items); or nil to remove all tasks; or todo to remove done tasks;
-    or list the keywords to keep (org-export-with-tasks).
+    tasks
+    : Toggle inclusion of tasks (TODO items); or nil to remove all tasks; or todo to remove
+        done tasks; or list the keywords to keep (org-export-with-tasks).
 
-tex
-: nil does not export; t exports; verbatim keeps everything in verbatim (org-export-with-latex).
+    tex
+    : nil does not export; t exports; verbatim keeps everything in verbatim
+        (org-export-with-latex).
 
-timestamp
-: Toggle inclusion of the creation time in the exported file (org-export-time-stamp-file).
+    timestamp
+    : Toggle inclusion of the creation time in the exported file
+        (org-export-time-stamp-file).
 
-title
-: Toggle inclusion of title (org-export-with-title).
+    title
+    : Toggle inclusion of title (org-export-with-title).
 
-toc
-: Toggle inclusion of the table of contents, or set the level limit (org-export-with-toc).
+    toc
+    : Toggle inclusion of the table of contents, or set the level limit (org-export-with-toc).
 
-todo
-: Toggle inclusion of TODO keywords into exported text (org-export-with-todo-keywords).
+    todo
+    : Toggle inclusion of TODO keywords into exported text (org-export-with-todo-keywords).
 
-|
-: Toggle inclusion of tables (org-export-with-tables).
+    |
+    : Toggle inclusion of tables (org-export-with-tables).
 
+<!--list-separator-->
 
-#### <span class="section-num">20.25.2</span> Table of Contents {#table-of-contents}
+2.  Table of Contents
 
-org-mode 默认 export 时在第一个 headerline section 前插入 TOC, 包含所有级别的 headline.
+    org-mode 默认 export 时在第一个 headerline section 前插入 TOC, 包含所有级别的 headline.
 
--   配置变量 org-export-with-toc 为 nil , 或者设置 ‘#+OPTIONS: toc:nil’ 来关闭生成 TOC;
-    -   不能通过 #+STARTUP: toc:nil 来关闭或设置 TOC, 需要通过 ‘#+OPTIONS: toc:nil’ 来设置；
-    -   在需要插入 TOC 的位置配置 #+TOC: headlines 2;
+    -   配置变量 org-export-with-toc 为 nil , 或者设置 ‘#+OPTIONS: toc:nil’ 来关闭生成 TOC;
+        -   不能通过 #+STARTUP: toc:nil 来关闭或设置 TOC, 需要通过 ‘#+OPTIONS: toc:nil’ 来设置；
+        -   后续，在需要插入 TOC 的位置配置 #+TOC: headlines 2;
 
-The table of contents includes `all headlines` in the document. Its depth is therefore the same as the headline
-levels in the file.
+    The table of contents includes `all headlines` in the document. Its depth is therefore the same as the
+    headline levels in the file.
 
-```text
-#+OPTIONS: toc:2          (only include two levels in TOC)
-#+OPTIONS: toc:nil        (no default TOC at all)
-```
+    ```text
+    #+OPTIONS: toc:2          (only include two levels in TOC)
+    #+OPTIONS: toc:nil        (no default TOC at all)
+    ```
 
-可以为 headline 指定是否输出到 toc 中：
+    可以为 headline 指定是否输出到 toc 中：
 
-```text
-* Subtree not numbered, not in table of contents either
-  :PROPERTIES:
-  :UNNUMBERED: notoc
-  :END:
-```
+    ```text
+    * Subtree not numbered, not in table of contents either
+      :PROPERTIES:
+      :UNNUMBERED: notoc
+      :END:
+    ```
 
-Org normally inserts the table of contents `directly before` the first headline of the file. To move the table
-of contents to `a different location`, first turn off the default with `org-export-with-toc` variable or with
-`‘#+OPTIONS: toc:nil'`.  Then insert `‘#+TOC: headlines N’` at the desired location(s).
+    Org normally inserts the table of contents `directly before` the first headline of the file. To move
+    the table of contents to `a different location`, first turn off the default with `org-export-with-toc`
+    variable or with `‘#+OPTIONS: toc:nil'`.  Then insert `‘#+TOC: headlines N’` at the desired location(s).
 
-```text
-#+OPTIONS: toc:nil
-...
-#+TOC: headlines 2
-```
+    ```text
+    #+OPTIONS: toc:nil
+    ...
+    #+TOC: headlines 2
+    ```
 
-Use the ‘TOC’ keyword to generate list of tables—respectively, all listings—with captions.
+    Use the ‘TOC’ keyword to generate list of tables—respectively, all listings—with captions.
 
--   只会 list 包含 #+CAPTION: 的 table/images/code 和 listing.
+    -   只会 list 包含 #+CAPTION: 的 table/images/code 和 listing.
 
-<!--listend-->
+    <!--listend-->
 
-```text
- #+TOC: listings
- #+TOC: tables
-```
+    ```text
+     #+TOC: listings
+     #+TOC: tables
+    ```
 
+<!--list-separator-->
 
-#### <span class="section-num">20.25.3</span> Include Files {#include-files}
+3.  Include Files
 
-During export, you can include the content of another file. For example, to include your ‘.emacs’ file, you
-could use:
+    During export, you can include the content of another file. For example, to include your ‘.emacs’
+    file, you could use:
 
-```text
-#+INCLUDE: "~/.emacs" src emacs-lisp
-```
+    ```text
+    #+INCLUDE: "~/.emacs" src emacs-lisp
+    ```
 
-Inclusions may specify a file-link to extract an object matched by org-link-search126 (see Search
-Options). The ranges for ‘:lines’ keyword are relative to the requested element. Therefore,
+    Inclusions may specify a file-link to extract an object matched by org-link-search126 (see Search
+    Options). The ranges for ‘:lines’ keyword are relative to the requested element. Therefore,
 
-```text
-#+INCLUDE: "./paper.org::*conclusion" :lines 1-20
-```
+    ```text
+    #+INCLUDE: "./paper.org::*conclusion" :lines 1-20
+    ```
 
-C-c ' (org-edit-special)
-: Visit the included file at point.
+    C-c ' (org-edit-special)
+    : Visit the included file at point.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.25.4</span> Comment 不会被导出 {#comment-不会被导出}
+4.  Comment 不会被导出
 
-1.  以‘#‘位于第 0 列的行会被看作注释， <span class="underline">不会被导出</span> 。如果想要一个缩进的行也被作为注释，用 `“#+”` 开头。所以，很多
-    file 级别的配置是类似于'#+KEYWORD:' 的格式，例如 #+OPTEIONS:, #+AUTHRO:, #+ATTR_HTML: 等。
+    1.  以‘#‘位于第 0 列的行会被看作注释， <span class="underline">不会被导出</span> 。如果想要一个缩进的行也被作为注释，用 `“#+”` 开头。所以，很多file 级别的配置是类似于'#+KEYWORD:' 的格式，例如 #+OPTEIONS:, #+AUTHRO:, #+ATTR_HTML:
+        等。
 
-2.  以 COMMENT 开头的 headline subtree 也不会被导出。
-    -   **`C-c ;`:** 插入一个 COMMENT subtree
+    2.  以 COMMENT 开头的 headline subtree 也不会被导出。
+        -   **`C-c ;`:** 插入一个 COMMENT subtree
 
-3.  COMMENT BLOCK 也不会被导出：
+    3.  COMMENT BLOCK 也不会被导出：
 
-Lines starting with zero or more whitespace characters followed by one `‘#’` and `a whitespace` are treated as
-comments and, as such, are `not exported`.
+    Lines starting with zero or more whitespace characters followed by one `‘#’` and `a whitespace` are treated as
+    comments and, as such, are `not exported`.
 
-Likewise, regions surrounded by `‘#+BEGIN_COMMENT’ … ‘#+END_COMMENT’` are not exported.
+    Likewise, regions surrounded by `‘#+BEGIN_COMMENT’ … ‘#+END_COMMENT’` are not exported.
 
-Finally, `a ‘COMMENT’ keyword at the beginning of an entry`, but after any other keyword or priority cookie,
-comments out the entire subtree. In this case, the subtree is not exported and no code block within it is
-executed either128. The command below helps changing the comment status of a headline.
+    Finally, `a ‘COMMENT’ keyword at the beginning of an entry`, but after any other keyword or priority cookie,
+    comments out the entire subtree. In this case, the subtree is not exported and no code block within it is
+    executed either128. The command below helps changing the comment status of a headline.
 
-C-c ; (org-toggle-comment)
-: Toggle the ‘COMMENT’ keyword at the beginning of an entry.
+    C-c ; (org-toggle-comment)
+    : Toggle the ‘COMMENT’ keyword at the beginning of an entry.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.25.5</span> 各种 exporter 的通用惯例 {#各种-exporter-的通用惯例}
+5.  各种 exporter 的通用惯例
 
-XXX, 如 HTML, Exporter backend 识别的标记：
+    XXX, 如 HTML, Exporter backend 识别的标记：
 
--   在线混合定义: inline syntax: ‘...'， 例如 <b> 和 bold text </b>
--   单行定义: #+HTML: Literal HTML code for export
--   block: html export block(每一种 exporter 类型, 都有对应的 #+BEGING_EXPORT XXXX block):
+    -   在线混合定义: inline syntax: ‘...'， 例如 <b> 和 bold text </b>
+    -   单行定义: #+HTML: Literal HTML code for export
+    -   block: html export block(每一种 exporter 类型, 都有对应的 #+BEGING_EXPORT XXXX block):
+
+        All lines between these markers are exported literally
+        <h1> h1 标题</h1>
+    -   \#+ATTR_XXX: XXX 相关的属性定义.
+
+<!--list-separator-->
+
+6.  HTML Export
+
+    ‘C-c C-e h h’ (‘org-html-export-to-html’)
+
+    Export as HTML file with a ‘.html’ extension.  For ‘myfile.org’, Org exports to ‘myfile.html’,
+    overwriting without warning.  ‘C-c C-e h o’ exports to HTML and opens it in a web browser.
+
+    HTML Exporter backend 识别的标记：
+
+    -   inline syntax: ‘...' <b>bold text</b>
+    -   \#+HTML: Literal HTML code for export
+    -   htlmll export block(每一种 exporter 类型, 都有对应的 #+BEGING_EXPORT XXXX block):
 
     All lines between these markers are exported literally
     <h1> h1 标题</h1>
--   \#+ATTR_XXX: XXX 相关的属性定义.
+
+    如果将变量 org-html-doctype-alist 设置为 html5, 且 org-html-html5-fancy 设置为t, 则 org 将任意 block 翻译为
+    html5 的 element:
+
+    ```text
+    #+BEGIN_aside
+      Lorem ipsum
+    #+END_aside
+    ```
+
+    输出为：
+
+    ```text
+    <aside>
+      <p>Lorem ipsum</p>
+    </aside>
+    ```
+
+    而：
+
+    ```text
+    #+ATTR_HTML: :controls controls :width 350
+    #+BEGIN_video
+    #+HTML: <source src="movie.mp4" type="video/mp4">
+    #+HTML: <source src="movie.ogg" type="video/ogg">
+    Your browser does not support the video tag.
+    #+END_video
+    ```
+
+    输出为：
+
+    ```text
+    <video controls="controls" width="350">
+      <source src="movie.mp4" type="video/mp4">
+        <source src="movie.ogg" type="video/ogg">
+          <p>Your browser does not support the video tag.</p>
+    </video>
+    ```
+
+    Headlines are exported to ‘&lt;h1&gt;’, ‘&lt;h2&gt;’, etc. Each headline gets the ‘id’ attribute from `‘CUSTOM_ID’`
+    property, or a unique generated value, see Internal Links.
+
+    Org files can also have special directives to the HTML export back-end. For example, by using `‘#+ATTR_HTML’`
+    lines to specify new format attributes to &lt;a&gt; or &lt;img&gt; tags. This example shows changing the link’s title and
+    style:
+
+    ```text
+    #+ATTR_HTML: :alt my picture :style color:red;width:500px;height:600px;
+    file:~/Pictures/IMG_5648.jpeg
+    ```
+
+    ,#+ATTR_HTML: :alt my picture :style color:red;width:100px;height:100px;
+
+    <div class="table-caption">
+      <span class="table-number">&#34920; 1:</span>
+      This is a table with lines around and between cells
+    </div>
+
+    | name  | age   | number |
+    |-------|-------|--------|
+    | asdfa | asdfa |        |
+    | asdf  |       |        |
+
+    注意：#+ATTR_HTML 必须位于要设置的 html element 之前。
+
+    When the link in the Org file has no description, the HTML export back-end by default in-lines that image. For
+    example: `‘[[file:myimg.jpg]]’` is in-lined, while `‘[[file:myimg.jpg][the image]]’` links to the text, ‘the
+    image’. For more details, see the variable org-html-inline-images.
+
+<!--list-separator-->
+
+7.  Publishing
+
+    Org includes a publishing management system that allows you to configure automatic HTML conversion
+    of projects composed of interlinked Org files.
 
 
-#### <span class="section-num">20.25.6</span> HTML Export {#html-export}
+### <span class="section-num">20.25</span> Babel 总结 {#babel-总结}
 
-‘C-c C-e h h’ (‘org-html-export-to-html’)
+<https://necromuralist.github.io/posts/org-babel-cheat-sheet/>
 
-Export as HTML file with a ‘.html’ extension.  For ‘myfile.org’, Org exports to ‘myfile.html’,
-overwriting without warning.  ‘C-c C-e h o’ exports to HTML and opens it in a web browser.
+1.  :eval 是执行 code block 代码, 获得 result, 并将 result 插入到 src block 后面的过程。
+2.  :export 是在 export org buffer/file 时，输出的文件中是否包含 code/results；
+3.  :tangle 是将 src block 内容 和 result 写入到特定文件的过程.
 
-HTML Exporter backend 识别的标记：
+:results 配置(results 是 eval 的结果):
 
--   inline syntax: ‘...' <b>bold text</b>
--   \#+HTML: Literal HTML code for export
--   htlmll export block(每一种 exporter 类型, 都有对应的 #+BEGING_EXPORT XXXX block):
+-   collection:
+    -   value: 代码块的返回值或返回码(当作一个 func 来执行);
+    -   stdout: 代码块 stdout 输出;
+-   type: table/list/scalar/verbatim/file
+    -   table:
+        -   :hlines yes/no, 指定是否解释输出结果中表格的水平分割线:
+        -   :sep |, 指定输入的表格内容的各列分割符号,默认为 TAB;
+    -   file 将结果写入到文件:
+        -   :file my.file, 未指定时, 使用当前 src block 的 name 作为文件名, 并加上 :file-ext 指定的后缀.
+        -   :file-ext ext, 注意后缀不带前缀 .
+        -   :output-dir /tmp
+        -   :file-desc "just a test file result"
+        -   :file-mode (identity #o755)
+-   format: result 结果在 org buffer 的插入格式, 默认没有外围包围;
+    -   code: 用 src block 包围;
+    -   drawer: 用 #+RESULTS draw 包围;
+    -   html: BEGIN_SRC html block;
+    -   latex: BEGIN_SRC latex block;
+    -   link/graphic
+    -   org: BEGIN_SRC org block;
+    -   pp: 和 code 类似,但是是 pretty-print code
+    -   raw
+    -   :wrap XX: 无条件的用 #+BEGIN_XX 和 #+END_XX 来包围;
+-   handling: result 结果的处理方式:
+    -   replace: `缺省值` , 用最新结果替换老结果, 插入 org buffer 中;
+    -   silent: 不将 result 插入 buffer 中, 但是在 minibuffer 显示;
+    -   none: eval 代码, 但是不执行任何操作;
+    -   discard: eval 代码, 但是不执行任何后续处理;
+    -   append/prepend: 添加或插入到已有结果;
 
-All lines between these markers are exported literally
-<h1> h1 标题</h1>
+:exports 配置，指的是在 export org buffer/file 时，输出的文件中是否包含 code/results：
 
-如果将变量 org-html-doctype-alist 设置为 html5, 且 org-html-html5-fancy 设置为t, 则 org 将任意 block 翻译为
-html5 的 element:
+-   code： 默认值， 即对于 src code block，只输出 code block， 而不输出他的 eval results；
+-   results：只输出 result；
+-   both：同时输出 code 和 results；
+-   none：都不输出；
 
-```text
-#+BEGIN_aside
-  Lorem ipsum
-#+END_aside
-```
+:tangle 配置：指的是将文件中多个 src block 抽取到一个其他实际代码文件中的过程，用来实现文学化编程：
 
-输出为：
-
-```text
-<aside>
-  <p>Lorem ipsum</p>
-</aside>
-```
-
-而：
-
-```text
-#+ATTR_HTML: :controls controls :width 350
-#+BEGIN_video
-#+HTML: <source src="movie.mp4" type="video/mp4">
-#+HTML: <source src="movie.ogg" type="video/ogg">
-Your browser does not support the video tag.
-#+END_video
-```
-
-输出为：
-
-```text
-<video controls="controls" width="350">
-  <source src="movie.mp4" type="video/mp4">
-    <source src="movie.ogg" type="video/ogg">
-      <p>Your browser does not support the video tag.</p>
-</video>
-```
-
-Headlines are exported to ‘&lt;h1&gt;’, ‘&lt;h2&gt;’, etc. Each headline gets the ‘id’ attribute from `‘CUSTOM_ID’`
-property, or a unique generated value, see Internal Links.
-
-Org files can also have special directives to the HTML export back-end. For example, by using `‘#+ATTR_HTML’`
-lines to specify new format attributes to &lt;a&gt; or &lt;img&gt; tags. This example shows changing the link’s title and
-style:
-
-```text
-#+ATTR_HTML: :alt my picture :style color:red;width:500px;height:600px;
-file:~/Pictures/IMG_5648.jpeg
-```
-
-,#+ATTR_HTML: :alt my picture :style color:red;width:100px;height:100px;
-
-<div class="table-caption">
-  <span class="table-number">Table 1:</span>
-  This is a table with lines around and between cells
-</div>
-
-| name  | age   | number |
-|-------|-------|--------|
-| asdfa | asdfa |        |
-| asdf  |       |        |
-
-注意：#+ATTR_HTML 必须位于要设置的 html element 之前。
-
-When the link in the Org file has no description, the HTML export back-end by default in-lines that image. For
-example: `‘[[file:myimg.jpg]]’` is in-lined, while `‘[[file:myimg.jpg][the image]]’` links to the text, ‘the
-image’. For more details, see the variable org-html-inline-images.
-
-
-#### <span class="section-num">20.25.7</span> Publishing {#publishing}
-
-Org includes a publishing management system that allows you to configure
-automatic HTML conversion of projects composed of interlinked Org files.
+-   :tangle FILENAME 指定写入的文件名称；如果为 yes 则表示根据当前 org 文件名自动生成；
+-   :mkdirp: yes 自动创建文件目录；
+-   :comments: no 是否插入 comment；
+-   :padline: yes 是否在抽取写入的 block 间插入空行；
+-   :shebang "#!/bin/bash" 写入文件的 shebang；
+-   :tangle-mode o444 写入文件的 mode；
 
 
 ### <span class="section-num">20.26</span> Working with Source Code {#working-with-source-code}
 
-Users can control how live they want each source code block by tweaking the <span class="underline">header arguments</span> (see Using Header
-Arguments) for compiling, execution, extraction, and exporting.
+Users can control how live they want each source code block by tweaking the <span class="underline">header arguments</span> (see
+Using Header Arguments) for compiling, execution, extraction, and exporting.
 
-For editing and formatting a source code block, Org uses an appropriate Emacs <span class="underline">major mode</span> that includes
-features specifically designed for source code in that language.
+For editing and formatting a source code block, Org uses an appropriate Emacs <span class="underline">major mode</span> that
+includes features specifically designed for source code in that language.
 
-Org can extract one or more source code blocks and <span class="underline">write them to one or more source files</span> —a process known as
-<span class="underline">tangling</span> in literate programming terminology.
+Org can extract one or more source code blocks and <span class="underline">write them to one or more source files</span> — a
+process known as <span class="underline">tangling</span> in literate programming terminology.
 
-For exporting and publishing, Org’s back-ends can format a source code block appropriately, often with `native
-syntax highlighting`.
+For exporting and publishing, Org’s back-ends can format a source code block appropriately, often
+with `native syntax highlighting`.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.26.1</span> Structure of Code Blocks {#structure-of-code-blocks}
+1.  Structure of Code Blocks
 
-标准格式：
+    标准格式：
 
-```text
-#+NAME: <name>
-#+BEGIN_SRC <language> <switches> <header arguments>
-  <body>
-#+END_SRC
-```
+    ```text
+    #+NAME: <name>
+    #+BEGIN_SRC <language> <switches> <header arguments>
+    <body>
+    #+END_SRC
+    ```
 
-‘#+NAME: &lt;name&gt;’
-: Optional. Names the source block so it `can be called`, like a function, from other source
-    blocks or inline code to evaluate or to capture the results. Code from other blocks, other files, and from
-    table formulas (see The Spreadsheet) can `use the name to reference a source block`. This naming serves the
-    same purpose as naming Org tables. Org mode requires unique names. For duplicate names, Org mode’s behavior
-    is undefined.
-    -   如果要在其它 src block 中引用该 src block 的 results, 则必须要定义 #+NAME:, 而且要保证唯一。
+    ‘#+NAME: &lt;name&gt;’
+    : Optional. Names the source block so it `can be called`, like a function, from
+        other source blocks or inline code to evaluate or to capture the results. Code from other blocks,
+        other files, and from table formulas (see The Spreadsheet) can `use the name to reference a source
+          block`. This naming serves the same purpose as naming Org tables. Org mode requires unique
+        names. For duplicate names, Org mode’s behavior is undefined.
+        -   如果要在其它 src block 中引用该 src block 的 results, 则必须要定义 #+NAME:, 而且要保证唯一。
 
-&lt;header arguments&gt; 也可以是用 #+PROTERTY: header-args: &lt;:config&gt; &lt;value&gt; 等为整个文档或部分 subtree 配置生效。
+    &lt;header arguments&gt; 也可以用 #+PROPERTY: 在整个文档或部分 subtree 配置生效。
+        -   \#+PROTERTY: header-args: &lt;:config&gt; &lt;value&gt; : 所有语言;
+        -   \#+PROTERTY: header-args:emacs-lisp &lt;:config&gt; &lt;value&gt; 只为 emacs-lisp language 指定缺省配置参数;
 
+<!--list-separator-->
 
-#### <span class="section-num">20.26.2</span> Using Header Arguments {#using-header-arguments}
+2.  Using Header Arguments
 
-org-mode src block 的缺省参数：
+    org-mode src block 的缺省参数：
 
-```text
-:session    => "none"   ;; 各 src block 是相互独力的
-:results    => "replace"
-:exports    => "code"   ;; export 时值输出 code 而不包含 results
-:cache      => "no"
-:noweb      => "no"
-:hlines     => "no"
-:tangle     => "no"     ;; 默认 src block 不写入文件;
-```
+    ```text
+    :session    => "none"   ;; 各 src block 是相互独立的, 如果是其他字符串, 则在一个解释器中执行同一个 session 的 src
+    :results    => "replace"
+    :exports    => "code"   ;; export 时值输出 code 而不包含 results
+    :cache      => "no"
+    :noweb      => "no"
+    :hlines     => "no"
+    :tangle     => "no"     ;; 不将 src block 写入文件;
+    ```
 
-org-mode SRC block 的 header 参数，可以通过 `#+PROPERTY:` 在全局配置生效，例如配置全局的 tangle 参数：
+    org-mode SRC block 的 header 参数，可以通过 `#+PROPERTY:` 在全局配置生效，例如配置全局的 tangle 参数：
 
--   header-args 可移植定要配置的[:LANGUAGE], 如 header-args:emacs-lisp 只对 emacs-lisp 生效，否则对文件中所有
-    src 类型生效。
+    -   header-args 可移植定要配置的[:LANGUAGE], 如 header-args:emacs-lisp 只对 emacs-lisp 生效，否则对文件中所有 src 类型生效。
+    -   需要在对应行上执行 C-c C-c 命令，从而让 org-mode 生效全局配置；
 
-<!--listend-->
+    <!--listend-->
 
-```text
-#+AUTHOR: 张俊(geekard@qq.com)
-#+LASTMOD: 2023-01-19T20:01:00+0800
-#+STARTUP: overview nohideblocks
-;; 只对 emacs-lisp 有效, 所以其它 src type 还是按默认值
-#+PROPERTY: header-args:emacs-lisp :tangle yes :results silent :exports code :eval no
-```
+    ```text
+    ;; 只对 emacs-lisp 有效, 所以其它 src type 还是按默认值
+    #+PROPERTY: header-args:emacs-lisp :tangle yes :results silent :exports code :eval no
 
-或者只对 subtree 生效：
+    ;; 或者只对 subtree 生效：
+    * sample header
+      :PROPERTIES:
+      :header-args:    :cache yes ;; 针对所有语言 src block
+      :END:
 
-```text
-* sample header
-  :PROPERTIES:
-  :header-args:    :cache yes ;; 针对所有语言 src block
-  :END:
+    ** Subheading
+      :PROPERTIES:
+      :header-args:clojure:    :session *clojure-2*   ;; 针对 clojure 语言
+      :END:
+    ```
 
-** Subheading
-  :PROPERTIES:
-  :header-args:clojure:    :session *clojure-2*   ;; 针对 clojure 语言
-  :END:
-```
+    对于 src block, 除了可以在 `#+begin_src` 行上指定各 header argument 外, 也可以使用一个或多个 #+HEADER:
+    来指定多个参数, 这非常适合参数较多的情况：
 
-对于 src block, 除了可以在 `#+begin_src` 行上指定 header argument 外, 也可以使用一个或多个 #+header: 来指定多个参数, 这非常适合参数较多的情况：
+    ```text
+    #+NAME: named-block
+    #+HEADER: :var data1=1
+    #+BEGIN_SRC emacs-lisp :var data2=2
+       (message "data1:%S, data2:%S" data1 data2)
+    #+END_SRC
 
-```text
-#+NAME: named-block
-#+HEADER: :var data1=1
-#+BEGIN_SRC emacs-lisp :var data2=2
-   (message "data1:%S, data2:%S" data1 data2)
-#+END_SRC
-
-#+RESULTS:
-: data1:1, data2:2
-```
+    #+RESULTS:
+    : data1:1, data2:2
+    ```
 
 
 ### <span class="section-num">20.27</span> Environment of a Code Block {#environment-of-a-code-block}
 
+<!--list-separator-->
 
-#### <span class="section-num">20.27.1</span> Passing arguments {#passing-arguments}
+1.  Passing arguments
 
-Use `‘var’` for passing arguments to source code blocks. The specifics of variables in code blocks vary by the
-source language and are covered in the language-specific documentation. The syntax for ‘var’, however, is the
-`same for all languages`. This includes declaring a variable, and assigning `a default value`.
+    Use `‘var’` for passing arguments to source code blocks. The specifics of variables in code blocks
+    vary by the source language and are covered in the language-specific documentation. The syntax for
+    ‘var’, however, is the `same for all languages`. This includes declaring a variable, and assigning `a
+    default value`.
 
-The following syntax is used to pass arguments to code blocks using the ‘var’ header argument.
+    The following syntax is used to pass arguments to code blocks using the ‘var’ header argument.
 
-```text
-:var NAME=ASSIGN
-```
-
-NAME is the name of the variable bound in the `code block body`. ASSIGN is:
-
-1.  `a literal value`, such as a string, a number,
-2.  `a reference` to a table, a list, a literal example, another code block—with or without arguments—or the
-
-`results of evaluating` a code block.
-
-ASSIGN may specify a filename for references to elements in a different file, using `a ‘:’ to separate` the
-filename from the reference.
-
-```text
-:var NAME=FILE:REFERENCE ;; 除了 FILE 外，还有其它类型。
-```
-
-Here are examples of passing values by reference:
-
-table
-: A table named with a ‘NAME’ keyword.
     ```text
-        #+NAME: example-table
-        | 1 |
-        | 2 |
-        | 3 |
-        | 4 |
-
-        #+NAME: table-length
-        #+BEGIN_SRC emacs-lisp :var table=example-table
-          (length table)
-        #+END_SRC
-
-        #+RESULTS: table-length
-        : 4
+    :var NAME=ASSIGN
     ```
 
+    NAME is the name of the variable bound in the `code block body`. ASSIGN is:
 
-list
-: A simple named list.
+    1.  `a literal value`, such as a string, a number,
+    2.  `a reference` to a table, a list, a literal example, another code block— with or without
+        arguments—or the `results of evaluating` a code block.
+
+    ASSIGN may specify a filename for references to elements in a different file, using `a ‘:’ to
+    separate` the filename from the reference.
+
     ```text
-        #+NAME: example-list
-    ​    - simple
-    ​      - not
-    ​      - nested
-    ​    - list
-
-        #+BEGIN_SRC emacs-lisp :var x=example-list
-          (print x)
-        #+END_SRC
-
-        #+RESULTS:
-        | simple | list |
+    :var NAME=FILE:REFERENCE ;; 除了 FILE 外，还有其它类型。
     ```
-    Note that only `the top level list` items are passed along. Nested list items are ignored.
 
+    Here are examples of passing values by reference:
 
-code block without arguments
-: `A code block name`, as assigned by ‘NAME’ keyword from the example above,
-    `optionally followed by parentheses`.
-    -   获取的是 src block 的执行结果。
+    table
+    : A table named with a ‘NAME’ keyword.
+        ```text
+            #+NAME: example-table
+            | 1 |
+            | 2 |
+            | 3 |
+            | 4 |
+
+            #+NAME: table-length
+            #+BEGIN_SRC emacs-lisp :var table=example-table
+              (length table)
+            #+END_SRC
+
+            #+RESULTS: table-length
+            : 4
+        ```
+
+    list
+    : A simple named list.
+        ```text
+            #+NAME: example-list
+        ​    - simple
+        ​      - not
+        ​      - nested
+        ​    - list
+
+            #+BEGIN_SRC emacs-lisp :var x=example-list
+              (print x)
+            #+END_SRC
+
+            #+RESULTS:
+            | simple | list |
+        ```
+        Note that only `the top level list` items are passed along. Nested list items are ignored.
+
+    code block without arguments
+    : `A code block name`, as assigned by ‘NAME’ keyword from the example
+        above, `optionally followed by parentheses`. 获取指定 NAME src block 的执行结果。
         ```text
             #+BEGIN_SRC emacs-lisp :var length=table-length()
               (* 2 length)
@@ -3882,286 +3919,304 @@ code block without arguments
             : 8
         ```
 
-
-code block with arguments
-: A code block name, as assigned by ‘NAME’ keyword, followed by parentheses and
-    optional arguments passed within the parentheses.
-    ```text
-        #+NAME: double
-        #+BEGIN_SRC emacs-lisp :var input=8
-          (* 2 input)
-        #+END_SRC
-
-        #+RESULTS: double
-        : 16
-
-        #+NAME: squared
-        #+BEGIN_SRC emacs-lisp :var input=double(input=1)
-          (* input input)
-        #+END_SRC
-
-        #+RESULTS: squared
-        : 4
-    ```
-
-
-literal example, or code block contents
-: A code block or `literal example block` named with a ‘NAME’
-    keyword, followed by `brackets` (optional for example blocks).
-    -   对于 src block 获取的是 block 内容而非执行结果；
+    code block with arguments
+    : A code block name, as assigned by ‘NAME’ keyword, followed by
+        parentheses and optional arguments passed within the parentheses.
         ```text
-            #+NAME: literal-example
-            #+BEGIN_EXAMPLE
-              A literal example
-              on two lines
-            #+END_EXAMPLE
-
-            #+NAME: read-literal-example
-            #+BEGIN_SRC emacs-lisp :var x=literal-example[]
-              (concatenate #'string x " for you.")
+            #+NAME: double
+            #+BEGIN_SRC emacs-lisp :var input=8
+              (* 2 input)
             #+END_SRC
 
-            #+RESULTS: read-literal-example
-            : A literal example
-            : on two lines for you.
+            #+RESULTS: double
+            : 16
+
+            #+NAME: squared
+            #+BEGIN_SRC emacs-lisp :var input=double(input=1)
+              (* input input)
+            #+END_SRC
+
+            #+RESULTS: squared
+            : 4
         ```
 
-`Emacs lisp code can also set the values for variables`. To differentiate a value from Lisp code, Org interprets
-``any value starting with ‘(’, ‘[’, ‘'’ or ‘`’ as Emacs Lisp code``. The result of evaluating that code is then
-assigned to the value of that variable. The following example shows how to reliably query and pass the file
-name of the Org mode buffer to a code block using headers. We need reliability here because the file’s name
-could change once the code in the block starts executing.
+    literal example, or code block contents
+    : A code block or `literal example block` named with a
+        ‘NAME’ keyword, followed by `brackets` (optional for example blocks).
+        -   对于 src block 获取的是 block 内容而非执行结果；
+            ```text
+                #+NAME: literal-example
+                #+BEGIN_EXAMPLE
+                  A literal example
+                  on two lines
+                #+END_EXAMPLE
 
-```text
-#+BEGIN_SRC sh :var filename=(buffer-file-name) :exports both
-  wc -w $filename
-#+END_SRC
-```
+                #+NAME: read-literal-example
+                #+BEGIN_SRC emacs-lisp :var x=literal-example[]
+                  (concatenate #'string x " for you.")
+                #+END_SRC
 
+                #+RESULTS: read-literal-example
+                : A literal example
+                : on two lines for you.
+            ```
 
-#### <span class="section-num">20.27.2</span> Using sessions {#using-sessions}
+    `Emacs lisp code can also set the values for variables`. To differentiate a value from Lisp code, Org
+    interprets ``any value starting with ‘(’, ‘[’, ‘'’ or ‘`’ as Emacs Lisp code``. The result of evaluating
+    that code is then assigned to the value of that variable. The following example shows how to
+    reliably query and pass the file name of the Org mode buffer to a code block using headers. We need
+    reliability here because the file’s name could change once the code in the block starts executing.
 
-Two code blocks can `share the same environment`. The ‘session’ header argument is for running multiple source
-code blocks `under one session`. Org runs code blocks with the same session name in the same interpreter
-process.
+    ```text
+    #+BEGIN_SRC sh :var filename=(buffer-file-name) :exports both
+      wc -w $filename
+    #+END_SRC
+    ```
 
-‘none’
-: `Default`. Each code block `gets a new interpreter process` to execute. The process terminates once
-    the block is evaluated.
+<!--list-separator-->
 
-STRING
-: Any string besides ‘none’ turns that string into the name of that session. For example, `‘:session
-      STRING’` names it ‘STRING’. If ‘session’ has no value, thenf the session namefff is `derived from the source
-      language identifier`. Subsequent blocks with the same source code language use the same session. Depending on
-    the language, state variables, code from other blocks, and the overall interpreted environment may be
-    shared. Some interpreted languages support concurrent sessions when subsequent source code language blocks
-    change session names.
+2.  Using sessions
 
-Only languages that provide `interactive evaluation` can have session support. Not all languages provide this
-support, such as C and ditaa. Even languages, such as Python and Haskell, that do support interactive
-evaluation `impose limitations on allowable language constructs` that can run interactively. Org inherits those
-limitations for those code blocks running in a session.
+    Two code blocks can `share the same environment`. The `‘session’` header argument is for running
+    multiple source code blocks `under one session`. Org runs code blocks with the same session name in
+    `the same interpreter process` .
 
+    ‘none’
+    : `Default`. Each code block `gets a new interpreter process` to execute. The process terminates once
+        the block is evaluated.
 
-#### <span class="section-num">20.27.3</span> Choosing a working directory {#choosing-a-working-directory}
+    STRING
+    : Any string besides ‘none’ turns that string into the name of that session. For example, `‘:session
+          STRING’` names it ‘STRING’. If ‘session’ has no value, thenf the session namefff is `derived from the source
+          language identifier`. Subsequent blocks with the same source code language use the same session. Depending on
+        the language, state variables, code from other blocks, and the overall interpreted environment may be
+        shared. Some interpreted languages support concurrent sessions when subsequent source code language blocks
+        change session names.
 
-The `‘dir’` header argument specifies `the default directory` during code block execution. If it is absent, then
-`the directory associated with the current buffer` is used. In other words, supplying ‘:dir DIRECTORY’
-temporarily has the same effect as changing the current directory with M-x cd RET DIRECTORY, and then not
-setting ‘dir’. Under the surface, ‘dir’ simply sets the value of the Emacs variable default-directory. Setting
-`‘mkdirp’` header argument to a non-nil value `creates the directory`, if necessary.
+    Only languages that provide `interactive evaluation` can have session support. Not all languages
+    provide this support, such as C and ditaa. Even languages, such as Python and Haskell, that do
+    support interactive evaluation `impose limitations on allowable language constructs` that can run
+    interactively. Org inherits those limitations for those code blocks running in a session.
 
-Setting ‘dir’ to the symbol `attach` or the string `"'attach"` will set ‘dir’ to the directory returned by
-`(org-attach-dir)`, set `‘:mkdir yes'`, and insert any file paths, as when using ‘:results file’, which are under
-the node’s attachment directory `using ‘attachment:’ links instead of the usual ‘file:’ links`. Any returned
-path outside of the attachment directory will use ‘file:’ links as per usual.
+<!--list-separator-->
 
--   设置 :dir attach :results file :file outputs/myfile, 将在 attachement dir 下创建 outputs/myfile, 同时返回~</Users/zhangjun/docs/emacs/xx>~ 类型的 LINK. 如果 :file 的路径不在 attachement dir 下，则返回的 LINK 是 `file:xxx` ;
+3.  Choosing a working directory
 
-For example, to save the plot file in the ‘Work/’ folder of the home directory— `notice tilde is expanded`:
+    The `‘dir’` header argument specifies `the default directory` during code block execution. If it is
+    absent, then `the directory associated with the current buffer` is used.
 
--   如果指定了 :file xxx 参数， 则执行结果会写入文件。然后返回 file 链接。
+    In other words, supplying ‘:dir DIRECTORY’ temporarily has the same effect as changing the current
+    directory with M-x cd RET DIRECTORY, and then not setting ‘dir’. Under the surface, ‘dir’ simply
+    sets the value of the Emacs variable default-directory. Setting `‘mkdirp’` header argument to a
+    non-nil value `creates the directory`, if necessary.
 
-<!--listend-->
+    Setting ‘dir’ to the symbol `attach` or the string `"'attach"` will set ‘dir’ to the directory returned
+    by `(org-attach-dir)`, set `‘:mkdir yes'`, and insert any file paths, as when using ‘:results file’,
+    which are under the node’s attachment directory `using ‘attachment:’ links instead of the usual
+    ‘file:’ links`. Any returned path outside of the attachment directory will use ‘file:’ links as per
+    usual.
 
-```text
-#+BEGIN_SRC R :file myplot.png :dir ~/Work
-  matplot(matrix(rnorm(100), 10), type="l")
-#+END_SRC
-```
+    -   设置 `:dir attach :results file :file outputs/myfile`, 将在 attachement dir 下创建 outputs/myfile,
+        同时返回 `attachment:xx` 类型的 LINK. 如果 :file 的路径不在 attachement dir 下，则返回的 LINK 是
+        `file:xxx` ;
 
-To evaluate the code block on a remote machine, supply `a remote directory name using Tramp syntax`. For
-example:
+    For example, to save the plot file in the ‘Work/’ folder of the home directory— `notice tilde is
+    expanded`:
 
-```text
-#+BEGIN_SRC R :file plot.png :dir /scp:dand@yakuba.princeton.edu:
-  plot(1:10, main=system("hostname", intern=TRUE))
-#+END_SRC
-```
+    -   如果指定了 :file xxx 参数， 则执行结果会写入文件, 然后返回 file 链接。
 
-Org first captures the text results as usual for insertion in the Org file. Then Org also `inserts a link` to
-the remote file, thanks to Emacs Tramp. Org constructs the remote path to the file name from ‘dir’ and
-default-directory, as illustrated here: `[[file:/scp:dand@yakuba.princeton.edu:/home/dand/plot.png][plot.png]]`;
+    <!--listend-->
 
-例如：
+    ```text
+    #+BEGIN_SRC R :file myplot.png :dir ~/Work
+    matplot(matrix(rnorm(100), 10), type="l")
+    #+END_SRC
+    ```
 
-```shell
-kubectl get node
-```
+    To evaluate the code block on a remote machine, supply `a remote directory name using Tramp
+    syntax`. For example:
 
-When ‘dir’ is used with ‘session’, Org sets the starting directory for a new session. But Org `does not alter
-the directory` of an already existing session.
+    ```text
+    #+BEGIN_SRC R :file plot.png :dir /scp:dand@yakuba.princeton.edu:
+      plot(1:10, main=system("hostname", intern=TRUE))
+    #+END_SRC
+    ```
 
--   如果 dir 和 session 一块使用，则 org-mode 在开始 session 时设置 dir, 后续不会再变。
+    Org first captures the text results as usual for insertion in the Org file. Then Org also `inserts a
+    link` to the remote file, thanks to Emacs Tramp. Org constructs the remote path to the file name from
+    ‘dir’ and default-directory, as illustrated here:
+    `[[file:/scp:dand@yakuba.princeton.edu:/home/dand/plot.png][plot.png]]`;
 
-Do not use ‘dir’ with ‘:exports results’ or with ‘:exports both’ to avoid Org inserting incorrect links to
-remote files. That is because Org does not expand default directory to avoid some underlying portability
-issues.
+    例如：
+
+    ```shell
+    kubectl get node
+    ```
+
+    When ‘dir’ is used with ‘session’, Org sets the starting directory for a new session. But Org `does
+    not alter the directory` of an already existing session.
+
+    -   如果 dir 和 session 一块使用，则 org-mode 在开始 session 时设置 dir, 后续不会再变。
+
+    Do not use ‘dir’ with ‘:exports results’ or with ‘:exports both’ to avoid Org inserting incorrect
+    links to remote files. That is because Org does not expand default directory to avoid some
+    underlying portability issues.
 
 
 ### <span class="section-num">20.28</span> Evaluating Code Blocks {#evaluating-code-blocks}
 
-A note about security: With code evaluation comes the risk of harm. Org safeguards by prompting for user’s
-permission before executing any code in the source block. To customize this safeguard, or disable it, see Code
-Evaluation and Security Issues.
+A note about security: With code evaluation comes the risk of harm. Org safeguards by prompting for
+user’s permission before executing any code in the source block. To customize this safeguard, or
+disable it, see Code Evaluation and Security Issues.
 
+eval 是执行 code block 代码, 获得 result, 并将 result 插入到 src block 后面的过程.
 
-#### <span class="section-num">20.28.1</span> How to evaluate source code {#how-to-evaluate-source-code}
+而 tangle 是将 src block 内如 和 result 写入到特定文件的过程.
 
-Org captures the results of the code block evaluation and inserts them in the Org file, right after the code
-block. The insertion point is after a newline and `the ‘RESULTS’ keyword`. Org creates the ‘RESULTS’ keyword if
-one is not already there. More details in Results of Evaluation.
+<!--list-separator-->
 
-By default, Org enables only Emacs Lisp code blocks for execution. See Languages to enable other languages.
+1.  How to evaluate source code
 
-Org provides many ways to execute code blocks. `C-c Cf-cf or C-c C-v e` with the point on a code block142 calls
-the `org-babel-execute-src-block` function, which executes the code in the block, collects the results, and
-inserts them in the buffer.
+    Org captures the results of the code block evaluation and `inserts them in the Org file`, right after
+    the code block. The insertion point is after a newline and the `‘RESULTS’` keyword. Org creates the
+    ‘RESULTS’ keyword if one is not already there. More details in Results of Evaluation.
 
-By `calling a named code block` from an `Org mode buffer or a table`. Org can call the named code blocks from the
-current Org mode buffer or from the “Library of Babel” (see Library of Babel).
+    By default, Org enables only Emacs Lisp code blocks for execution. See Languages to enable other
+    languages.
 
-The syntax for ‘CALL’ keyword is:
+    Org provides many ways to execute code blocks. `C-c Cf-cf or C-c C-v e` with the point on a code
+    block142 calls the `org-babel-execute-src-block` function, which executes the code in the block,
+    collects the results, and inserts them in the buffer.
 
-```text
-#+CALL: <name>(<arguments>)
-#+CALL: <name>[<inside header arguments>](<arguments>) <end header arguments>
-```
+    By `calling a named code block` from an `Org mode buffer or a table`. Org can call the named code blocks
+    from the current Org mode buffer or from the “Library of Babel” (see Library of Babel).
 
-‘&lt;name&gt;’
-: This is `the name of the code block` (see Structure of Code Blocks) to be evaluated in the current
-    document. If the block is located in another file, `start ‘<name>’ with the file name` followed by a
-    colon. For example, in order to execute a block named ‘clear-data’ in ‘file.org’, you can write the
-    following: `#+CALL: file.org:clear-data()`
+    The syntax for `‘CALL’` keyword is:
 
-‘&lt;arguments&gt;’
-: Org passes arguments to the code block using standard function call syntax. For example, a
-    ‘#+CALL:’ line that passes ‘4’ to a code block named ‘double’, which declares the header argument ‘:var
-    n=2’, would be written as: `#+CALL: double(n=4)` Note how this function call syntax is different from the
-    header argument syntax.
+    ```text
+    #+CALL: <name>(<arguments>)
+    #+CALL: <name>[<inside header arguments>](<arguments>) <end header arguments>
+    ```
 
-‘&lt;inside header arguments&gt;’
-: Org passes inside header arguments `to the named code block` using the header
-    argument syntax. Inside header arguments apply to code block evaluation. For example, `‘[:results output]’`
-    collects results printed to stdout during code execution of that block. Note how this header argument syntax
-    is different from the function call syntax.
+    ‘&lt;name&gt;’
+    : This is `the name of the code block` (see Structure of Code Blocks) to be evaluated in
+        the current document. If the block is located in another file, `start ‘<name>’ with the file name`
+        followed by a colon. For example, in order to execute a block named ‘clear-data’ in ‘file.org’,
+        you can write the following: `#+CALL: file.org:clear-data()`
 
-‘&lt;end header arguments&gt;’
-: End header arguments affect `the results returned by the code block`. For example,
-    ‘:results html’ wraps the results in a ‘#+BEGIN_EXPORT html’ block before inserting the results in the Org
-    buffer.
+    ‘&lt;arguments&gt;’
+    : Org passes arguments to the code block using standard function call syntax. For
+        example, a ‘#+CALL:’ line that passes ‘4’ to a code block named ‘double’, which declares the
+        header argument ‘:var n=2’, would be written as: `#+CALL: double(n=4)` Note how this function call
+        syntax is different from the header argument syntax.
 
+    ‘&lt;inside header arguments&gt;’
+    : Org passes inside header arguments `to the named code block` using
+        the header argument syntax. Inside header arguments apply to code block evaluation. For example,
+        `‘[:results output]’` collects results printed to stdout during code execution of that block. Note
+        how this header argument syntax is different from the function call syntax.
 
-#### <span class="section-num">20.28.2</span> Limit code block evaluation {#limit-code-block-evaluation}
+    ‘&lt;end header arguments&gt;’
+    : End header arguments affect `the results returned by the code
+          block`. For example, `‘:results html’` wraps the results in a ‘#+BEGIN_EXPORT html’ block before
+        inserting the results in the Org buffer.
 
-The `‘eval’` header argument can limit evaluation of specific code blocks and ‘CALL’ keyword. It is useful for
-protection against evaluating untrusted code blocks by prompting for a confirmation.
+<!--list-separator-->
 
-‘yes’
-: Org always evaluates the source code `without asking permission`.
+2.  Limit code block evaluation
 
-‘never’ or ‘no’
-: Org `never evaluates the source code`.
+    babel 在 export 时会会执行 eval, 通过设置 eval 参数可以配置该行为.
 
-‘query’
-: Org prompts the user for permission to evaluate the source code.
+    The `‘eval’` header argument can limit evaluation of specific code blocks and ‘CALL’ keyword. It is
+    useful for protection against evaluating untrusted code blocks by prompting for a confirmation.
 
-‘never-export’ or ‘no-export’
-: Org does not evaluate the source code `when exporting`, yet the user can
-    evaluate it interactively.
+    ‘yes’
+    : Org always evaluates the source code `without asking permission`.
 
-‘query-export’
-: Org prompts the user for permission to evaluate the source code during export.
+    ‘never’ or ‘no’
+    : Org `never evaluates the source code`.
 
-If ‘eval’ header argument is not set, then Org determines whether to evaluate the source code from the
-`org-confirm-babel-evaluate` variable (see Code Evaluation and Security Issues).
+    ‘query’
+    : Org prompts the user for permission to evaluate the source code.
 
+    ‘never-export’ or ‘no-export’
+    : Org does not evaluate the source code `when exporting`, yet the
+        user can evaluate it interactively.
 
-#### <span class="section-num">20.28.3</span> Cache results of evaluation {#cache-results-of-evaluation}
+    ‘query-export’
+    : Org prompts the user for permission to evaluate the source code during export.
 
-The `‘cache’` header argument is for caching results of evaluating code blocks. Caching results can avoid
-re-evaluating a code block that have not changed since the previous run. To benefit from the cache and avoid
-redundant evaluations, the source block `must have a result already present` in the buffer, and neither the
-header arguments—including the value of ‘var’ references—nor the text of the block itself has changed since
-the result was last computed. This feature greatly helps avoid long-running calculations. For some edge cases,
-however, the cached results may not be reliable.
+    If ‘eval’ header argument is not set, then Org determines whether to evaluate the source code from
+    the `org-confirm-babel-evaluate` variable (see Code Evaluation and Security Issues).
 
-The caching feature is best for when code blocks are `pure functions`, that is functions that return the same
-value for the same input arguments (see Environment of a Code Block), and that do not have side effects, and
-do not rely on external variables other than the input arguments. Functions that depend on a timer, file
-system objects, and random number generators are clearly unsuitable for caching.
+<!--list-separator-->
 
-A note of warning: when ‘cache’ is used in a session, caching may cause unexpected results.
+3.  Cache results of evaluation
 
-When the caching mechanism tests for any source code changes, it does not expand noweb style references (see
-Noweb Reference Syntax).
+    The `‘cache’` header argument is for caching results of evaluating code blocks. Caching results can
+    avoid re-evaluating a code block that have not changed since the previous run. To benefit from the
+    cache and avoid redundant evaluations, the source block `must have a result already present` in the
+    buffer, and neither the header arguments—including the value of ‘var’ references—nor the text of the
+    block itself has changed since the result was last computed. This feature greatly helps avoid
+    long-running calculations. For some edge cases, however, the cached results may not be reliable.
 
-The ‘cache’ header argument can have one of two values: ‘yes’ or ‘no’.
+    The caching feature is best for when code blocks are `pure functions`, that is functions that return
+    the same value for the same input arguments (see Environment of a Code Block), and that do not have
+    side effects, and do not rely on external variables other than the input arguments. Functions that
+    depend on a timer, file system objects, and random number generators are clearly unsuitable for
+    caching.
 
-‘no’
-: Default. No caching of results; code block evaluated every time.
+    A note of warning: when ‘cache’ is used in a session, caching may cause unexpected results.
 
-‘yes’
-: Whether to run the code or return the cached results is determined by `comparing the SHA1 hash value
-      of the combined code block and arguments passed to it`. This hash value is packed on the ‘#+RESULTS:’ line
-    from previous evaluation. When hash values match, Org does not evaluate the code block. When hash values
-    mismatch, Org evaluates the code block, inserts the results, recalculates the hash value, and updates
-    ‘#+RESULTS:’ line.
+    When the caching mechanism tests for any source code changes, it does not expand noweb style
+    references (see Noweb Reference Syntax).
 
-In this example, both functions are cached. But ‘caller’ runs only if the result from ‘random’ has changed
-since the last run.
+    The ‘cache’ header argument can have one of two values: ‘yes’ or ‘no’.
 
-```text
-#+NAME: random
-#+BEGIN_SRC R :cache yes
-  runif(+1)
-#+END_SRC
+    ‘no’
+    : `Default`. No caching of results; code block evaluated every time.
 
-#+RESULTS[a2a72cd647ad44515fab62e144796432793d68e1]: random
-0.4659510825295
+    ‘yes’
+    : Whether to run the code or return the cached results is determined by `comparing the SHA1
+          hash value of the combined code block and arguments passed to it`. This hash value is packed on the
+        ‘#+RESULTS:’ line from previous evaluation. When hash values match, Org does not evaluate the code
+        block. When hash values mismatch, Org evaluates the code block, inserts the results, recalculates
+        the hash value, and updates ‘#+RESULTS:’ line.
 
-#+NAME: caller
-#+BEGIN_SRC emacs-lisp :var x=random :cache yes
-  x
-#+END_SRC
+    In this example, both functions are cached. But ‘caller’ runs only if the result from ‘random’ has
+    changed since the last run.
 
-#+RESULTS[bec9c8724e397d5df3b696502df3ed7892fc4f5f]: caller
-0.254227238707244
-```
+    ```text
+    #+NAME: random
+    #+BEGIN_SRC R :cache yes
+      runif(+1)
+    #+END_SRC
+
+    #+RESULTS[a2a72cd647ad44515fab62e144796432793d68e1]: random
+    0.4659510825295
+
+    #+NAME: caller
+    #+BEGIN_SRC emacs-lisp :var x=random :cache yes
+      x
+    #+END_SRC
+
+    #+RESULTS[bec9c8724e397d5df3b696502df3ed7892fc4f5f]: caller
+    0.254227238707244
+    ```
 
 
 ### <span class="section-num">20.29</span> Results of Evaluation {#results-of-evaluation}
 
-How Org handles results of a code block execution depends on `many header arguments working together`. The
-primary determinant, however, is the `‘results’` header argument. It accepts `four classes` of options. Each code
-block can take only `one option per class`:
+How Org handles results of a code block execution depends on `many header arguments working
+together`. The primary determinant, however, is the `‘results’` header argument. It accepts `four
+classes` of options. Each code block can take only `one option per class`:
 
 Collection
 : For how the results should be collected from the code block;
 
 Type
-: For which type of result the code block will return; affects how Org processes and inserts results
-    in the Org buffer;
+: For which type of result the code block will return; affects how Org processes and inserts
+    results in the Org buffer;
 
 Format
 : For the result; affects how Org processes results;
@@ -4169,506 +4224,785 @@ Format
 Handling
 : For inserting results once they are properly formatted.
 
+<!--list-separator-->
 
-#### <span class="section-num">20.29.1</span> Collection {#collection}
+1.  Collection
 
-指定 src block 的返回值类型: 函数返回值或返回码 vs stdout.
+    指定 src block 的返回值类型:
 
-Collection options specify the results. Choose one of the options; they are mutually exclusive.
-
-‘value’
-: Default for most Babel libraries144. `Functional mode`. Org gets the value by wrapping the code in
-    a function definition in the language of the source block. That is why when using ‘:results value’, code
-    should execute like a function and return a value. For languages like Python, an explicit return statement
-    is mandatory when using ‘:results value’. `Result is the value returned by the last statement in the code
-      block.`
-
-    -   缺省值。函数模式, 返回 src block 最后一个语句的执行结果:
+    1.  `value`: src block 被当作一个函数来执行, 获得函数的返回值或返回码作为 Result; (缺省)
         -   对于 python, 最后一条语句需要是 return 语句。
         -   [对于 shell, :results value  返回的是 exit code;](https://orgmode.org/worg/org-contrib/babel/languages/ob-doc-shell.html)
+    2.  `stdout`: src block 执行过程中 stdout 的输出;
 
-    When evaluating the code block in a session (see Environment of a Code Block), Org passes the code to an
-    interpreter running as an interactive Emacs inferior process. Org gets the value from the source code
-    interpreter’s `last statement output`. Org has to use language-specific methods to obtain the value. For
-    example, from the variable _ in Ruby, and the value of .Last.value in R.
+    Collection options specify the results. Choose one of the options; they are mutually exclusive.
 
+    ‘value’
+    : Default for most Babel libraries144. `Functional mode`. Org gets the value by wrapping
+        the code `in a function definition` in the language of the source block. That is why when using
+        `‘:results value’`, code should execute like a function and return a value. For languages like
+        Python, an explicit return statement is mandatory when using ‘:results value’. `Result is the value
+          returned by the last statement in the code block.`
 
-‘output’
-: `Scripting mode`. Org passes the code to an external process running the interpreter. Org returns
-    the contents of `the standard output stream as text results`.
-    -   脚本模式, 将 src block 的 stdout 内容作为输出.
+        When evaluating the code block in a session (see Environment of a Code Block), Org passes the code
+        to an interpreter running as an interactive Emacs inferior process. Org gets the value from the
+        source code interpreter’s `last statement output`. Org has to use language-specific methods to
+        obtain the value. For example, from the variable _ in Ruby, and the value of .Last.value in R.
 
-When using a session, Org passes the code to the interpreter running as an interactive Emacs inferior
-process. Org `concatenates any text output from the interpreter and returns the collection as a result`.
+    ‘output’
+    : `Scripting mode`. Org passes the code to an external process running the
+        interpreter. Org returns the contents of `the standard output stream as text results`.
 
-示例:
-python:
+    When using a session, Org passes the code to the interpreter running as an interactive Emacs
+    inferior process. Org `concatenates any text output from the interpreter and returns the collection
+    as a result`.
 
-```text
-#+NAME: many-cols
-| a | b | c |
-|---+---+---|
-| d | e | f |
-|---+---+---|
-| g | h | i |
+    示例:
 
-#+NAME: no-hline
-#+BEGIN_SRC python :var tab=many-cols :hlines no
-  return tab   # :results 默认 collection 是 value, 即函数返回值。对于 python, 最后一条语句需要是 return.
-#+END_SRC
-
-#+RESULTS: no-hline
-| a | b | c |
-| d | e | f |
-| g | h | i |
-
-#+NAME: hlines
-#+BEGIN_SRC python :var tab=many-cols :hlines yes
-  return tab
-#+END_SRC
-
-#+RESULTS: hlines
-| a | b | c |
-|---+---+---|
-| d | e | f |
-|---+---+---|
-| g | h | i |
-```
-
-shell:
-
-```text
-#+begin_src sh :results output
-  echo PID: "$$"
-#+end_src
-
-#+RESULTS:
-: PID: 19056
-
-#+begin_src sh :results output
-  echo PID: "$$"
-#+end_src
-
-#+RESULTS:
-: PID: 19059
-```
-
-
-#### <span class="section-num">20.29.2</span> Type {#type}
-
-Type tells what result types to expect from the execution of the code block. Choose one of the options; they
-are mutually exclusive.
-
-The default behavior is to automatically determine the result type. The result type detection depends on the
-code block language, as described in the documentation for individual languages. See Languages.
-
--   ‘table’, ‘vector’
-
-Interpret the results as an `Org table`. If the result is a single value, create a table with one row and one
-column. Usage example: ‘:results value table’.
-
-In-between each table row or below the table headings, sometimes results have horizontal lines, which are also
-known as `“hlines"`. The ‘hlines’ argument with `the default ‘no’ value` strips such lines from the input
-table. For most code, this is desirable, or else those ‘hline’ symbols raise unbound variable errors. A ‘yes’
-accepts such lines, as demonstrated in the following example.
-
-```text
-#+NAME: many-cols
-| a | b | c |
-|---+---+---|
-| d | e | f |
-|---+---+---|
-| g | h | i |
-
-#+NAME: no-hline
-#+BEGIN_SRC python :var tab=many-cols :hlines no ;; 不解释 hline, 所以输出没有包含 hline
-  return tab
-#+END_SRC
-
-#+RESULTS: no-hline
-| a | b | c |
-| d | e | f |
-| g | h | i |
-
-#+NAME: hlines
-#+BEGIN_SRC python :var tab=many-cols :hlines yes ;; 解释 hline, 所以输出包含 hline
-  return tab
-#+END_SRC
-
-#+RESULTS: hlines
-| a | b | c |
-|---+---+---|
-| d | e | f |
-|---+---+---|
-| g | h | i |
-```
-
-‘list’
-: Interpret the results as an Org list. If the result is a single value, create a list of one
-    element.
-
-‘scalar’、 ‘verbatim’
-: `Interpret literally and insert as quoted text`. Do not create a table. Usage
-    example: ‘:results value verbatim’.
-
-‘file’
-: Interpret as a filename. `Save the results of execution of the code block to that file, then insert
-      a link to it`. You can control both `the filename` and `the description` associated to the link.
-
-       Org first tries to generate the filename from the value of the `‘file’` header argument and the directory
-    specified using the `‘output-dir’` header arguments. If ‘output-dir’ is not specified, Org assumes it is the
-    `current directory`.
     ```text
-         #+BEGIN_SRC asymptote :results value file :file circle.pdf :output-dir img/
-           size(2cm);
-           draw(unitcircle);
-         #+END_SRC
+    #+NAME: many-cols
+    | a | b | c |
+    |---+---+---|
+    | d | e | f |
+    |---+---+---|
+    | g | h | i |
+
+    #+NAME: no-hline
+    #+BEGIN_SRC python :var tab=many-cols :hlines no
+      return tab   # :results 默认 collection 是 value, 即函数返回值。对于 python, 最后一条语句需要是 return.
+    #+END_SRC
+
+    #+RESULTS: no-hline
+    | a | b | c |
+    | d | e | f |
+    | g | h | i |
+
+    #+NAME: hlines
+    #+BEGIN_SRC python :var tab=many-cols :hlines yes
+      return tab
+    #+END_SRC
+
+    #+RESULTS: hlines
+    | a | b | c |
+    |---+---+---|
+    | d | e | f |
+    |---+---+---|
+    | g | h | i |
     ```
-       If ‘file’ header argument is missing, Org generates the base name of the output file from `the name of the
-      code block`, and its extension from the `‘file-ext’` header argument. In that case, both the name and the
-    extension are mandatory.
+
+    shell:
+
     ```text
-         #+name: circle
-         #+BEGIN_SRC asymptote :results value file :file-ext pdf
-           size(2cm);
-           draw(unitcircle);
-         #+END_SRC
+    #+begin_src sh :results output
+      echo PID: "$$"
+    #+end_src
+
+    #+RESULTS:
+    : PID: 19056
+
+    #+begin_src sh :results output
+      echo PID: "$$"
+    #+end_src
+
+    #+RESULTS:
+    : PID: 19059
     ```
-    The `‘file-desc’` header argument defines the description (see Link Format) for the link. If ‘file-desc’ is
-    present but has no value, `the ‘file’ value` is used as the link description. When this argument is not
-    present, `the description is omitted`. If you want to provide the ‘file-desc’ argument but omit the
-    description, you can provide it with an empty vector (i.e., `:file-desc []`).
 
-By default, Org assumes that a table written to a file has `TAB-delimited output`. You can choose a different
-separator with the `‘sep’` header argument.
+<!--list-separator-->
 
-The `‘file-mode’` header argument defines the file permissions. To make it executable, use ‘:file-mode (identity
-\#o755)’.
+2.  Type
 
-```shell
-  echo "#!/bin/bash"
-  echo "echo Hello World"
+    解释执行的结果:
+
+    1.  table(默认), vector;
+        -   可以配置 :hlines: no/yes 来控制是否解释输出表格的水平分割线;
+    2.  list: 如果结果是一个单一 value, 默认使用 list;
+    3.  scalar/verbatim: 不创建 table/list, 而是将结果鸳鸯作为  quoted text 插入到 org buffer 中;
+
+    Type tells what result types to expect from the execution of the code block. Choose one of the
+    options; they are mutually exclusive.
+
+    The default behavior is to `automatically determine the result type`. The result type detection
+    depends on the code block language, as described in the documentation for individual languages. See
+    Languages.
+
+    -   ‘table’, ‘vector’
+
+    Interpret the results as an `Org table`. If the result is a single value, create a table with one row
+    and one column. Usage example: ‘:results value table’.
+
+    In-between each table row or below the table headings, sometimes results have horizontal lines,
+    which are also known as `“hlines"`. The ‘hlines’ argument with `the default ‘no’ value` strips such
+    lines from the input table. For most code, this is desirable, or else those ‘hline’ symbols raise
+    unbound variable errors. A ‘yes’ accepts such lines, as demonstrated in the following example.
+
+    ```text
+    #+NAME: many-cols
+    | a | b | c |
+    |---+---+---|
+    | d | e | f |
+    |---+---+---|
+    | g | h | i |
+
+    #+NAME: no-hline
+    #+BEGIN_SRC python :var tab=many-cols :hlines no ;; 不解释 hline, 所以输出没有包含 hline
+      return tab
+    #+END_SRC
+
+    #+RESULTS: no-hline
+    | a | b | c |
+    | d | e | f |
+    | g | h | i |
+
+    #+NAME: hlines
+    #+BEGIN_SRC python :var tab=many-cols :hlines yes ;; 解释 hline, 所以输出包含 hline
+      return tab
+    #+END_SRC
+
+    #+RESULTS: hlines
+    | a | b | c |
+    |---+---+---|
+    | d | e | f |
+    |---+---+---|
+    | g | h | i |
+    ```
+
+    ‘list’
+    : Interpret the results as an Org list. If the result is a single value, create a list of
+        one element.
+
+    ‘scalar’、 ‘verbatim’
+    : `Interpret literally and insert as quoted text`. Do not create a
+        table. Usage example: ‘:results value verbatim’.
+
+    ‘file’
+    : Interpret as a filename. `Save the results of execution of the code block to that file,
+          then insert a link to it`. You can control both `the filename` and `the description` associated to the
+        link.
+
+           Org first tries to generate the filename from the value of the `‘file’` header argument and the directory
+        specified using the `‘output-dir’` header arguments. If ‘output-dir’ is not specified, Org assumes it is the
+        `current directory`.
+        ```text
+             #+BEGIN_SRC asymptote :results value file :file circle.pdf :output-dir img/
+               size(2cm);
+               draw(unitcircle);
+             #+END_SRC
+        ```
+           If ‘file’ header argument is missing, Org generates the base name of the output file from `the
+          name of the code block`, and its extension from the `‘file-ext’` header argument. In that case, both
+        the name and the extension are mandatory.
+        ```text
+             #+name: circle
+             #+BEGIN_SRC asymptote :results value file :file-ext pdf
+               size(2cm);
+               draw(unitcircle);
+             #+END_SRC
+        ```
+        The `‘file-desc’` header argument defines the description (see Link Format) for the link. If
+        ‘file-desc’ is present but has no value, `the ‘file’ value` is used as the link description. When
+        this argument is not present, `the description is omitted`. If you want to provide the ‘file-desc’
+        argument but omit the description, you can provide it with an empty vector (i.e., `:file-desc []`).
+
+    By default, Org assumes that a table written to a file has `TAB-delimited output`. You can choose a
+    different separator with the `‘sep’` header argument.
+
+    The `‘file-mode’` header argument defines the file permissions. To make it executable, use ‘:file-mode
+    (identity #o755)’.
+
+    ```shell
+      echo "#!/bin/bash"
+      echo "echo Hello World"
+    ```
+
+<!--list-separator-->
+
+3.  Format
+
+    Format pertains to the type of the result returned by the code block. Choose one of the options;
+    they are mutually exclusive. The default follows from the type specified above.
+
+    -   ‘code’: Result enclosed in a code block. Useful for parsing. Usage example: ‘:results value code’.
+    -   ‘drawer’: Result wrapped in `a ‘RESULTS’ drawer`. Useful for containing ‘raw’ or ‘org’ results for
+        later scripting and automated processing. Usage example: ‘:results value drawer’.
+    -   ‘html’: Results enclosed in a ‘BEGIN_EXPORT html’ block. Usage example: ‘:results value html’.
+    -   ‘latex’: Results enclosed in a ‘BEGIN_EXPORT latex’ block. Usage example: ‘:results value latex’.
+    -   ‘link’/‘graphics’: When used along with ‘file’ type, the result is a link to the file specified in
+        ‘:file’ header argument. However, unlike plain ‘file’ type, code block output is not written to
+        the disk. The block is expected to generate the file by its side-effects only, as in the following
+        example:
+        ```shell
+              wget -c "https://orgmode.org/resources/img/org-mode-unicorn.svg"
+        ```
+
+    -   ‘org’: Results enclosed in a ‘BEGIN_SRC org’ block. For comma-escape, either TAB in the block, or
+        export the file. Usage example: ‘:results value org’.
+    -   ‘pp’: Result converted to pretty-print source code. Enclosed in a code block. Languages supported:
+        Emacs Lisp, Python, and Ruby. Usage example: ‘:results value pp’.
+    -   ‘raw’: Interpreted as raw Org mode. Inserted directly into the buffer. Aligned if it is a
+        table. Usage example: ‘:results value raw’.
+
+    The `‘wrap’` header argument unconditionally marks the results block by appending strings to
+    ‘#+BEGIN_’ and ‘#+END_’. If no string is specified, Org wraps the results in a ‘#+BEGIN_results’ …‘#+END_results’ block. It takes precedent over the ‘results’ value listed above. E.g.,
+
+    ```emacs-lisp
+    "<blink>Welcome back to the 90's</blink>"
+    ```
+
+<!--list-separator-->
+
+4.  Handling
+
+    Handling options after collecting the results. Choose one of the options; they are mutually
+    exclusive.
+
+    -   ‘replace’: `Default`. `Insert results in the Org buffer. Remove previous results`. Usage example:
+        ‘:results output replace’.
+    -   ‘silent’: Do not insert results in the Org mode buffer, but `echo them in the minibuffer`. Usage
+        example: ‘:results output silent’.
+    -   ‘none’: Compute results, but `do not do anything with them`. No inserting in the Org mode buffer nor
+        echo them in the minibuffer. The results can still be used when referenced from another code
+        block. Usage example: ‘:results none’.
+    -   ‘discard’: Ignore the results completely. This option is similar to ‘none’, but no processing is
+        performed on the return value. Calling the code block programmatically (see How to evaluate source
+        code) or by reference (see Passing arguments and Noweb Reference Syntax) will always yield nil.
+    -   ‘append’: `Append results to the Org buffer`. Latest results are at the bottom. Does not remove
+        previous results. Usage example: ‘:results output append’.
+    -   ‘prepend’: Prepend results to the Org buffer. Latest results are at the top. Does not remove
+        previous results. Usage example: ‘:results output prepend’.
+
+<!--list-separator-->
+
+5.  Post-processing
+
+    The `‘post’` header argument is for post-processing results from block evaluation. When ‘post’ has any
+    value, Org binds the results to **this** variable for easy passing to ‘var’ header argument
+    specifications (see Environment of a Code Block). That `makes results available to other code blocks`,
+    or even for direct Emacs Lisp code execution.
+
+    The following two examples illustrate ‘post’ header argument in action. The first one shows how to
+    attach an ‘ATTR_LATEX’ keyword using ‘post’.
+
+    <a id="code-snippet--attr-wrap"></a>
+    ```sh
+      echo "#+ATTR_LATEX: :width $width"
+      echo "$data"
+    ```
+
+    ```dot
+      digraph{
+              a -> b;
+              b -> c;
+              c -> a;
+      }
+    ```
+
+    The second example shows use of ‘colnames’ header argument in ‘post’ to pass data between code
+    blocks.
+
+    <a id="code-snippet--round-tbl"></a>
+    ```emacs-lisp
+      (mapcar (lambda (row)
+                (mapcar (lambda (cell)
+                          (if (numberp cell)
+                              (format fmt cell)
+                            cell))
+                        row))
+              tbl)
+    ```
+
+    ```R
+      set.seed(42)
+      data.frame(foo=rnorm(1))
+    ```
+
+
+### <span class="section-num">20.30</span> Exporting Code Blocks {#exporting-code-blocks}
+
+:exports 配置，指的是在 export org buffer/file 时，输出的文件中是否包含 code/results：
+
+-   code： 默认值， 即对于 src code block，只输出 code block， 而不输出他的 eval results；
+-   results：只输出 result；
+-   both：同时输出 code 和 results；
+-   none：都不输出；
+
+It is possible to export the code of code blocks, the results of code block evaluation, both the
+code and the results of code block evaluation, or none. Org `defaults to exporting code` for most
+languages and results for inline code blocks. For some languages, such as ditaa, Org defaults to
+results both in ordinary source blocks and in inline source blocks. To export just the body of code
+blocks, see Literal Examples. To selectively export subtrees of an Org document, see Exporting.
+
+The `‘exports’` header argument is to specify if that part of the Org file is exported to, say, HTML
+or LaTeX formats.
+
+-   ‘code’: `The default`. The body of code is included into the exported file. Example: ‘:exports
+    code’.
+-   ‘results’: The results of evaluation of the code is included in the exported file. Example:
+    ‘:exports results’.
+-   ‘both’: Both the code and results of evaluation are included in the exported file. Example:
+    ‘:exports both’.
+-   ‘none’: Neither the code nor the results of evaluation is included in the exported file. Whether
+    the code is evaluated at all depends on other options. Example: ‘:exports none’.
+
+If a source block is named using ‘NAME’ keyword, the same name will be assigned to the results of
+evaluation. This way, fuzzy links pointing to the named source blocks exported using ‘:exports
+results’ will remain valid and point to the results of evaluation.
+
+Results of evaluation of a named block can also be explicitly named using a separate ‘NAME’
+keyword. The name value set via ‘NAME’ keyword will be preferred over the parent source block.
+
+<a id="code-snippet--code name"></a>
+```emacs-lisp
+(+ 1 2)
 ```
 
-
-### <span class="section-num">20.30</span> Babel {#babel}
-
-如果执行 go 代码时出错，提示
-
-```text
-Debugger entered--Lisp error: (wrong-number-of-arguments (1 . 1) 2)
-generate-new-buffer(" *temp file*" t)
-```
-
-则可以删除 ob-go package, 然后重新下载和字节编译。
-
-
-### <span class="section-num">20.31</span> Org-Babel Cheat Sheet {#org-babel-cheat-sheet}
-
-<https://necromuralist.github.io/posts/org-babel-cheat-sheet/>
-
-Code Block Shortcuts
-
-| Keys        | Command                     | Effect                                                                 |
-|-------------|-----------------------------|------------------------------------------------------------------------|
-| C-c C-c     | org-babel-execute-src-block | Execute the code in the current block.                                 |
-| C-c '       |                             | Open/close edit-buffer with mode set to match the code-block language. |
-| C-c C-v C-z | org-babel-switch-to-session | Open a python/ipython console (only works with :session)               |
-
-Buffer-wide Shortcuts
-
-| Keys        | Command                  | Effect                               |
-|-------------|--------------------------|--------------------------------------|
-| &lt;s Tab   |                          | Create a code block.                 |
-| C-c C-v C-b | org-babel-execute-buffer | Execute all code blocks in buffer.   |
-| C-c C-v C-f | org-babel-tangle-file    | Tangle all blocks marked to :tangle  |
-| C-c C-v C-t | org-babel-tangle         | Seems like an alias for tangle file… |
-
-Code Block Headers
-
-This is the subset of headers/header values that I'm interested in right now.
-
-Code to tangle
-The pattern I use to tangle (create an external code file) is:
-
-1.  python as the language (since I'm not using it with an interactive session, no need for ipython)
-2.  :noweb tangle is turned on from init.el so that I can substitute code defined elsewhere into the block
-3.  :tangle &lt;path to file&gt;
-
-<!--listend-->
-
-```text
-  #+begin_src python :tangle literate_python/literate.py
-    """A docstring for the literate.py module"""
-
-    # imports
-    import sys
-    <<literate-main-imports>>
-
-    # constants
-
-    # exception classes
-
-    # interface functions
-
-    # classes
-
-
-    <<LiterateClass-definition>>
-
-    # internal functions & classes
-
-    <<literate-main>>
-
-
-    if __name__ == "__main__":
-        status = main()
-        sys.exit(status)
-  #+end_src
-```
-
-Since I have :noweb tangle set, the substitions (e.g. <span class="org-target" id="org-target--literate-main-imports"></span>) don't get expanded in
-HTML/Latex output (although they do when you create the python file).
-
-```text
-  """A docstring for the literate.py module"""
-
-  # imports
-  import sys
-  <<literate-main-imports>>
-```
-
-If you want to show the substitutions when exporting use :noweb yes in the header.
-
-```text
-  """A docstring for the literate.py module"""
-
-  # imports
-  import sys
-```
-
-A named section
-
-The noweb substitution above (<span class="org-target" id="org-target--literate-main-imports"></span>) worked because there was a named-section (defined here) that it could use:
-
-```text
-
-  #+name: literate-main-imports
-  #+begin_src python
-    from argparse import ArgumentParser
-  #+end_src
-```
-
-Update
-I now prefer to use :noweb-ref in the header instead of the separate #+name: block.
-
-```text
-  #+begin_src python :noweb-ref literate-main-imports
-    from argparse import ArgumentParser
-  #+end_src
-```
-
-Results
-
-The `:results` header argument declares how to handle what's returned from executing a code block. There are
-three classes of arguments and you can use up to one of each in the header.
-
-Result Classes
-
-| Class      | Meaning                                                          |
-|------------|------------------------------------------------------------------|
-| collection | How the results should be collected if there's multiple outputs. |
-| type       | Declare what type of result the code block will return.          |
-| handling   | How should results be handled.                                   |
-
-Collection Class
-
-| Option | Meaning                                                                                          |
-|--------|--------------------------------------------------------------------------------------------------|
-| value  | (Default) Uses the value of the last statement in the block (python requires a return statement) |
-| output | (:results output) Collects everything sent to stdout in the block.                               |
-
-Type Class
-
-| Option | Example               | Meaning                                    |
-|--------|-----------------------|--------------------------------------------|
-| table  | :results value table  | Return an org-mode table (vector)          |
-| scalar | :results value scalar | Return exactly the value returned (string) |
-| file   | :results value file   | Return an org-mode link to a file          |
-| raw    | :results value raw    | Return as org-mode command                 |
-| html   | :results value html   | Expect contents for #+begin_html           |
-| latex  | :results value latex  | Expect contents for #+begin_latex          |
-| code   | :results value code   | Expect contents for #+begin_src            |
-| pp     | :results value pp     | Expect code and pretty-print it            |
-
-Handling Class
-
-| Option  | Example                 | Meaning                                 |
-|---------|-------------------------|-----------------------------------------|
-| silent  | :results output silent  | Don't output in org-mode buffer         |
-| replace | :results output replace | (Default) Overwrite any previous result |
-| append  | :results output append  | Append output after any previous output |
-| prepend | :results output prepend | Put output above any previous output    |
-
-Exports
-This argument tells org-babel what to put in any exported HTML or Latex files.
-
-| Option  | Example          | Meaning                                                         |
-|---------|------------------|-----------------------------------------------------------------|
-| code    | :exports code    | (default) The code in the block will be included in the export. |
-| results | :exports results | The result of evaluating the code will be included.             |
-| both    | :exports both    | Include code and results in the file.                           |
-| none    | :exports none    | Don't include anything in the file.                             |
-
-Running Tests
-Say there was another section in the document that tangled a test-file (named testliterate.py) to test our main source file. Once both are tangled you can run it in the document using sh as the language. The org-mode documentation shows a more complex version of this which builds a pass-fail table, but that's beyond me right now.
-
-```text
-   #+name: shell-run-pytest
-   #+begin_src sh :results output :exports both
-   py.test -v literate_python/testliterate.py
-   #+end_src
-```
-
-```text
-============================= test session starts ==============================
-platform linux -- Python 3.5.1+, pytest-3.0.5, py-1.4.32, pluggy-0.4.0 -- /home/cronos/.virtualenvs/nikola/bin/python3
-cachedir: .cache
-rootdir: /home/cronos/projects/nikola/posts, inifile:
-plugins: faker-2.0.0, bdd-2.18.1
-collecting ... collected 1 items
-
-literate_python/testliterate.py::test_constructor PASSED
-
-=========================== 1 passed in 0.06 seconds ===========================
-```
-
-Specific Block Cases
-Plant UML
-Besides setting the language to plantuml you need to specify and output-file path and set :exports results so that the actual plantuml code won't be in the exported document but the diagram will.
-
-ob-ipython
-The main thing to remember for ob-ipython is that you need to run it as a :session. I didn't do it for most of the examples, but I've found since I first wrote this that using named sessions makes it a lot easier to work. Otherwise you might have more than one buffer with an org-babel document and they will be sharing the same ipython process, which can cause mysterious errors.
-
-```python
-  # python standard library
-  import os
-```
-
-When using pandas most of the methods produce values, but the info method instead prints to stdout so you have to specify this as the :results or it will popup a separate buffer with the output.
-
-```python
-housing.info()
-```
-
-When you create figures, besides making sure that you use the %matplotlib inline magic, you also need to specify a file path where matplotlib can save the image.
-
-```python
-figure = seaborn.countplot(x="ocean_proximity", data=housing)
-```
-
-Set Up
-Dependencies
-I'm using ob-ipython to use jupyter/ipython with org-babel so you have to install it (I used MELPA). In addition you need to install the python dependencies, the main ones being ipython and jupyter. Additionally, I use elpy (also from MELPA) which has its own dependencies. I think the easiest way to check and see what elpy dependencies you need is to install elpy (there's two components, an emacs one you install from melpa and a python component you install from pip) then run M-x elpy-config to see what's missing.
-
-init.el
-Since I mentioned ob-ipython and elpy I'll list what I have in my init.el file for elpy and org-babel.
-
-```elisp
-;; elpy
-(elpy-enable)
-(setq elpy-rpc-backend "jedi")
-(eval-after-load "python"
- '(define-key python-mode-map "\C-cx" 'jedi-direx:pop-to-buffer))
-(elpy-use-ipython)
-org-babel
-;; org-babel
-;;; syntax-highlighting/editing
-(add-to-list 'org-src-lang-modes '("rst" . "rst"))
-(add-to-list 'org-src-lang-modes '("feature" . "feature"))
-
-;;; languages to execute/edit
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((ipython . t)
-   (plantuml . t)
-   (shell . t)
-   (org . t)
-   ;; other languages..
-   ))
-
-;;; noweb expansion only when you tangle
-(setq org-babel-default-header-args
-      (cons '(:noweb . "tangle")
-            (assq-delete-all :noweb org-babel-default-header-args))
-      )
-
-;;; Plant UML diagrams
-(setq org-plantuml-jar-path (expand-file-name "/usr/share/plantuml/plantuml.jar"))
-
-;;; execute block evaluation without confirmation
-(setq org-confirm-babel-evaluate nil)
-
-;;; display/update images in the buffer after evaluation
-(add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
-```
-
-Integrating with Nikola/Sphinx
+<a id="orge35a324"></a>
+
+3
+
+This [link](#code-snippet--code name) will point to the code block.
+Another [link](#orge35a324) will point to the results.
+
+Explicit setting of the result name may be necessary when a named code block is exported using
+‘:exports both’. Links to such block may arbitrarily point either to the code block or to its
+results when results do not have a distinct name.
+
+Note that all the links pointing to a source block exported using ‘:exports none’ will be
+broken. This will make export process fail, unless broken links are allowed during export (see
+Export Settings).
+
+To stop Org from evaluating code blocks to speed exports, use the header argument ‘:eval
+never-export’ (see Evaluating Code Blocks). To stop Org from evaluating code blocks for greater
+security, set the org-export-use-babel variable to nil, but understand that header arguments will
+have no effect.
+
+Turning off evaluation comes in handy when batch processing. For example, markup languages for
+wikis, which have a high risk of untrusted code. Stopping code block evaluation also stops
+evaluation of all header arguments of the code block. This may not be desirable in some
+circumstances. So during export, to allow evaluation of just the header arguments but not any code
+evaluation in the source block, set ‘:eval never-export’ (see Evaluating Code Blocks).
+
+Org never evaluates code blocks in commented subtrees when exporting (see Comment Lines). On the
+other hand, Org does evaluate code blocks in subtrees excluded from export (see Export Settings).
+
+
+### <span class="section-num">20.31</span> Extracting Source Code {#extracting-source-code}
+
+:exports 配置，指的是在 export org buffer/file 时，输出的文件中是否包含 code/results：
+
+:tangle 配置： 指的是将文件中多个 src block 抽取到一个其他文件中的过程：
+
+-   :tangle FILENAME 指定写入的文件名称；
+-   :mkdirp: yes 自动创建文件目录；
+-   :comments: no 是否插入 comment；
+-   :padline: yes 是否在抽取写入的 block 间插入空行；
+-   :shebang "#!/bin/bash" 写入文件的 shebang；
+-   :tangle-mode o444 写入文件的 mode；
+-   :no-expand 在 tangle 时关闭 expand 操作，例如 expand src code blok 之间的 Noweb Reference；
+
+`Extracting source code from code blocks（注意不是 :exports 配置的行为 ）` is a basic task in literate
+programming. Org has features to make this easy. In literate programming parlance, documents on
+creation are woven with code and documentation, and on export, the code is tangled for execution by
+a computer. Org facilitates weaving and tangling for producing, maintaining, sharing, and exporting
+literate programming documents. Org provides extensive customization options for extracting source
+code.
+
+`When Org tangles code blocks, it expands, merges, and transforms them`. Then Org recomposes them into
+one or more separate files, as configured through the options. During this tangling process, Org
+expands variables in the source code, and resolves any noweb style references (see Noweb Reference
+Syntax).  Header arguments
+
+The `‘tangle’` header argument specifies if the code block is exported to source file(s).
+
+-   ‘yes’： Export the code block to source file. The file name for the source file is derived from
+    `the name of the Org file`, and the file extension is derived from the source code language
+    identifier. Example: ‘:tangle yes’.
+-   ‘no’： The default. Do not extract the code in a source code file. Example: ‘:tangle no’.
+-   FILENAME： Export the code block to source file whose file name is derived from any string passed
+    to the ‘tangle’ header argument. Org derives the file name as being relative to the directory of
+    the Org file’s location. Example: ‘:tangle FILENAME’.
+
+The `‘mkdirp’` header argument creates parent directories for tangled files if the directory does not
+exist. A ‘yes’ value enables directory creation whereas ‘no’ inhibits it.
+
+The `‘comments’` header argument controls inserting comments into tangled files. These are above and
+beyond whatever comments may already exist in the code block.
+
+-   ‘no’： `The default`. Do not insert any extra comments during tangling.
+-   ‘link’： Wrap the code block in comments. Include links pointing back to the place in the Org file
+    from where the code was tangled.
+-   ‘yes’： Kept for backward compatibility; same as ‘link’.
+-   ‘org’： Nearest headline text from Org file is inserted as comment. The exact text that is
+    inserted is picked from the leading context of the source block.
+-   ‘both’： Includes both ‘link’ and ‘org’ options.
+-   ‘noweb’： Includes ‘link’ option, expands noweb references (see Noweb Reference Syntax), and wraps
+    them in link comments inside the body of the code block.
+
+The `‘padline’` header argument controls insertion of newlines to pad source code in the tangled file.
+
+-   ‘yes’：=Default=. Insert a newline before and after each code block in the tangled file.
+-   ‘no’： Do not insert newlines to pad the tangled code blocks.
+
+The `‘shebang’` header argument can turn results into executable script files. By setting it to a
+string value—for example, `‘:shebang "#!/bin/bash"’` —Org inserts that string as the first line of the
+tangled file that the code block is extracted to. Org then turns on the tangled file’s executable
+permission.
+
+The `‘tangle-mode’` header argument specifies what permissions to set for tangled files by
+set-file-modes. Permissions are given by an octal value, which can be provided calling the identity
+function on an elisp octal value. For instance, to create a read-only file one may use `‘:tangle-mode
+(identity #o444)’`. To reduce the verbosity required, a octal shorthand is defined, ‘oXXX’ (‘o’ for
+octal). Using this, our read-only example is `‘:tangle-mode o444’`. Omitting the ‘o’ prefix will cause
+the argument to be interpreted as an integer, which can lead to unexpected results (‘444’ is the
+same as ‘o674’). Two other shorthands are recognized, ls-style strings like ‘rw-r--r--’, and
+chmod-style permissions like ‘g+w’. Note that chmod-style permissions are based on
+org-babel-tangle-default-file-mode, which is ‘#o544’ by default.
+
+When ‘:tangle-mode’ and ‘:shebang’ are both specified, the give ‘:tangle-mode’ will override the
+permissions from ‘:shebang’. When multiple source code blocks tangle to a single file with
+conflicting ‘:tangle-mode’ header arguments, Org’s behavior is undefined.
+
+By default Org `expands code blocks` during tangling. The `‘no-expand’` header argument turns off such
+expansions. Note that one side-effect of expansion by org-babel-expand-src-block also assigns values
+(see Environment of a Code Block) to variables. Expansions also `replace noweb references` with their
+targets (see Noweb Reference Syntax). Some of these expansions may cause premature assignment, hence
+this option. This option makes a difference only for tangling. It has no effect when exporting since
+code blocks for execution have to be expanded anyway.
+
+Functions
+
+-   org-babel-tangle： Tangle the current file. Bound to C-c C-v t.  With prefix argument only tangle
+    the current code block.
+-   org-babel-tangle-file： Choose a file to tangle. Bound to C-c C-v f.
+
+Tangle hooks
+
+-   org-babel-pre-tangle-hook： This hook is run before the tangle process begins. The active buffer
+    is buffer to be tangled.
+-   org-babel-tangle-body-hook： This hook is run from a temporary buffer containing expanded code of
+    every tangled code block. The hook can modify the expanded code as needed. The contents of the
+    current buffer will be used as actual code block expansion.
+-   org-babel-post-tangle-hook： This hook is run from within code files tangled by org-babel-tangle,
+    making it suitable for post-processing, compilation, and evaluation of code in the tangled files.
+-   org-babel-tangle-finished-hook： This hook is run after post-tangle hooks, in the original buffer.
+
+Jumping between code and Org
+
+Debuggers normally link errors and messages back to the source code. But for tangled files, we want
+to link back to the Org file, not to the tangled source file. To make this extra jump, Org uses
+org-babel-tangle-jump-to-org function with two additional source code block header arguments:
+
+Set ‘padline’ to true—this is the default setting.
+Set ‘comments’ to ‘link’, which makes Org insert links to the Org file.
 
 
 ### <span class="section-num">20.32</span> 其它 {#其它}
 
+<!--list-separator-->
 
-#### <span class="section-num">20.32.1</span> Regular Expressions {#regular-expressions}
+1.  Regular Expressions
 
-Org, as an Emacs mode, makes use of Elisp regular expressions for searching, matching and filtering. Elisp
-regular expressions have a somewhat different syntax then some common standards. Most notably, alternation is
-indicated using `‘\|’` and matching groups are denoted by ‘\\(...\\)’. For example the string ‘home\\|work’ matches
-either ‘home’ or ‘work’.
+    Org, as an Emacs mode, makes use of Elisp regular expressions for searching, matching and filtering. Elisp
+    regular expressions have a somewhat different syntax then some common standards. Most notably, alternation is
+    indicated using `‘\|’` and matching groups are denoted by ‘\\(...\\)’. For example the string ‘home\\|work’ matches
+    either ‘home’ or ‘work’.
 
-For more information, see (emacs)Regular Expressions in Emacs.
+    For more information, see (emacs)Regular Expressions in Emacs.
+
+<!--list-separator-->
+
+2.  Escape Character
+
+    You may sometimes want to write text that looks like Org syntax, but should really read as plain text. Org may
+    use a specific escape character in some situations, i.e., a backslash in macros (see Macro Replacement) and
+    links (see Link Format), or a comma in source and example blocks (see Literal Examples). In the general case,
+    however, we suggest to use the zero width space. You can insert one with any of the following:
+
+    -   C-x 8 &lt;RET&gt; zero width space &lt;RET&gt;
+    -   C-x 8 &lt;RET&gt; 200B &lt;RET&gt;
+
+    For example, in order to write ‘[BROKEN LINK: 1,2]’ as-is in your document, you may write instead
+
+    ```text
+    [X[1,2]]
+    ```
+
+    where ‘X’ denotes the zero width space character.
 
 
-#### <span class="section-num">20.32.2</span> Escape Character {#escape-character}
+### <span class="section-num">20.33</span> latex 片段预览 {#latex-片段预览}
 
-You may sometimes want to write text that looks like Org syntax, but should really read as plain text. Org may
-use a specific escape character in some situations, i.e., a backslash in macros (see Macro Replacement) and
-links (see Link Format), or a comma in source and example blocks (see Literal Examples). In the general case,
-however, we suggest to use the zero width space. You can insert one with any of the following:
+\\begin{figure}[htbp]
+\\centering
+\\begin{minipage}[t]{0.48\\textwidth}
+\\centering
+\\includegraphics[width=6cm]{static/images/Rust_初印象/2024-04-24_20-56-17_screenshot.png}
+\\caption{Microsoft Azure 称新项目应该从 C/C++ 转向 Rust}
+\\end{minipage}
+\\begin{minipage}[t]{0.48\\textwidth}
+\\centering
+\\includegraphics[width=6cm]{static/images/Rust_初印象/2024-04-24_20-56-17_screenshot.png}
+\\caption{Microsoft Azure 称新项目应该从 C/C++ 转向 Rust}
+\\end{minipage}
+\\end{figure}
 
--   C-x 8 &lt;RET&gt; zero width space &lt;RET&gt;
--   C-x 8 &lt;RET&gt; 200B &lt;RET&gt;
+ \\begin{figure}
+      \\mbox{
+        \\subfigure[Microsoft Azure 称新项目应该从 C/C++ 转向 Rust]{\\includegraphics[width=4in]{static/images/Rust_初印象/2024-04-24_20-56-17_screenshot.png}}
+        \\subfigure[Microsoft Azure 称新项目应该从 C/C++ 转向 Rust]{\\includegraphics[width=4in]{static/images/Rust_初印象/2024-04-24_20-56-17_screenshot.png}}
+      }
+     \\caption{Text pertaining to both graphs ...}
+     \\label{fig12}
+  \\end{figure}
 
-For example, in order to write ‘’ as-is in your document, you may write instead
+
+### <span class="section-num">20.34</span> tex pdf {#tex-pdf}
+
+文档参考:
+
+1.  <https://www.overleaf.com/learn/latex/Chinese>
+2.  <https://github.com/CTeX-org/lshort-zh-cn>
+3.  论坛: <https://github.com/CTeX-org/forum>
+
+4.  安装 latext 宏包： `sudo tlmgr install ctex`
+5.  查询 latext 的宏包： `texdoc spverbatim`
+6.  更新已按照的宏包:  `sudo tlmgr update --all --self`
+7.  查看宏包版本等信息： `tlmgr info ｛package}`
+
+<https://yuchi.me/post/export-org-mode-in-chinese-to-pdf-with-custom-latex-class/>
+
+在 org 文档同级目录放置 elegantpaper.cls 文件，它下载自[ElegantLaTeX/ElegantPaper](https://github.com/ElegantLaTeX/ElegantPaper/blob/master/elegantpaper.cls), 然后将段落缩进值设置为 0:
+
+{{< figure src="images/tex/2021-10-16_21-55-58_screenshot.png" width="400" >}}
+
+-   elegantpaper 基于 article class, 使用 ctex 来支持中文字体。
+    -   支持传入 article class 的参数，如 11pt,a4paper 等；
+-   在使用 elegantpaper documentclass 时传入选项 lang=cn 但不传入 chinesefont 选项时，使用 ctex 来支持中文，ctex 会根据系统类型（Windows/Mac/Ubuntu) 来自动选择中文字体。
+
+{{< figure src="images/tex/2021-10-17_09-42-33_screenshot.png" width="400" >}}
+
+ctex 只会设置 CJK 中文字体，对于文档中的英文、代码块等位置的英文可以单独设置，如
+`\\setmainfont{Sarasa Mono SC};`
+
+可以在 org-mode 中选择某一个风格：
 
 ```text
-[X[1,2]]
+#+LaTeX_HEADER: \usemintedstyle{monokai}
 ```
 
-where ‘X’ denotes the zero width space character.
+<!--list-separator-->
 
+1.  org-mode 文件
 
-### <span class="section-num">20.33</span> PDF {#pdf}
+    文档开头添加如下内容:
 
-使用 engrave-faces 替换 minted 做 block 的渲染，速度更快。
+    ```text
+    #+title: 测试标题
+    #+AUTHOR: 张俊(geekard@gmail.com)
+    #+LATEX_COMPILER: xelatex
+    #+LATEX_CLASS: elegantpaper
+    #+LATEX_HEADER: \usemintedstyle{emacs}
+    #+OPTIONS: prop:t ^:nil *:nil
+    ```
 
-minted 依赖 pygements 包：
+    -   `^:nil`: 表示 export pdf 时忽略 ^ 上划线和 _ 下划线的特殊含义;
+    -   `*:nil`: 表示忽略强调的特殊含义;
 
-```bash
-which pygmentize || brew install pygments
-```
+    当一行内容过长时, pdf 输出可能会溢出, 解决办法是, 在中间加上 `\-` , 这样 pdf 输出时会在这些位置换行; (不能在
+    code 或 verbitm 字符串中, 只能是原始字符串)
 
--   pygments 实现 Latex PDF 代码语法高亮；
+    另外使用 `\setmainfont{Sarasa Mono SC}` 字体, code 和 verbitm 都会自动折行, 而且一些 unicode 特殊字体也能正确显示, 如下面的中划线和下划线:
 
--   minted 包提供代码语法高亮的功能(TexLive 默认安装), 它依赖 pygements 。
--   变量 `org-latex-minted-langs` 列出 Emacs Major-Mode 与 minted 语言类型（pygmentize -L lexers）的关系, 如果两者一致（如 go-[mod] 和 go), 则不需要列出。
--   minted 的 fontfamily 只对预定义的 tt/courier/helvetica 有效。
+    {{< figure src="images/tex/2021-10-17_10-10-56_screenshot.png" width="400" >}}
+
+    查看 PDF 文档使用的字体：
+
+    ```shell
+    zhangjun@zj-pc16:~$ pdffonts ~/docs/work/trainning-workshop/1-train.pdf
+    name                                 type              encoding         emb sub uni object ID
+    ------------------------------------ ----------------- ---------------- --- --- --- ---------
+    KWOSSK+STSongti-SC-Bold              CID TrueType      Identity-H       yes yes yes      4  0
+    QABLNX+LMRoman17-Regular-Identity-H  CID Type 0C       Identity-H       yes yes yes      6  0
+    HEATMK+STSongti-SC-Light             CID TrueType      Identity-H       yes yes yes      8  0
+    HHHXFI+LMRoman10-Regular-Identity-H  CID Type 0C       Identity-H       yes yes yes     10  0
+    YZWLGS+STKaitiSC-Regular             CID TrueType      Identity-H       yes yes yes     12  0
+    WIVBHX+LMRoman12-Regular-Identity-H  CID Type 0C       Identity-H       yes yes yes    102  0
+    LGBKGK+STFangsong                    CID TrueType      Identity-H       yes yes yes    104  0
+    EDHLYC+Sarasa-Mono-SC-Regular        CID TrueType      Identity-H       yes yes yes    112  0
+    NRRZSM+LMRoman6-Regular-Identity-H   CID Type 0C       Identity-H       yes yes yes    114  0
+    CRHMWC+Sarasa-Mono-SC-Italic         CID TrueType      Identity-H       yes yes yes    119  0
+    IVKKHR+CMSY6                         Type 1C           Builtin          yes yes yes    124  0
+    HTPFNZ+CMMI6                         Type 1C           Builtin          yes yes no     125  0
+    VVUCJC+Sarasa-Mono-SC-Bold           CID TrueType      Identity-H       yes yes yes    153  0
+    ```
+
+    PDF 文档书签：hyperref;
+
+<!--list-separator-->
+
+2.  ctex 宏集
+
+    表 1 CTEX 宏集的组成
+
+    类别   文件   说明文档 ctexart.cls 标准文档类 article 的汉化版本，一般适用于短篇幅的文章
+         ctexrep.cls 标准文档类 report 的汉化版本，一般适用于中篇幅的报告
+         ctexbook.cls 标准文档类 book 的汉化版本，一般适用于长篇幅的书籍
+         ctexbeamer.cls 文档类 beamer 的汉化版本，适用于幻灯片演示宏包 ctex.sty 提供全部功能，但默认不开启章节标题设置功能，需要使用heading 选项来开启
+         ctexsize.sty 定义和调整中文字号，可以在 ctex 宏包或 CTEX 中文文档类之外单独调用
+         ctexheading.sty 提供章节标题设置功能,可以在 ctex 宏包或 CTEX 中文文档类之外单独调用
+
+    zhmCJK 宏包是个例外。当用户显式指定选项 zhmap = zhmCJK 时，CTEX 宏集依赖它。由于，它没有被 TEX Live 和 MiKTEX
+    收录，用户可能需要遵照其说明文档自行安装
+
+    可以直接使用 ctex 提供的 4 个中文文档类:
+
+    ```text
+    \documentclass{ctexart}
+    \begin{document}
+    中文文档类测试。你需要将所有源文件保存为 UTF-8 编码。
+    你可以使用 XeLaTeX、LuaLaTeX 或 upLaTeX 编译，也可以使用 (pdf)LaTeX 编译。
+    推荐使用 XeLaTeX 或 LuaLaTeX 编译。对高级用户，我们也推荐使用 upLaTeX 编译。
+    \end{document}
+    ```
+
+    xelatex 使用 xeCJK 和 fontspec 来设置中文字体, 并根据系统字段选择合适的字体。
+
+    {{< figure src="images/tex/2021-10-17_10-47-58_screenshot.png" width="400" >}}
+
+    `\RequirePackage` 和 `\usepackage` 的区别： `\usepackage` 不能在 `\documentclass` 前使用，而 `\RequirePackage` 可以。
+
+<!--list-separator-->
+
+3.  表格
+
+    配置 emacs org:
+
+    ```emacs-lisp
+    (setq
+     ;; latex 表格默认使用 tabularx environment, 它支持 X align 值来自动折行;
+     org-latex-default-table-environment 'tabularx
+     ;; 使用 booktabs style 来显示表格
+     org-latex-tables-booktabs t )
+    ```
+
+    给 xcolor 添加 table 选项时，执行报错：
+
+    ```text
+    latexmk -xelatex -quiet -shell-escape -f 1-train.tex
+    ```
+
+    ```shell
+    ! LaTeX Error: Option clash for package xcolor.
+    See the LaTeX manual or LaTeX Companion for explanation.
+    Type H <return> for immediate help.
+    ...
+    l.17
+    The package xcolor has already been loaded with options:
+    []
+    There has now been an attempt to load it with options
+    [table]
+    ```
+
+    解决办法: 将 table 添加到 `\documentclass` 中, 如: `\documentclass[lang=cn,11pt,a4paper,table]{ctexart}`
+
+    隔行颜色:
+
+    ```shell
+    \usepackage{xcolor}
+    \definecolor{lightgrey}{rgb}{0.9,0.9,0.9}
+
+    % 美化表格显示效果
+    \usepackage{booktabs}
+    % {1} 开始行, {lightgrep} 奇数行颜色, {} 偶数行颜色
+    \rowcolors{1}{lightgrey}{}
+    ```
+
+    如果表格内容需要自动折行，则使用 tabularx environment (默认开启) 且需要使用 width 和 align:
+
+    -   :align 用 | 分割各列, X 表示自动折行;
+
+    <!--listend-->
+
+    ```shell
+    nginx ingress 支持如下 Annotation：
+    #+ATTR_LATEX: :width \linewidth :align l|X
+    |---------------------------------------------------+-----------------------------------------------------------------------------------|
+    | annotation                                        | 功能                                                                              |
+    |---------------------------------------------------+-----------------------------------------------------------------------------------|
+    | nginx.ingress.kubernetes.io/ssl-redirect: "true"  | 如果希望ingress仅支持https，不支持http，可以增加该annotation，以使http跳转到https |
+    | nginx.ingress.kubernetes.io/proxy-body-size: "8m" | 如果有上传大文件的需求，需要在ingress中增加该annotation                           |
+    | nginx.ingress.kubernetes.io/enable-cors: "true"   | 用于解决跨域问题                                                                  |
+    |---------------------------------------------------+-----------------------------------------------------------------------------------|
+    ```
+
+    tabularx 的表格列 :align 使用 X 时会根据表格内容自动折行，防止溢出：
+
+    1.  需要自动折行的列使用 X, 其它列使用 lcr 等；
+    2.  X 之间可以可选的使用 | 分割。
+
+    ```text
+    #+ATTR_LATEX: :environment tabularx :booktabs t :width \linewidth :align XllX
+    ```
+
+    也可以结合 sideways 来将表格垂直输出（需要添加 `\usepackage{rotfloat}` ）：
+
+    ```text
+    #+ATTR_LATEX: :float sideways :environment tabularx :width \textwidth :align XllX
+    ```
+
+<!--list-separator-->
+
+4.  实心列表
+
+    ```shell
+    #+ATTR_LATEX: :environment itemize*
+    #+ATTR_LATEX: :options [label={}, itemjoin={,}, itemjoin*={, and}]
+    + asdfasdf
+    + asdffasdfa
+
+    asdfasdfa:
+    #+ATTR_LATEX: :options [label={$\circ$}]
+    - One
+    #+ATTR_LATEX: :options [label={$\bullet}]
+      - Two
+        - Three
+          - Four
+            - Five
+    ```
+
+    实心列表:
+
+    ```shell
+    % xeCJK 默认会把黑点用汉字显示，而 Noto 没有这个字体，所以显示效果为一个小点。
+    % 解决办法是将它设置为 \bullet, 这样显示为实心黑点。Windows 带的开题、仿宋没有这个问题。
+    \setlist[itemize]{label=$\bullet$}
+    % 或者：
+    %\renewcommand\labelitemi{\ensuremath{\bullet}}
+    ```
+
+<!--list-separator-->
+
+5.  图片大小
+
+    1.  默认居中对齐(org-latex-images-centered t)
+    2.  缺省配置:
+
+        {{< figure src="images/PDF/2022-01-23_17-54-31_screenshot.png" width="400" >}}
+
+    3.  图片加 #+ATTR_LATEX: :width 来设置图片属性:
+
+        -   最好不要设置绝对值, 如 :width 10cm
+        -   使用相对值, 如 `0.6\linewidth` 或 `0.5\textwidth` (建议 `\linewidth`, 与 `\textwidth` 一般相等, 但是位于嵌套列表中时, `\linewidth` 反映的时嵌套行的宽度, 更准确.)
+
+        <!--listend-->
+
+        ```shell
+            #+ATTR_LATEX: :width 0.6\linewidth :align center
+            [[./images/Docker_技术基础/2021-10-13_15-06-59_screenshot.png]]
+        ```
 
 
 ## <span class="section-num">21</span> font {#font}
-
--   查看光标处字体： `M-x describe-char`
--   查看 emacs 支持的字体名称： `(print (font-family-list))`;
 
 指定 font 方式：
 
@@ -4720,9 +5054,6 @@ this: ; `fc-list :spacing=mono fc-list:spacing=charcell`
     -   中英文（显示）：霞鹜文楷屏幕阅读版 LXGW WenKai Screen: <https://github.com/lxgw/LxgwWenKai-Screen>
     -   中英文(PDF): Noto CJK SC: <https://github.com/googlefonts/noto-cjk.git>
     -   英文字体：Fira Code : <https://github.com/tonsky/FiraCode/wiki/Installing>
--   Symbols 字体:  Noto Sans Symbols 和 Noto Sans Symbols2: <https://fonts.google.com/noto>
--   花園明朝：HanaMinB：<http://fonts.jp/hanazono/>
--   Emacs 默认后备字体：Symbola: <https://dn-works.com/ufas/>
 
 Sarasa Term SC Nerd 字体是以 Sarasa Term SC 字体为基础，修改了 Nerd fonts 字体补丁程序，然后用该程序将 Nerd
 fonts 合并入 Sarasa Term SC, 再经过一些后处理，而最后形成的字体。该字体特别适合 简体中文用户在终端或者代码编辑器中使用。
@@ -5174,201 +5505,7 @@ Wdired(Writeable dired):在 Dired Buffer 中按 C-x C-q，然后可以对文件�
 -   M-x make-symbolic-link
 
 
-## <span class="section-num">23</span> tab-bar {#tab-bar}
-
-tar-bar 的快捷键是 C-x t 开头的前缀：
-
-t (other-tab-prefix)
-: 在下一个新的 tab 中显示下一个 command 的 buffer;
-
-C-r (find-file-read-only-other-tab)
-:
-
-
-C-f (find-file-other-tab)
-:
-
-
-f (find-file-other-tab)
-:
-
-
-b (switch-to-buffer-other-tab)
-:
-
-
-r (tab-rename)
-: 重命名当前 tab 的名称，然后一直不会变。
-
-d (dired-other-tab)
-: 在新的 tab 中显示 dired 内容。
-
-自定义的 tab 快捷键：
-
-s-[ / s-]
-: 下一个或上一个 tab;
-
-s-0
-: 关闭当前 tab;
-
-s- 1-9
-: 在 tab 1-9 之间快速切换；
-
-在当前 frame window 的配置历史中跳转, 既可以还原当前窗口的历史布局又可以还原光标的位置：
-
--   (global-set-key (kbd "C-s-j") 'tab-bar-history-back)
--   (global-set-key (kbd "C-s-k") 'tab-bar-history-forward)
-
-
-## <span class="section-num">24</span> vertico {#vertico}
-
-vertico 基于默认完成提供一个高性能且简约的垂直完成 UI 系统。vertico 经过复用内置设施系统，vertico 实现了与内置Emacs 补全的完全兼容命令和完成表。vertico 仅提供完成 UI，但旨在高度灵活，可扩展和模块化。
-
--   如果要插入不存在的对象，例如新建一个 file 或 buffer, 可以使用 `M-RET` 快捷键（vertico-exit-input)；
--   beginning-of-buffer, minibuffer-beginning-of-buffer -&gt; vertico-first
--   end-of-buffer -&gt; vertico-last
--   scroll-down-command -&gt; vertico-scroll-down
--   scroll-up-command -&gt; vertico-scroll-up
--   next-line, next-line-or-history-element -&gt; vertico-next
--   previous-line, previous-line-or-history-element -&gt; vertico-previous
--   forward-paragraph -&gt; vertico-next-group
-    -   也即可以使用 M-} 来选择候选者列表中的下一个分组，例如不同的 file 或 project。
--   backward-paragraph -&gt; vertico-previous-group
--   exit-minibuffer -&gt; vertico-exit
--   kill-ring-save -&gt; vertico-save
--   M-RET -&gt; vertico-exit-input
--   TAB -&gt; vertico-insert
-
-
-## <span class="section-num">25</span> consult {#consult}
-
-M-s 绑定 (search-map)使用 # 分割的两段式匹配, 第一段为正则表达式, 例如: #regexps#filter-string, 输入的必须时Emacs 正则表达式, consult 再转换为对应 grep/ripgrep 正则表达式。多个正则表达式使用空格分割，必须都需要匹配。如果要批评空格，则需要使用转移字符。filter-string 是对正则批评的内容进行过滤，支持
-orderless 风格的匹配字符串列表。例如: #\\(consult\\|embark\\): Search for “consult” or “embark” using
-grep. Note the usage of Emacs-style regular expressions.
-
-buffer 操作： `consult-buffer (-other-window, -other-frame)`: Enhanced version of switch-to-buffer
-with support for `virtual buffers`. Supports `live preview` of buffers and narrowing to the virtual
-buffer types. You can type `f SPC` in order to narrow to recent files. Ephemeral buffers can be shown
-by pressing `SPC` - it works the same way as switch-buffer. Supported narrowing keys:
-
--   b Buffers (consult-buffer)
--   SPC Hidden buffers
--   \* Modified buffers
--   f Files (Requires recentf-mode, consult-recent-file)
--   r File registers
--   m Bookmarks （C-x r b, consult-bookmark）
--   p Project (C-x p b, consult-project-buffer): 显示 project 相关的 buffers 和 files。
-
-编辑相关操作：
-
--   ("M-y" . consult-yank-from-kill-ring): 从 kill-ring 中选择要 yank 的内容；
--   ("M-Y" . consult-yank-pop): 从 kill-ring 选择内容替换紧接着的上一次 yank 的结果，如果上一次不是
-    yank 操作，则从 kill-ring 中选择要 yank 的内容；
-
-寄存器相关操作：方便临时保存各种内容 region/point/file/window/frame
-
--   ("M-'" . consult-register-store):
-    1.  保存 point/file/window/frame 类型的寄存器；
-    2.  如果选中了 region, 可以将 region 内容保存 copy/append/prefix 到指定寄存器；
--   ("C-M-'" . consult-register): 加载和选择寄存器；
-
-imenu 相关操作：
-
--   ("M-g i" . consult-imenu): 显示当前 buffer 的 imenu 条目；
--   ("M-g I" . consult-imenu-multi): 显示当前 project 的各 buffer 的 imenu 条目；
-
-Mark 相关操作：方便快速跳转到历史位置
-
--   ("M-g m" . consult-mark): 跳转到当前 buffer mark ring
--   ("M-g k" . consult-global-mark): 调转到全局 mark ring
-
-line 相关操作：
-
--   ("M-g g" . consult-goto-line): 相比 emacs 原生 emacs goto-line 的主要优势是支持预览；
--   ("M-g M-g" . consult-goto-line)
--   ("M-s l" . consult-line): 预览匹配的行；
--   ("M-s L" . consult-line-multi): 预览 project 的 buffer, 加了 Prefix 后预览所有 buffer;
--   ("M-s o" . consult-multi-occur): 替换 multi-occur, 支持选择多个 buffer 的过滤;
--   ("M-s k" . consult-keep-lines): filter buffer, buffer 被修改为过滤后的内容；
--   ("M-s f" . consult-focus-lines): 临时隐藏不匹配过滤条件的行，再次使用 C-u M-s f 显示隐藏的行；
-
-Grep 和 Find: 支持异步搜索和实时过滤
-
--   consult-grep, consult-ripgrep, consult-git-grep: 根据正则表达式搜索文件内容；
--   consult-find, consult-locate: 根据正则表达式搜索文件名称；
--   默认在当前 project 搜索，加 C-u 前缀，可以指定搜索目录。
-
-两级搜索模式，用 # 来标识开始和结束，例如  ＃regexp1 regexp2#consult:
-
--   第一级：支持 -- 来分割搜索正则表达式和传递给 grep/riggrep/find 的参数，例如：#defun --
-    --invert-match#;
--   第二级：使用空格分割的 orderless 补全过滤风格，这部分补全字符串不传递给 grep/ripgrep/find, 纯粹是
-    orderless buffer 过滤；
--   第一级用空格分隔多个 regexp, 它们之间是 AND 关系，空格本身可以用 \\ 转义， 正则表达式使用 Emacs
-    regexp 语法，consult 自动转换为 grep/ripgrep/find 的正则语法；
-
-M-s e (consult-isearch): consult 列出 search history，可以选择一个搜索。在isearch 过程中可以使用 M-e、
-M-s e 切换到 consult-isearch 来选择搜索历史；在使用 minibuffer 时，M-r、M-s 用于对 minibuffer
-history 进行搜索，consult 提供了实时预览功能。
-
-Compilation:
-
--   M-g f：显示 flycheck 错误；
--   M-g e：显示 Compilation 错误；
-
-`("C-c m" . consult-mode-command)` ： 显示 mode 相关的命令。
-
-
-## <span class="section-num">26</span> embark {#embark}
-
-embark 用于 minibuffer 或当前 buffer 选中的内容提供一个快捷操作命令（一般是单字符命令）embark-act(快捷键 C-;):
-
--   In the minibuffer, the target is the current best completion candidate.
--   In the **Completions** buffer the target is the completion at point.
--   In a regular buffer, the target is the region if active, or else the file, symbol or URL at point.
-
-Embark Collect：在通用的 Embark collect buffer 中对一批候选对象、搜索结果列表等进行操作。
-
--   embark-collect-snapshot（S）：在 Embark Collect Buffer 中显示候选情况，不更新 Buffer 内容；
--   embark-collect-live（L)：根据候选情况，实时更新 Embark Collect Live Buffer 中的内容；
-
-Embark Collect Buffer 类似于 dired, you can `mark and unmark` candidates with m and u, you can unmark all marked
-candidates with U or toggle the marks with t. In an Embark Collect buffer `embark-act-all` is bound to A and
-will `act on all currently marked` candidates if there any, and will act on all candidates if none are marked.
-
--   使用方式：先使用 Embark Collect 来收集候选者，使用 mark 标记多个候选者，然后使用 A 来对候选者执行操作。
-
-Embark Export（E）：根据当前候选者的不同（可以使用 b/f/m SPC 来缩小类型范围），将结果显示在不同的 Buffer 中：
-
--   Dired： 如果候选者是文件，则将结果显示到 Dired Buffer 中；
--   Embark Export Ibuffer: 如果候选者是 Buffer；
--   Embark Export Grep: 对 consult-grep、consult-git-grep、consult-ripgrep 等搜索结果进行 export 时，进入 Embark
-    Export Grep 模，可以使用 `C-c C-p` 切换到 `wgrep` 模式，然后对结果进行批量编辑；
--   Embark Export Occur: consult-line 的结果会被 export 到 occur-mode
-
-关于 Collect 和 Export 的使用选择，优选 Export, 因为他能根据候选者的类型 export 到合适的 buffer 类型中。
-
-在显示 Act 的时候，除了按列出的快捷键外，还可以：
-
-C-;
-: 切换 Act 类型；
-
-C-h
-: 使用 Minibuffer 候选菜单来选择 Action；
-
-Embark’s default configuration has actions for the following target types: `files, buffers, symbols, packages,
-URLs, bookmarks`, and as a somewhat special case, actions for when `the region` is active. You can read about the
-default actions and their keybindings on the GitHub project wiki.
-
--   可以将光标放置到 URL 位置，然后执行 C-; 在弹出的快捷键列表中按 b, 则会打开 URL 。
--   embark-insert: 将当前候选内容(如文件名、Buffer 名称等)插入到光标处。
--   embark-copy-as-kill: 将当前候选内容保存到剪切环，后续可以用于粘贴；
--   embark-become（B）：将当前执行的命令替换为另一个（输入内容不变）。如当前正在执行switch-to-buffer 命令，但是想切换到 find-file，则可以使用该命令。在执行 B action后，可以直接输入其它命令，或者使用 embark-become 提供的快捷键；
-
-各种缺省的 Actions: <https://github.com/oantolin/embark/wiki/Default-Actions>
-
-
-## <span class="section-num">27</span> dash {#dash}
+## <span class="section-num">23</span> dash {#dash}
 
 dash: 生成自定义 docset
 
@@ -5405,133 +5542,10 @@ dash user guide:  <https://kapeli.com/dash_guide#docsetKeywords>
 {{< figure src="images/workflow/2023-03-12_16-43-26_screenshot.png" width="400" >}}
 
 
-## <span class="section-num">28</span> citre {#citre}
+## <span class="section-num">24</span> workflow {#workflow}
 
-`Etags`: GNU Emacs comes with two ctags utilities, `etags and ctags`, which are compiled from the same
-source code. Etags generates a tag table file for Emacs, while the ctags command is used to create a
-similar table in a format understood by vi. They have different sets of command line options: etags
-does not recognize and ignores options which only make sense for vi style tag files produced by the
-ctags command.
-
--   etags 和 ctags 都是来自于同一个项目的源码，但是 etags 为 emacs 生产 tag table，而 ctags 为 vi 生成 tag table。
--   etags 生成的文件名称为 `TAGS` ， ctags 命令生成的文件名称为 `tags` ，GNU global 的 gtags 命令生成的文件名称为
-    `GTAGS` ；
-
-`Exuberant Ctags`: written and maintained by Darren Hiebert until 2009, was initially distributed with Vim, but
-became a separate project upon the release of Vim 6. It includes support for Emacs and etags
-compatibility. Exuberant Ctags includes support for over 40 programming languages with the ability to add
-support for even more using regular expressions.
-
--   最开始随 vim 发布，后续支持 emacs 的 etags。
-
-`Universal Ctags`: is a fork of Exuberant Ctags, with the objective of continuing its development. A few parsers
-are rewritten to better support the languages.
-
--   Universal Ctags 是 Exuberant Ctags 的 fork 版本。
-
-[GNU Global](https://www.gnu.org/software/global/) 内置了 5 种语言解析器，包括 C/Yacc/JAVA/assembly, 其他 25 种语言使用 Pygments + Universal Ctags 解析器插件来支持的。
-
-citre 是基于 TAGS 文件的代码浏览工具，支持[集成使用 GNU global TAGS 文件](https://github.com/universal-ctags/citre/blob/master/docs/user-manual/citre-global.md)，创建和更新 global GTAGS 文件（~/.cache/gtags/)：
-
--   M-x citre-global-create-database
--   M-x citre-global-update-database
-
-<!--listend-->
-
-```shell
-$ ls -l ~/.cache/gtags/Users/zhangjun/go/src/github.com/kubernetes/kubernetes/
-total 122M
--rw-r--r-- 1 zhangjun 7.9M  6  8 10:50 GPATH
--rw-r--r-- 1 zhangjun  89M  6  8 10:50 GRTAGS  # reference tags
--rw-r--r-- 1 zhangjun  26M  6  8 10:50 GTAGS   # tags
-$
-```
-
-注意以下两个命令创建的 ctags 文件，而非 global tag 文件，不支持 references，不建议使用：
-
--   M-x citre-create-tags-file
--   M-x citre-update-tags-file
-
-如果误使用了上面的命令创建 ctags 文件（项目有 .tags/ 目录或 .tags 或 tags 文件），则后续使用
-xref-find-references 会 hang，需要删除。
-
-使用 citre:
-
--   M-x citre-jump-to-reference, which reuses the citre-jump UI;
--   M-x citre-peek-references, equivalent to citre-peek;
--   M-x citre-ace-peek-references, equivalent to citre-ace-peek;
--   M-x citre-peek-through-references, equivalent to citre-peek-through.
--   M-x citre-ace-peek 使用 ace 来 peek 查看指定的符号定义或函数签名。
--   M-x citre-peek 查看当前光标处符号的定义或函数签名。
-
-执行 s-? (citre-peek-reference) 支持如下快捷键：
-
--   M-n, M-p: Next/prev line.
--   M-N, M-P: Next/prev definition.
--   M-l j: Jump to the definition. (跳转到当前预览的位置定义，同时 peek window 继续显示)
--   M-l p：M-x citre-peek-through， 在 peek window 中选择一个 symbol，然后跳转到定义。
--   C-g: Close the peek window.
-
-通过 peek through 打开多个多个 function definition 后，citre 会在 peek window 下方记录 peek history，可以使用
-&lt;left&gt;/&lt;right&gt; 来移动 history，当前的位置用 [func] 方括号来表示。
-
-可以使用 C-l 来调整 peek window 的位置。
-
-对于开启了 citre-mode 的 buffer，citre 会向 xref-backend-functions 中添加 citre-xref-backend, 所以后续使用
-imenu/xref-find-references/xref-find-definitions 时会使用 citre 提供的输入。同时 xref 和 consult 结合， 可以使用consult 来预览 xref 的结果：
-
-```emacs-lsp
-;; 使用 consult 来预览 xref 的引用定义和跳转。
-(setq xref-show-xrefs-function #'consult-xref)
-(setq xref-show-definitions-function #'consult-xref)
-```
-
-综合的效果：执行 xref-find-references/xref-find-definitions 时会使用 consult 来预览 citre 提供的候选者。
-
-在 citre-jump（M-.) 的弹出时 buffer 中可以使用正则语法对候选者进行过滤, 例如:
-
-```text
-something kind:^member$ kind:^macro$ input:.c$
-```
-
-
-### <span class="section-num">28.1</span> citre 和 lsp-bridge 协作 {#citre-和-lsp-bridge-协作}
-
-由于 lsp-bridge mode map 将 M-./M-,/M-? 等 xref 相关命令绑定到自己的 lsp-bridge 相关函数，但是当
-lsp-bridge 的补全、跳转等不可用时，需要使用 citre-mode 的 xref 集成特性的化，就需要使用 M-x xref-xxx
-等命令。这时可以在project root 目录创建一个 .dir-locals.el 文件来为项目所有文件关闭 lsp-mode：
-
-```emacs-lisp
-;;; Directory Local Variables
-;;; For more information see (info "(emacs) Directory Variables")
-
-;;; disable lsp-mode and enable ggtags-mode
-((nil . ((eval . (lsp-bridge-mode -1)))
-      ))
-```
-
-为了方便输入，可以在 ~/.emacs.d/snippets/prog-mode 下创建一个名为 disable-lsp-bridge 的 snippet，后续可以使用M-x consult-yasnippet 来快速在 .dir-locals.el 文件中插入 snippet 文件内容。
-
-```emacs-lisp
-# -*- mode: snippet -*-
-# name: disable-lsp-bridge
-# key: dlspb
-# --
-;;; Directory Local Variables
-;;; For more information see (info "(emacs) Directory Variables")
-
-;;; .dir-locals.el
-;;; disable lsp-mode and enable ggtags-mode
-((nil . ((eval . (lsp-bridge-mode -1)))
-      ))
-```
-
-通过上面的 .dir-locals.el 机制来在项目级别关闭 lsp-bridge 后，M-./M-,/M-? 恢复绑定到 consult-xref 来跳转和预览。
-
-
-## <span class="section-num">29</span> workflow {#workflow}
-
-安装 SwitchKey 来为 Mac 程序设置输入法, 如将 Emacs 设置系统输入法为英文: <https://github.com/itsuhane/SwitchKey>
+安装 SwitchKey 来为 Mac 程序设置输入法, 如将 Emacs 设置系统输入法为英文:
+<https://github.com/itsuhane/SwitchKey>
 
 -   为 switch-to-buffer 添加 after advice , 如果切换到的 buffer 是 vterm 类型, 则设置输入法为 nil, 即英文模式。
 
@@ -5540,7 +5554,8 @@ magit：
 -   clone 项目: M-x magit-clone 指定 URL 和本地保存路经（自动创建中间目录）；
 -   优先使用 C-c M-g 和 C-x M-g，其次是 C-x g, 前两个都是弹出一个小 buffer 来展示可执行的命令；
 -   checkout 分支：C-x M-g -&gt; b -&gt; l(local branch)
--   查看远程分支和 tag: C-x M-g -&gt; y(reference), 移动到对应 remote branch 或 tag 上，按 b -&gt; l 即可 checkout 出对应分支；
+-   查看远程分支和 tag: C-x M-g -&gt; y(reference), 移动到对应 remote branch 或 tag 上，按 b -&gt; l 即可
+    checkout 出对应分支；
 -   历史提交搜索： C-x M-g -&gt; l -&gt; -G 搜索提交的内容 -F 搜索提交的 Message 。
 -   查看选择区域的历史提交记录: C-c M-g l: 通过 -Lstart,end 来实现的。
 
@@ -5569,7 +5584,8 @@ consult 搜索:
     consult-find 是异步搜索，不用先列出所有文件，性能更好。
 2.  建议系统安装 fd，这样速度最快。fd 和 rg 都提供了 gnu 和 musl 版本的二进制，其中 musl 是静态链接版本，优先使用。gnu 在 centos 上存在 glibc 版本问题。
 3.  consult-find 不支持 preview, 可以通过 Embark Collect Buffer 来展示, 然后使用 o 或 C-o 来预览。
-4.  orderless 支持在第二个 # 后使用复杂的搜索表达式（第一个 # 后只能用空格分割的关键字），如 `#emacs# !screen org$`
+4.  orderless 支持在第二个 # 后使用复杂的搜索表达式（第一个 # 后只能用空格分割的关键字），如 `#emacs#
+       !screen org$`
 5.  如果加 C-u 前缀，可以 `指定搜索目录` 。
 
 consult 搜索结果进行批量编辑:
@@ -5639,8 +5655,8 @@ dired:
     -   用 consult-yasnippet 过滤 snippet, 当输入完整的 yasnippet 快捷键后，按 TAB 触发 expand 。
 -   M-x yas-new-snippet：创建新的 snippet。
 -   将 snippet 安装到 fundamental-mode 下，则可以在所有 major-mode 中使用。
--   vterm buffer: 安装了 vterm-extra 包后，C-c C-e 可以创建一个命令行编辑 buffer, 在里面插入 snippet 后， C-c
-    C-c 就可以粘贴到 vterm 中；
+-   vterm buffer: 安装了 vterm-extra 包后，C-c C-e 可以创建一个命令行编辑 buffer, 在里面插入 snippet
+    后， C-c C-c 就可以粘贴到 vterm 中；
 
 SSH 配置
 
@@ -5691,7 +5707,7 @@ SSH 配置
 7.  在 vterm buffer 中也可以使用 C-x C-f 命令来查找当前 shell 所在的目录，但是需要将 /-: 修改为 /ssh: 否则可能会提示 scp method 不支持 multi hop 的登录。
 
 
-## <span class="section-num">30</span> 调试 {#调试}
+## <span class="section-num">25</span> 调试 {#调试}
 
 查看系统配置（支持）的 feature: C-h v system-configuration-features
 
@@ -5884,7 +5900,7 @@ M-x load-library XXX
 ```
 
 
-### <span class="section-num">30.1</span> TRAMP 调试技巧 {#tramp-调试技巧}
+### <span class="section-num">25.1</span> TRAMP 调试技巧 {#tramp-调试技巧}
 
 <https://www.murilopereira.com/how-to-open-a-file-in-emacs/>
 

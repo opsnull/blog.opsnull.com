@@ -1,7 +1,7 @@
 ---
 title: "tracing"
 author: ["zhangjun"]
-lastmod: 2024-06-08T21:57:42+08:00
+lastmod: 2024-06-11T20:27:37+08:00
 tags: ["rust", "tracing"]
 categories: ["rust"]
 draft: false
@@ -45,7 +45,6 @@ A scoped, structured logging and diagnostics system.
        // records an event within "my_span".
        event!(Level::DEBUG, "something happened inside my_span");
     ```
-    Event 和 Span 都具有 Level 信息。
 
 3.  Subscribers： As Spans and Events occur, they `are recorded or aggregated by implementations of
           the Subscriber trait`. Subscribers `are notified` when an Event takes place and when a Span is
@@ -65,9 +64,10 @@ of metadata by returning true, then the corresponding Span or Event will `never 
 
 ## <span class="section-num">1</span> span 和 event 宏 {#span-和-event-宏}
 
-使用 span!() 宏来创建特定 Level 和 id 的 span，然后调用他的 enter() 方法来创建一个 span context，后续在该 span 被 drop 前，所有 event 都属于该 span。
+使用 span!() 宏来创建特定 Level 和 id 的 span，然后调用它的 enter() 方法来创建一个 span context，后续在该 span 被 drop 前，所有 event 都属于该 span。
 
 -   span 可以 enter() 实现 span 嵌套, 这样后续子 span 下打印 event 后会自动关联父 span 关系;
+-   Event 和 Span 都具有 Level 信息；
 
 <!--listend-->
 
@@ -98,7 +98,7 @@ tracing::error_span!("myerrorspan", ?s);
 tracing::error!(target: "myerrorspan", ?s, s.field_a, "just a debug message2");
 ```
 
-对于自定义函数，可以使用 #[instrument] 宏来简化 span 的创建，他使用函数名作为 span name, 函数参数将作为 span 的 field;
+对于自定义函数，可以使用 `#[instrument]` 宏来简化 span 的创建，它使用函数名作为 span name, 函数参数将作为 span 的 field;
 
 ```rust
 use tracing::{Level, event, instrument};
@@ -128,7 +128,7 @@ impl Handler {
 }
 ```
 
-对于不能使用 #[instrument] 的第三方函数，可以使用 span 的 in_scope():
+对于不能使用 `#[instrument]` 的第三方函数，可以使用 span 的 in_scope():
 
 ```rust
 use tracing::info_span;
@@ -285,10 +285,10 @@ event!(
 
 为了方便创建指定 Level 的 span 和 event, 还可以使用带 level 的特殊宏, 如 trace!/debug! 等:
 
-event!
+`event!`
 : trace!, debug!, info!, warn!, and error! behave similarly to the event!
 
-span!
+`span!`
 : trace_span!, debug_span!, info_span!, warn_span!, and error_span! macros are the same,
     but for the span! macro.
 
@@ -350,8 +350,8 @@ subscribe 可以使用这些 metadata 来对 span/event 进行过滤（enable() 
 Emitting log Records: This crate provides two feature flags, `“log” and “log-always”`, which will
 cause `spans` and `events` to `emit log records`.
 
--   log feature: 在没有激活 tracing Subscriber 的情况下将 tracing event/span 转换为 log record;
--   log-always feature: 即使激活了 tracing Subscriber, 也将 tracing event/span 转换为 log record;
+-   `log` feature: 在没有激活 tracing Subscriber 的情况下将 tracing event/span 转换为 log record;
+-   `log-always` feature: 即使激活了 tracing Subscriber, 也将 tracing event/span 转换为 log record;
 
 生成的 log record 包含 span/event 的 fileds 和 metadata（如 target，level，module path，file，line
 number 等）。而且 span 的 entered/exited/close 也会创建 log record，他们的 log target 为
@@ -423,12 +423,7 @@ pub fn shave_all(yaks: usize) -> usize {
 
 ## <span class="section-num">4</span> subscriber {#subscriber}
 
-In order to `record` trace events, executables have to use `a Subscriber implementation` compatible with
-tracing. A Subscriber implements a way of collecting trace data, such as by logging it to standard
-output. This library does not contain any Subscriber implementations; these are provided by `other
-crates`.
-
-tracing crate 定义的 `Subscriber trait` 代表需要收集 trace/event 数据的函数接口，tracing crate 并没有提供该 trait 的实现，但其他 crate，如 tracing-subscriber crate 的 Registry/fmt::Subscriber struct 类型都实现了 tracing::Subscriber trait, 故可以用于
+tracing crate 定义的 `Subscriber trait` 代表需要收集 trace/event 数据的函数接口，tracing crate 并没有提供该 trait 的实现，但其他 crate，如 `tracing-subscriber` crate 的 `Registry/fmt::Subscriber` struct 类型都实现了 tracing::Subscriber trait, 故可以用于
 tracing::subscriber::set_default()/set_global_default()/with_default() 的参数。
 
 -   set_default()：为当前线程设置缺省的 Subscribe 实现；
@@ -457,8 +452,7 @@ set_global_default() 的底层是用指定的 Subscribe trait 实现来创建一
 
 ```rust
 pub fn set_global_default<S>(subscriber: S) -> Result<(), SetGlobalDefaultError>
-where
-    S: Subscriber + Send + Sync + 'static,
+where S: Subscriber + Send + Sync + 'static,
 {
     crate::dispatcher::set_global_default(crate::Dispatch::new(subscriber))
 }
@@ -533,14 +527,14 @@ pub trait Subscriber: 'static {
 ```
 
 
-## <span class="section-num">5</span> tracing-subscriber {#tracing-subscriber}
+## <span class="section-num">5</span> tracing-subscriber crate {#tracing-subscriber-crate}
 
 tracing crate 定义的 Subscriber trait 代表需要收集 trace/event 数据的函数接口。
 
 tracing-subscriber crate 的 Registry/fmt::Subscriber struct 类型都实现了 tracing::Subscriber trait,
 故可以用于 tracing::subscriber::set_default()/set_global_default()/with_default() 的参数。
 
--   tracing-subscriber::fmt::Subscriber struct 实现了 tracing::Subscriber trait，可以用作 tracing 的全局 Subscribe；
+-   `tracing-subscriber::fmt::Subscriber` struct 实现了 tracing::Subscriber trait，可以用作 tracing 的全局 Subscribe；
     -   tracing-subscriber::fmt() 返回的 tracing_subscriber::fmt::SubscriberBuilder 的 .with_writer()方法可以指定一个实现 std::io::Writer 的参数，从而实现自定义的终端、文件写入。（可以使用
         tracing-appender crate 来生成这两种 writer）。
 -   Registry 可以通过 .with(Layer) 方式来自定义 trace 数据的过滤、格式化和写入，非常适合于复杂自定义场景，如和 opentelemetry 集成；
@@ -558,8 +552,7 @@ pub async fn main() -> mini_redis::Result<()> {
     //...
 }
 
-// 对 subscriber 进行更精细化的配置.
-// Start configuring a `fmt` subscriber
+// 对 subscriber 进行更精细化的配置.  Start configuring a `fmt` subscriber
 let subscriber = tracing_subscriber::fmt()
     // Use a more compact, abbreviated log format
     .compact()
@@ -572,7 +565,8 @@ let subscriber = tracing_subscriber::fmt()
     // Don't display the event's target (module path)
     .with_target(true)
     .with_ansi(true)
-    .with_env_filter("tracing=trace,tokio=trace,runtime=trace") // tracing=trace 指定运行的 --binary tracing 的日志级别
+    // 通过环境变量设置过滤规则
+    .with_env_filter("tracing=trace,tokio=trace,runtime=trace")
     //.pretty()
     // Build the subscriber
     .finish();
@@ -580,9 +574,9 @@ let subscriber = tracing_subscriber::fmt()
 tracing::subscriber::set_global_default(subscriber).unwrap();
 ```
 
-tracing_subscriber::fmt::Subscriber struct 实现了 tracing::Subscriber trait：
+`tracing_subscriber::fmt::Subscriber` struct 实现了 tracing::Subscriber trait：
 
--   支持通过环境变量来配置 EnvFilter，如 RUST_LOG=debug,my_crate=trace;
+-   支持通过 `环境变量` 来配置 EnvFilter，如 `RUST_LOG=debug,my_crate=trace`;
 -   fmt() 返回一个 SubscriberBuilder 对象，然后进行详细配置，最后的 .finish() 返回一个
     tracing_subscriber::fmt::Subscriber 对象;
 
@@ -590,13 +584,14 @@ tracing_subscriber::fmt::Subscriber struct 实现了 tracing::Subscriber trait�
 
 ```rust
 use tracing_subscriber;
-tracing_subscriber::fmt::init(); // 创建 fmt::Subscriber 并设置为 tracing crate 的 global Subscriber
 
 let subscriber = tracing_subscriber::fmt()
     // ... add configuration
     .finish();
-tracing::subscriber::set_global_default(subscriber).unwrap(); // 设置为 tracing crate 的 global Subscriber
+// 设置为 tracing crate 的 global Subscriber
+tracing::subscriber::set_global_default(subscriber).unwrap();
 
+// 创建 fmt::Subscriber 并设置为 tracing crate 的 global Subscriber
 let subscriber = tracing_subscriber::fmt()
     // ... add configuration
     .init() // 内部调用 builder.finish() 然后设置为 tracing crate 的 global Subscriber
@@ -624,8 +619,7 @@ tracing_subscriber::fmt()
 tracing_subscriber::fmt::layer(): 返回一个 tracing_subscriber::fmt::Layer 对象, 用来组合生成
 Subscriber:
 
--   tracing_subscriber::fmt::Layer 的方法和 tracing_subscriber::fmt::format::Format 类似, 可以通过
-    .with_XX() 方法来设置是否输出对应内容:
+-   tracing_subscriber::fmt::Layer 的方法和 tracing_subscriber::fmt::format::Format 类似, 可以通过.with_XX() 方法来设置是否输出对应内容:
 -   tracing_subscriber::fmt::Layer 类型实现了 tracing_subscriber::layer::Layer trait, 该 trait 是
     tracing_subscriber::registry::Registry.with(layer) 的输入类型;
 -   tracing_subscriber::fmt::Layer 的 .with_writer() 方法, 可以用于自定义 event writer;
@@ -703,14 +697,13 @@ where
 }
 ```
 
-tracing_subscriber::registry::Registry struct 类型实现了 tracing::subscriber::Subscriber, 可以和多个
+`tracing_subscriber::registry::Registry` struct 类型实现了 tracing::subscriber::Subscriber, 可以和多个
 Layer 结合起来, 实现自定义 Subscriber:
 
 -   tracing_subscriber::registry() 返回 Registry 对象;
 -   Registry 的核心功能是生成 span ID;
 -   Registry 实现了 SubscriberExt trait 和 SubscriberInitExt trait, 前者的 `with() 方法是配置 Registry
-        的核心方法`. 而后者提供的 set_default()/init() 用来将 Registry 作为 tracing crate 的全局
-    Subscriber;
+        的核心方法`. 而后者提供的 set_default()/init() 用来将 Registry 作为 tracing crate 的全局Subscriber;
     -   with() 的输入是实现 tracing_subscriber::layer::Layer trait 的对象, 如
         tracing_subscriber::fmt::Layer 类型, tracing_opentelemetry::Layer 类型;
 
@@ -730,7 +723,6 @@ impl<T> SubscriberInitExt for T where T: Into<Dispatch>,
 fn set_default(self) -> DefaultGuard
 fn try_init(self) -> Result<(), TryInitError>
 fn init(self)
-
 
 use tracing_subscriber::{fmt, Registry};
 use tracing_subscriber::fmt::{self, format, time};

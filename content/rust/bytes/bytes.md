@@ -1,8 +1,8 @@
 ---
 title: "bytes"
 author: ["zhangjun"]
-lastmod: 2024-06-08T21:57:42+08:00
-tags: ["rust"]
+lastmod: 2024-06-11T20:27:35+08:00
+tags: ["bytes", "rust"]
 categories: ["rust"]
 draft: false
 series: ["rust crate"]
@@ -18,10 +18,10 @@ series_order: 4
 
 Bytes/BytesMut struct：
 
--   struct Bytes：提供了高效的、 `只读的` zero-copy 的内存区域 clone/slice/split 操作, 并且支持
-    Send/Sync, 所以可以在多线程中高效共享数据; split_XX/slice_XX 都是引用计数方式产生新 Bytes 的操作,
-    高效共享数据; 可以当作 Arc&lt;Vec&lt;u8&gt;&gt; 来使用；
--   struct BytesMut：提供了高效的可读写的内存区域操作。
+-   struct Bytes：提供了高效的 `只读的` zero-copy 的内存区域 clone/slice/split 操作, 并且支持 Send/Sync,
+    所以可以在多线程中高效共享数据; split_XX/slice_XX 都是引用计数方式产生新 Bytes 的操作,高效共享数据;
+    可以当作 Arc&lt;Vec&lt;u8&gt;&gt; 来使用；
+-   struct BytesMut：提供了高效的 `可读写` 的内存区域操作。
 
 Buf/BufMut trait：
 
@@ -30,7 +30,7 @@ Buf/BufMut trait：
 
 struct Bytes 实现了 Buf trait， struct BytesMut 同时实现了 Buf 和 BufMut trait。
 
-struct Bytes 为底层连续内存区域提供了只读的 zeor copy（基于引用计数） 的 slice/split/clone 操作, 主要用于高效共享读取访问，它实现了 bytes::Buf trait, 实现了 AsRef&lt;[u8]&gt;, Borrow&lt;[u8]&gt;,
+struct Bytes 为底层连续内存区域提供了只读的 zeor copy（基于引用计数）的 slice/split/clone 操作, 主要用于高效共享读取访问，它实现了 bytes::Buf trait, 实现了 AsRef&lt;[u8]&gt;, Borrow&lt;[u8]&gt;,
 Deref&lt;Target=[u8]&gt; 的 trait，所以 `Bytes 可以当作 [u8] 来使用` ：
 
 ```rust
@@ -79,7 +79,7 @@ buf.clear();
 assert!(buf.is_empty());
 ```
 
-struct Bytes 实现了 bytes::Buf trait，当调用 bytes::Buf 的方法， 例如 get_u8/get_u16 时， `会自动更新内部的 cursor` ，从而在连续调用时依次返回下一个 u8/u16 内存：
+struct Bytes 实现了 bytes::Buf trait，当调用 bytes::Buf 方法, 例如 get_u8/get_u16 时， `会自动更新内部的 cursor` ，从而在连续调用时依次返回下一个 u8/u16 内存：
 
 -   由于 Bytes Deref&lt;Target=[u8]&gt;, 所有 Bytes 可以调用 [u8] 的方法, 如 slice[..] 索引操作;
 -   bytes::Buf.len() 返回内存区域总长度（不随 get_XX 而变化）;

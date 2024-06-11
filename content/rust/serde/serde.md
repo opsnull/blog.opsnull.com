@@ -1,7 +1,7 @@
 ---
 title: "serde"
 author: ["zhangjun"]
-lastmod: 2024-06-08T21:57:41+08:00
+lastmod: 2024-06-11T20:27:33+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -17,7 +17,8 @@ series_order: 2
     structures 的 serialize 和 deserialize trait 的类型都可以转换为 `任意` 支持的 data format;
     -   data format 在各种单独的 serde_XX crate 中提供, 如 serde_json/serde_yaml 等;
 
-serde 为 rust 内置 29 种类型[都提供了 data structure 实现](https://serde.rs/data-model.html#types), 所以一般只需要为自定义类型使用 #derive 宏来自动生成 ser/desc 的代码即可:
+serde 为 Rust 内置 29 种类型[都提供了 data structure 实现](https://serde.rs/data-model.html#types), 所以一般只需要为自定义类型使用 #[derive]
+宏来自动生成 ser/deser 的代码即可:
 
 Cargo.toml:
 
@@ -28,7 +29,7 @@ version = "0.1.0"
 authors = ["Me <user@rust-lang.org>"]
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] } # 需要开启 derive feature
+serde = { version = "1.0", features = ["derive"] } # 需要开启 derive 或 full feature
 serde_json = "1.0"
 ```
 
@@ -62,10 +63,9 @@ fn main() {
 
 使用三种 Attributes 对 Serialize and Deserialize 进行更灵活的配置：
 
--   Container attributes — apply to a struct or enum declaration. 对 struct/enum 类型整体
--   Variant attributes — apply to a variant of an enum. 只对 enum variant 成员
--   Field attributes — apply to one field in a struct or in an enum variant. 对 struct 或 enum variant
-    成员
+-   Container attributes — 对 struct/enum 类型整体
+-   Variant attributes —  只对 enum variant 成员
+-   Field attributes —  对 struct 或 enum variant 成员
 
 <!--listend-->
 
@@ -85,25 +85,21 @@ enum E {
 }
 ```
 
-Note that：a single struct, enum, variant, or field may have `multiple attributes` on it.
-
 Container attributes（对 struct/map/set/enum 等整体进行重命名）：
 
 -   \#[serde(rename = "name")]
-    -   \#[serde(rename(serialize = "ser_name"))]
-    -   \#[serde(rename(deserialize = "de_name"))]
-    -   \#[serde(rename(serialize = "ser_name", deserialize = "de_name"))]
-
--   \#[serde(rename_all = "...")] 和 #[serde(rename_all_fields = "...")]
+-   \#[serde(rename(serialize = "ser_name"))]
+-   \#[serde(rename(deserialize = "de_name"))]
+-   \#[serde(rename(serialize = "ser_name", deserialize = "de_name"))]
+-   \#[serde(rename_all = "...")]
+-   \#[serde(rename_all_fields = "...")]
     -   "lowercase", "UPPERCASE", "PascalCase", "camelCase", "snake_case",
         "SCREAMING_SNAKE_CASE","kebab-case", "SCREAMING-KEBAB-CASE".
-    -   \#[serde(rename_all(serialize = "..."))]
-    -   \#[serde(rename_all(deserialize = "..."))]
-    -   \#[serde(rename_all(serialize = "...", deserialize = "..."))]
+-   \#[serde(rename_all(serialize = "..."))]
+-   \#[serde(rename_all(deserialize = "..."))]
+-   \#[serde(rename_all(serialize = "...", deserialize = "..."))]
 
--   \#[serde(deny_unknown_fields)]
-    -   `Always error during deserialization` when encountering unknown fields. When this attribute is not
-        present, by default unknown fields `are ignored` for self-describing formats like JSON.
+-   \#[serde(deny_unknown_fields)]: 在 deserialization 时如果遇到 unknown filed 则报错.(默认是忽略该 field).
 
 <!--listend-->
 
@@ -129,9 +125,9 @@ Container attributes（对 struct/map/set/enum 等整体进行重命名）：
 Variant attributes
 
 -   \#[serde(rename = "name")]
-    -   \#[serde(rename(serialize = "ser_name"))]
-    -   \#[serde(rename(deserialize = "de_name"))]
-    -   \#[serde(rename(serialize = "ser_name", deserialize = "de_name"))]
+-   \#[serde(rename(serialize = "ser_name"))]
+-   \#[serde(rename(deserialize = "de_name"))]
+-   \#[serde(rename(serialize = "ser_name", deserialize = "de_name"))]
 
 <!--listend-->
 
@@ -141,8 +137,8 @@ Variant attributes
         "kebab-case", "SCREAMING-KEBAB-CASE".
 
 -   \#[serde(skip)]
-    -   \#[serde(skip_serializing)]
-    -   \#[serde(skip_deserializing)]
+-   \#[serde(skip_serializing)]
+-   \#[serde(skip_deserializing)]
 
 <!--listend-->
 
@@ -158,28 +154,25 @@ Variant attributes
 Field attributes
 
 -   \#[serde(rename = "name")]
-    -   \#[serde(rename(serialize = "ser_name"))]
-    -   \#[serde(rename(deserialize = "de_name"))]
-    -   \#[serde(rename(serialize = "ser_name", deserialize = "de_name"))]
+-   \#[serde(rename(serialize = "ser_name"))]
+-   \#[serde(rename(deserialize = "de_name"))]
+-   \#[serde(rename(serialize = "ser_name", deserialize = "de_name"))]
 -   \#[serde(alias = "name")]
 -   \#[serde(default)]
 -   \#[serde(default = "path")]
 -   \#[serde(flatten)]
 -   \#[serde(skip)]
-    -   \#[serde(skip_serializing)]
-    -   \#[serde(skip_deserializing)]
-    -   \#[serde(skip_serializing_if = "path")]
+-   \#[serde(skip_serializing)]
+-   \#[serde(skip_deserializing)]
+-   \#[serde(skip_serializing_if = "path")]
 -   \#[serde(serialize_with = "path")]
 -   \#[serde(deserialize_with = "path")]
 -   \#[serde(with = "module")] # `Combination of serialize_with and deserialize_with`. Serde will use
     $module::serialize as the serialize_with function and $module::deserialize as the deserialize_with
     function.
 
-自定义序列化
-
--   Serializer/Deserializer 是 serde 的 data format package 提供的类型，如 serde_json/serde_yaml 等；
-
-<!--listend-->
+自定义序列化: Serializer/Deserializer 是 serde 的 data format package 提供的类型，如
+serde_json/serde_yaml 等；
 
 ```rust
 pub trait Serialize {
@@ -198,7 +191,11 @@ pub trait Deserialize<'de>: Sized {
 
 ## <span class="section-num">1</span> 序列化 {#序列化}
 
-自定义对象需要实现 Serialize trait， 才能被序列化：
+自定义对象需要实现 Serialize trait，才能被序列化：
+
+-   一般通过 #[derive(Serialize)] 宏来实现;
+
+<!--listend-->
 
 ```rust
 pub trait Serialize {
@@ -209,7 +206,7 @@ pub trait Serialize {
 ```
 
 核心是调用 serializer 提供的序列化方法，该 serializer 是后续调用 serde data format 如
-serde_json/serde_yaml 来传入的：
+serde_json/serde_yaml 时传入的：
 
 ```rust
 use serde::{Serialize, Deserialize};
@@ -231,7 +228,12 @@ fn main() {
 }
 ```
 
-序列化 rust 原始类型：
+序列化 Rust 原始类型, 以 i32 为例：
+
+-   serde 为 Rust 内置 29 种类型[都提供了 data structure 实现](https://serde.rs/data-model.html#types), 所以一般只需要为自定义类型使用 #[derive]
+    宏来自动生成 ser/deser 的代码即可:
+
+<!--listend-->
 
 ```rust
 impl Serialize for i32 {
@@ -244,7 +246,7 @@ impl Serialize for i32 {
 }
 ```
 
-序列化 rust seq/map 类型：
+序列化 seq/map 类型：
 
 ```rust
 use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeMap};
@@ -308,7 +310,7 @@ impl Serialize for Color {
     }
 ```
 
-序列化枚举：
+序列化 enum：
 
 ```rust
 enum E {
@@ -335,6 +337,12 @@ enum E {
 
 ## <span class="section-num">2</span> 反序列化 {#反序列化}
 
+类型需要实现 Deserialize trait 来进行反序列化:
+
+-   一般通过 #[derive(Deserialize)] 宏来实现该 trait.
+
+<!--listend-->
+
 ```rust
 pub trait Deserialize<'de>: Sized {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -350,7 +358,7 @@ pub trait Deserialize<'de>: Sized {
 -   Visitor 对象需要实现 expecting 和一系列 visit_XX() 方法，后续由 deserializer 调用；
 -   deserialize_XX() 不一定调用 Visitor 的 visit_XX() 方法，具体取决于 deserializer 的实现；
 
-例如：先为 i32 定义一个实现 Visitor trait 的对象， 该对象的关联类型 Value 与最终要解码生成的对象类型一致（这里是 i32）；
+例如：先为 i32 定义一个实现 Visitor trait 的对象, 该对象的关联类型 Value 与最终要解码生成的对象类型一致（这里是 i32）；
 
 ```rust
 use std::fmt;
@@ -401,7 +409,7 @@ impl<'de> Visitor<'de> for I32Visitor {
 }
 ```
 
-1.  为 i32 类型定义 Deserialize 实现， Deserializer 是 serde_json/yaml 等提供的类型：
+1.  为 i32 类型定义 Deserialize 实现, Deserializer 是 serde_json/yaml 等提供的类型：
 
 <!--listend-->
 
