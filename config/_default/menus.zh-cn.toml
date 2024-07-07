@@ -20,6 +20,41 @@
   pageRef = "tags"
   weight = 11
 
+[[main]]
+  name = "参考手册"
+  pageRef = "manuals"
+  weight = 12
+
+[[main]]
+  name = "Rust 语言 - 个人参考手册"
+  parent = "参考手册"
+  pageRef = "rust/rust-lang"
+  weight = 13
+
+[[main]]
+  name = "C 语言 - 个人参考手册"
+  parent = "参考手册"
+  pageRef = "c"
+  weight = 14
+
+[[main]]
+  name = "C预处理器 - 个人参考手册"
+  parent = "参考手册"
+  pageRef = "cpp"
+  weight = 15
+
+[[main]]
+  name = "Makefile - 个人参考手册"
+  parent = "参考手册"
+  pageRef = "makefile"
+  weight = 16
+
+[[main]]
+  name = "Emacs - 个人参考手册"
+  parent = "参考手册"
+  pageRef = "emacs/my-emacs-ref"
+  weight = 17
+  
 # [[subnavigation]]
 #    name = "An interesting topic"
 #    pageRef = "tags/interesting-topic"
