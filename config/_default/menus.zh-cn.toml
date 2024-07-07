@@ -34,19 +34,19 @@
 [[main]]
   name = "C 语言 - 个人参考手册"
   parent = "参考手册"
-  pageRef = "c"
+  pageRef = "posts/c"
   weight = 14
 
 [[main]]
   name = "C预处理器 - 个人参考手册"
   parent = "参考手册"
-  pageRef = "cpp"
+  pageRef = "posts/cpp"
   weight = 15
 
 [[main]]
   name = "Makefile - 个人参考手册"
   parent = "参考手册"
-  pageRef = "makefile"
+  pageRef = "posts/makefile"
   weight = 16
 
 [[main]]
