@@ -1,7 +1,7 @@
 ---
 title: "tokio"
 author: ["zhangjun"]
-lastmod: 2024-07-07T22:04:09+08:00
+lastmod: 2024-07-25T10:07:04+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -9,15 +9,14 @@ series: ["rust crate"]
 series_order: 1
 ---
 
-Tokio provides multiple variations of the runtime. Everything from `a multi-threaded, work-stealing
-runtime` to a light-weight, single-threaded runtime
+Tokio provides multiple variations of the runtime. Everything from `a multi-threaded, work-stealing runtime` to
+a `light-weight, single-threaded runtime`
 
 
 ## <span class="section-num">1</span> features {#features}
 
-最简单的是使用 full feature：
-
 ```toml
+# 使用 full feature
 tokio = { version = "1", features = ["full"] }
 
 # 或单独启用 features
@@ -39,27 +38,35 @@ io-util
 io-std
 : Enable Stdout, Stdin and Stderr types.
 
-net: Enables tokio::net types such as TcpStream, UnixStream and UdpSocket, as well as (on
-    Unix-like systems) AsyncFd and (on FreeBSD) PollAio.
+net
+: Enables tokio::net types such as TcpStream, UnixStream and UdpSocket, as well as (on Unix-like
+    systems) AsyncFd and (on FreeBSD) PollAio.
 
-time: Enables tokio::time types and allows the schedulers to enable the built in timer.
+time
+: Enables tokio::time types and allows the schedulers to enable the built in timer.
 
-process: Enables tokio::process types.
+process
+: Enables tokio::process types.
 
 macros
 : Enables `#[tokio::main] and #[tokio::test]` macros.
 
-sync: Enables all tokio::sync types.
+sync
+: Enables all tokio::sync types.
 
-signal: Enables all tokio::signal types.
+signal
+: Enables all tokio::signal types.
 
-fs: Enables tokio::fs types.
+fs
+: Enables tokio::fs types.
 
-test-util: Enables testing based infrastructure for the Tokio runtime.
+test-util
+: Enables testing based infrastructure for the Tokio runtime.
 
-parking_lot: As a potential optimization, use the <span class="underline">parking_lot</span> crate’s synchronization primitives
-    internally. Also, this dependency is necessary to construct some of our primitives in a const
-    context. MSRV may increase according to the <span class="underline">parking_lot</span> release in use.
+parking_lot
+: As a potential optimization, use the <span class="underline">parking_lot</span> crate’s synchronization primitives
+    internally. Also, this dependency is necessary to construct some of our primitives in a const context. MSRV
+    may increase according to the <span class="underline">parking_lot</span> release in use.
 
 还有一些 unstable features，需要单独启用：
 
@@ -80,12 +87,12 @@ rustflags = ["--cfg", "tokio_unstable"]
 
 ## <span class="section-num">2</span> macros {#macros}
 
-`#[main]`: 用于设置一个 Runtime，如果要设置复杂的 Runtime 参数可以使用 Builder;
+`#[tokio::main]`: 创建和设置一个 Runtime，对于复杂的 Runtime 参数可以使用 Builder;
 
 -   可以用于任何 async fn，但一般是 async main fn，否则每次调用该 async fn 时都新建一个 Runtime 来运行。
--   默认是 Multi-threaded runtime，为每个 CPU Core 创建一个 thread 的 `worker thread pool` 来调度执行
-    spawn() 产生的 Future, 支持 work-stealing strategy.
-    -   对于 spawn_blocking() 传入的同步函数/闭包，也是立即在一个新的 thread 中执行，这些 thread 形成另一个 `blocking thread pool` 。当这些 thread 空闲一段时间后，可能会被 drop 回收。
+-   默认是 Multi-threaded runtime，为每个 CPU Core 创建一个 thread 的 `worker thread pool` 来调度执行 spawn() 产生的 Future, 支持 work-stealing strategy.
+-   对于 spawn_blocking() 传入的同步函数/闭包，也是立即在一个新的 thread 中执行，这些 thread 形成另一个 `blocking
+        thread pool` 。当这些 thread 空闲一段时间后，可能会被 Drop 回收。
 
 <!--listend-->
 
@@ -115,11 +122,12 @@ fn main() {
 }
 ```
 
-`join!()` 并发执行传入的所有 async fn，直到他们都完成：
+`join!()` 并发执行传入的 async fn，直到它们都完成：
 
 1.  join!() 必须在 async context 中运行，比如 async fn/block/closure；
-2.  tokio 使用一个 `单线程` 来执行这些 async task，所以如果一个 task 可能 blocking 其他 task 的执行；如果要真正并发执行，需要使用 spawn();
-3.  如果 async task 都返回 Result，join!() 也是等待他们都完成，如果要在遇到第一个 Error 时停止执行，可以使用 `try_join!()`
+2.  tokio 使用 `单线程` 来执行这些 async task，所以一个 task 可能 blocking 其它 task 的执行；如果要真正并发执行，需要使用 spawn();
+3.  如果 async task 都返回 Result，join!() 也是等待它们都完成。如果要在遇到第一个 Error 时停止执行，可以使用
+    `try_join!()`
 
 <!--listend-->
 
@@ -136,7 +144,6 @@ async fn main() {
     let (first, second) = tokio::join!(
         do_stuff_async(),
         more_async_work());
-    // do something with the values
 }
 ```
 
@@ -146,9 +153,7 @@ async fn main() {
 use tokio::{pin, select};
 use tokio_stream::{self as stream, StreamExt};
 
-async fn my_async_fn() {
-    // async logic here
-}
+async fn my_async_fn() {}
 
 #[tokio::main]
 async fn main() {
@@ -160,9 +165,9 @@ async fn main() {
     loop {
         select! {
             _ = &mut future => {
-                // Stop looping `future` will be polled after completion
                 break;
             }
+
             Some(val) = stream.next() => {
                 println!("got value = {}", val);
             }
@@ -171,10 +176,6 @@ async fn main() {
 }
 
 // 同时创建多一个 Future Pin
-use tokio::{pin, select};
-async fn my_async_fn() {
-    // async logic here
-}
 #[tokio::main]
 async fn main() {
     pin! {
@@ -189,20 +190,15 @@ async fn main() {
 }
 ```
 
-`select!()` : 并发执行多个 async expression，对于第一个匹配 pattern 的 branch，执行对应的 handler，同时 drop 未返回的其他 branch 对象：
+`select!()` : 并发执行多个 async expression，对于第一个匹配 pattern 的 branch，执行对应的 handler，同时 Drop 未返回的其他 branch 对象：
 
 ```text
 <pattern> = <async expression> (, if <precondition>)? => <handler>,
 ```
 
 ```rust
-async fn do_stuff_async() {
-    // async work
-}
-
-async fn more_async_work() {
-    // more here
-}
+async fn do_stuff_async() { }
+async fn more_async_work() {}
 
 #[tokio::main]
 async fn main() {
@@ -210,6 +206,7 @@ async fn main() {
         _ = do_stuff_async() => {
             println!("do_stuff_async() completed first")
         }
+
         _ = more_async_work() => {
             println!("more_async_work() completed first")
         }
@@ -217,18 +214,16 @@ async fn main() {
 }
 ```
 
-`task_local!()`: 对于传给 spwan() 的 async fn，必须实现 Send + Sync + 'static, 它有可能被调度到不同的线程上运行，所以不能使用 thread_local 变量，而是使用 task local 变量。该宏生成一个
-tokio::task::LocalKey 使用的 local key：
+`task_local!()`: 对于传给 spwan() 的 async fn，必须实现 Send + Sync + 'static, 它有可能被调度到不同的线程上运行，所以不能使用 thread_local 变量，而需使用 task local 变量。该宏生成一个tokio::task::LocalKey 使用的 local key：
 
 ```rust
-task_local! {
+tokio::task_local! {
     pub static ONE: u32;
 
     #[allow(unused)]
     static TWO: f32;
 }
 
-// 使用示例：
 tokio::task_local! {
     static NUMBER: u32;
 }
@@ -251,27 +246,26 @@ NUMBER.scope(2, async move {
 
 tokio Runtime 包含三部分：
 
-1.  An I/O event loop, called the driver, which drives I/O resources and dispatches I/O events to
-    tasks that depend on them.
-2.  A scheduler to execute tasks that use these I/O resources.
-3.  A timer for scheduling work to run after a set period of time.
+1.  An I/O event loop, called `the driver`, which drives I/O resources and dispatches I/O events to tasks that
+    depend on them.
+2.  A `scheduler` to execute tasks that use these I/O resources.
+3.  A `timer` for scheduling work to run after a set period of time. (例如调度使用 tokio::time::sleep() 的 async
+    task);
 
-一般不需要手动创建 Runtime，而是使用 #[tokio::main] 属性来标识 async fn main() 函数。但是如果要精细控制 Runtime 的参数，可以使用 tokio::runtime::Builder:
+一般不需要手动创建 Runtime，而是使用 `#[tokio::main]` 宏来标识 `async fn main()` 函数。如果要精细控制 Runtime 的参数，可以使用 tokio::runtime::Builder。
 
--   在 Runtime 上下文中，可以使用 tokio::spawn()/spawn_local() 来执行异步任务，而使用 spwan_blocking()
-    来创建一个临时 thread 执行同步任务；
+-   在 Runtime 上下文中，可以使用 tokio::spawn()/spawn_local() 来执行异步任务，使用 spwan_blocking() 来创建一个临时 thread 执行同步任务；
 
 <!--listend-->
 
 ```rust
-// 示例
 #[tokio::main]
 async fn main() {
     println!("Hello world");
 }
 // 等效为
 fn main() {
-    tokio::runtime::Builder::new_multi_thread() // 多线程模式
+    tokio::runtime::Builder::new_multi_thread()
         .enable_all() // 启用所有 resource driver
         .build()
         .unwrap()
@@ -286,16 +280,12 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::runtime::Runtime;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create the runtime
     let rt  = Runtime::new()?;
-
     // Spawn the root task
     rt.block_on(async {
         let listener = TcpListener::bind("127.0.0.1:8080").await?;
-
         loop {
             let (mut socket, _) = listener.accept().await?;
-
             tokio::spawn(async move {
                 let mut buf = [0; 1024];
 
@@ -325,63 +315,62 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 tokio Runtime 有两种类型（默认使用的是多线程版本）：
 
--   Multi-Thread Scheduler：使用每个 CPU 一个 thread 的 worker thread pool, using a work-stealing
-    strategy 来执行 spawn() 提交的 Future task；
--   Current-Thread Scheduler：provides `a single-threaded` future executor. All tasks will be created
-    and executed on `the current thread`
+Multi-Thread Scheduler
+: 使用每个 CPU 一个 thread 的 worker thread pool, using a work-stealing strategy 来执行 spawn() 提交的 Future task；
 
-tokio Runtime 除了管理 Scheduler 以外，还管理各种 IO/Timer 等 resource driver，需要单独启用：
+Current-Thread Scheduler
+: provides `a single-threaded` future executor. All tasks will be created and
+    executed on `the current thread`
 
--   `Builder::enable_io()`
--   `Builder::enable_time`
--   As a shorthand, `Builder::enable_all()`
+tokio Runtime 除了管理 Scheduler 以外，还管理各种 resource driver，需要单独启用它们（目前就 io 和 time 两种类型）或一次全部启用：
 
-Runtime 在调度任务的间隙，周期检查这些 IO/Timer 是否 Ready，默认当没有任务可以调度，或者调度的任务数超过 61 时检查 IO/Timer，这个次数可以使用 event_interval 来设置。
+-   `Builder::enable_io()`  ：包括 network/fs 等 IO；
+-   `Builder::enable_time` ：定时器调度；
+-   `Builder::enable_all()` ：启用所有 resrouce driver。
 
-对于 worker thread pool 是在 Runtime 创建时为每个 CPU 创建一个 thread，tokio 还有一个 blocking
-thread pool，是在调用 spawn_blocking() 时临时创建的线程，这个 pool 中的线程数量不固定，而且 idle 一段时间后会自动被 tokio Runtime 清理。当 Runtime 被 Drop 时，所有的 thread 都会被终止（terminated），但是 unstoppable spawned work are not guaranteed to have been terminated。
+Runtime 在调度任务的间隙，周期检查这些 IO/Timer 是否 Ready。默认当没有任务可以调度，或者调度的任务数超过 61 时检查 IO/Timer，这个次数可以使用 event_interval 来设置。
+
+创建 Runtime 时，默认为每一个 CPU 创建一个 thread，形成固定 thread 数量的 `worker thread pool` 。
+
+同时，tokio Runtime 还维护一个 `blocking thread pool` ，其中的 thread 在调用 spawn_blocking() 时临时创建，这个
+pool 中的线程数量不固定，而且 idle 一段时间后会自动被 tokio Runtime 清理。
+
+当 Runtime 被 Drop 时，所有的 thread 都会被终止（terminated），但是 unstoppable spawned work are not
+guaranteed to have been terminated。
 
 ---
 
-tokio Runtime 确保所有 task 都是公平调度，防止个别 task 一直可以调度的情况下，其他 task 得不到运行。
+tokio Runtime 确保所有 task 都是 `公平调度` ，防止个别 task 一直可以调度的情况下，其它 task 得不到运行。
 
--   There is some number MAX_TASKS such that the total number of tasks on the runtime at any specific
-    point in time never exceeds MAX_TASKS.
--   There is some number MAX_SCHEDULE such that calling poll on any task spawned on the runtime
-    returns within MAX_SCHEDULE time units.
--   Then, there is some number MAX_DELAY such that when a task is woken, it will be scheduled by the
-    runtime within MAX_DELAY time units.
+-   There is some number `MAX_TASKS` such that the total number of tasks on the runtime at any specific point in
+    time never exceeds MAX_TASKS.
+-   There is some number `MAX_SCHEDULE` such that calling poll on any task spawned on the runtime returns within
+    MAX_SCHEDULE time units.
+-   Then, there is some number `MAX_DELAY` such that when a task is woken, it will be scheduled by the runtime
+    within MAX_DELAY time units.
 
-(Here, MAX_TASKS and MAX_SCHEDULE can be any number and the user of the runtime may choose them. The
-MAX_DELAY number is controlled by the runtime, and depends on the value of MAX_TASKS and
-MAX_SCHEDULE.) Other than the above fairness guarantee, there is no guarantee about the order in
-which tasks are scheduled.
+(Here, MAX_TASKS and MAX_SCHEDULE can be any number and the user of the runtime may choose them. The MAX_DELAY
+number is controlled by the runtime, and depends on the value of MAX_TASKS and MAX_SCHEDULE.) Other than the
+above `fairness guarantee`, there is `no guarantee about the order` in which tasks are scheduled.
 
-除了调度 task，runtime 还周期检查 IO/timer event，来唤醒对应的 task：
-
-Beyond just scheduling tasks, the runtime must also `manage IO resources and timers`. It does this by
-`periodically checking` whether there are any IO resources or timers that are ready, and waking the
-relevant task so that it will be scheduled.
+除了调度 task，runtime 还周期检查各种 IO/timer event，来调度唤醒对应的 task：
 
 tokio 有两种 Runtime：
 
-1.  The `multi-thread scheduler` executes futures on a thread pool, using a work-stealing strategy. By
-    default, it will start a worker thread for each CPU core available on the system.
-2.  The `current-thread scheduler` provides a single-threaded future executor. All tasks will be
-    created and executed on the current thread.
+1.  The `multi-thread scheduler` executes futures on a thread pool, using a `work-stealing strategy`. By default,
+    it will start a worker thread for each CPU core available on the system.
+2.  The `current-thread scheduler` provides `a single-threaded future executor`. All tasks will be created and
+    executed on the current thread.
 
-这两个 Runtime 都有两个 queue：The current thread runtime maintains two FIFO queues of tasks that
-are ready to be scheduled: `the global queue and the local queue` 。
+这两个 Runtime 都有两个 queue：global queue 和 local queue：
 
--   先从 local queue 获取 task，如果为空，再从 global queue 获取任务。或者从 local queu 获取
-    `global_queue_interval` （默认 31）个任务后，从 global queue 获取任务；
--   当没有任务可以调度，或者调度任务超过 `event_interval` 次后（默认 61）后，检查 IO 或 timer event；
--   current-thread scheduler 默认启用 lifo slot optimazition，当有新 task 被 wake 时，添加到 local
-    queue；
+-   先从 local queue 获取 task，如果为空，再从 global queue 获取任务。或者从 local queue 获取
+    `global_queue_interval` （默认 31）个任务后，再从 global queue 获取任务；
+-   当没有任务可以调度，或者调度任务超过 `event_interval` 次后（默认 61）后，检查 IO/Timer event；
+-   current-thread scheduler 默认启用 lifo slot optimazition，即：有新 task 被 wake 时，添加到 local queue；
 
-对于 multi-thread scheduler，有一个固定 thread 数量的 thread pool，它在创建 Runtime 时创建。有一个
-global queue，和每个 thread 一个的 local queue，local queue 初始容量是 256 个 tasks，超过的会被移动到 global queue。默认先从 local queue 获取 task，然后是 global queue，如果都为空，则从其他 thread 的
-local queue `steal tasks` 。
+对于 multi-thread scheduler，有一个固定 thread 数量的 thread pool，它在创建 Runtime 时创建。有一个 global
+queue 和每个 thread 一个的 local queue。local queue 初始容量是 256 个 tasks，超过的会被移动到 global queue。默认先从 local queue 获取 task，然后是 global queue，如果都为空，则从其它 thread 的 local queue `steal tasks` 。
 
 The multi thread runtime `uses the lifo slot optimization`: Whenever a task wakes up another task, the
 other task is added to the `worker thread’s lifo slot` instead of being added to a queue.  If there
@@ -392,9 +381,9 @@ slot is used, `the coop budget is not reset`. Furthermore, if a worker thread us
 times in a row, it is `temporarily disabled` until the worker thread has scheduled a task that didn’t
 come from the lifo slot. The lifo slot can be disabled using the `disable_lifo_slot setting`.
 
-The lifo slot is separate from the local queue, so other worker threads `cannot steal the task` in the
-lifo slot. When a task is woken from a thread that is not a worker thread, then the task is placed
-in the global queue.
+The lifo slot is separate from the local queue, so other worker threads `cannot steal the task` in the lifo
+slot. When a task is woken from a thread that is not a worker thread, then the task is placed in the global
+queue.
 
 
 ### <span class="section-num">3.1</span> Runtime {#runtime}
@@ -402,61 +391,71 @@ in the global queue.
 The runtime provides an I/O driver, task scheduler, timer, and blocking pool, necessary for running
 asynchronous tasks.
 
-Shutting down the runtime is done by `dropping` the value, or calling `shutdown_background or
-shutdown_timeout`.
+Shutting down the runtime is done by `dropping` the value, or calling `shutdown_background or shutdown_timeout`.
 
-对于 Drop runtime，默认是 `wait forver` 直到所有 spawned work has been stopped：
+Drop runtime 时默认 `wait forver` 直到所有 spawned work has been stopped：
 
-1.  Tasks spawned through `Runtime::spawn` keep running until they `yield. Then they are dropped`. They
-    are not guaranteed to run to completion, but might do so if they do not yield until completion.
-    -   只有 yield 时（例如会被 blocking 时下一次 `.await 位置` ）才会被 dropped，否则就一直运行直到结束；
-2.  Blocking functions spawned through Runtime::spawn_blocking `keep running until they return`.
-    -   一直运行直到结束；
+1.  Tasks spawned through `Runtime::spawn` keep running until they `yield. Then they are dropped`. They are not
+    guaranteed to run to completion, but might do so if they do not yield until completion.
+    -   task 只有 yield 时（例如下一次 .await 位置）才会被 dropped，否则就一直运行直到结束；
+2.  Blocking functions spawned through `Runtime::spawn_blocking` `keep running until they return`.
 
-通过使用 Runtime 的 shutdown_background and shutdown_timeout 方法，可以 `避免这种 waiting forerver` 的等待。
+调用 Runtime 的 `shutdown_background() and shutdown_timeout()` 方法，可以 `避免这种 waiting forerver` 的等待。
 
--   当 timeout 时如果 task 没有结束，则运行他的 thread 会被泄露（leak），task 会一直运行直到结束；
+-   当 timeout 时如果 task 没有结束，则运行它的 thread 会被泄露（leak），task 会一直运行直到结束；
 
 Runtime 方法：
 
--   new() 方法创建一个多线程的调度器 Runtime，启用所有默认 resource driver，并自动调用 enter()。一般使用 #[tokio::main] 来自动调用。
--   blocl_on() 在 Runtime 中执行传入Future task，只能在同步上下文中调用该方法，他是同步代码和异步代码的结合点，如果在异步上下文中执行则会 panic。
-    -   在当前线程中执行 Future，block 当前线程直到 Future 返回。如果要并行执行 task，则需要在 Future 内部调用 spawn() 来提交 task；
--   spawn() 和 spawn_blocking() 返回的 JoinHandle 对象实现了 Future，可以 .await 获得结果；
--   enter() 会设置 thread local Runtime，后续 tokio::spawn() 等会感知该 Runtime。一般用于手动创建
-    Runtime 的场景。
--   handler() 返回一个可以在该 Runtime 上 spawn() task 的 Handler 对象，它基于引用计数实现了 Clone()
-    方法，可以将 Runtime 在多个 thread 间共享。
+`new()`
+: 创建一个多线程的 Runtime，启用所有 resource driver, 自动创建一个 Handle 并调用它的 enter(), 从而可以使用 tokio::spwan(), 一般使用 #[tokio::main] 来自动调用。
+
+`blocl_on()`
+: 在 Runtime 中执行异步 task，只能在同步上下文中调用该方法，它是同步代码和异步代码的结合点，如果在异步上下文中执行则会 panic。
+    -   在当前线程中执行 Future task，block 当前线程直到 task 返回。如果要并行执行 task，则需要在 task 内部调用
+        spawn() 来提交 task；
+
+`spawn() 和 spawn_blocking()`
+: 返回的 JoinHandle 对象实现了 Future，可以 .await 获得结果；
+
+`enter()`
+: 设置 thread local Runtime，后续 tokio::spawn() 感知该 Runtime。一般用于手动创建 Runtime 的场景。
+
+`handler()`
+: 返回一个可以在该 Runtime 上 spawn task 的 Handle 对象，它基于引用计数实现了 Clone() 方法，可以将 Runtime 在多个 thread 间共享。
 
 <!--listend-->
 
 ```rust
 impl Runtime
 
-// Available on crate feature rt-multi-thread only. 创建一个多线程的调度器 Runtime，启用所有默认
-// resource driver，并自动调用 enter()。一般使用 #[tokio::main] 来自动调用。
+// Available on crate feature rt-multi-thread only.
+// 创建一个多线程的调度器 Runtime，启用所有默认 resource driver，一般使用 #[tokio::main] 来自动调用。
 pub fn new() -> Result<Runtime>
 
-pub fn handle(&self) -> &Handle // 返回一个实现了引用计数的 Handle，可以 spawn() 任务
+// 返回一个实现了引用计数的 Handle 对象，可以 spawn() 任务，将 Runtime 在多个 thread 间共享。
+pub fn handle(&self) -> &Handle
 
-// 在 worker thread pool 中立即运行 task，而不管是否 await 返回的 JoinHandle
-pub fn spawn<F>(&self, future: F) -> JoinHandle<F::Output>  // 提交异步任务 Future
+// 在 worker thread pool 中立即运行 async task，而不管是否 await 返回的 JoinHandle
+pub fn spawn<F>(&self, future: F) -> JoinHandle<F::Output>
 where
-    F: Future + Send + 'static,
-    F::Output: Send + 'static,
+    F: Future + Send + 'static, // 对线程 Runtime 要求传入的 feture 必须是 Send + 'static
+    F::Output: Send + 'static
 
-pub fn spawn_blocking<F, R>(&self, func: F) -> JoinHandle<R> // 提交同步任务
+// 提交同步任务
+pub fn spawn_blocking<F, R>(&self, func: F) -> JoinHandle<R>
 where
     F: FnOnce() -> R + Send + 'static,
     R: Send + 'static,
 
-// 执行 future，直到结束。对于多线程 Runtime，当 block_on 返回时，spawn() 的 task 可能还在运行，如果
-// 要确保这些 task完成，可以进行 .await.
+// 执行 future，直到结束。对于多线程 Runtime，当 block_on 返回时，spawn() 的 task 可能还在运行，如果要确保这些
+// task 完成，可以进行 .await.
 pub fn block_on<F: Future>(&self, future: F) -> F::Output
 
-pub fn enter(&self) -> EnterGuard<'_> // 设置 thread local Runtime，后续可以使用 tokio::spawn() 等函数
+// 设置 thread local Runtime，后续可以使用 tokio::spawn() 等函数(它们感知 EnterGuard)
+pub fn enter(&self) -> EnterGuard<'_>
 
-pub fn shutdown_timeout(self, duration: Duration) // 关闭 Runtime，不能再提交任务和 IO/Timer
+// 关闭 Runtime，不能再提交任务和 IO/Timer
+pub fn shutdown_timeout(self, duration: Duration)
 pub fn shutdown_background(self)
 
 impl Runtime
@@ -464,20 +463,24 @@ impl Runtime
 pub fn metrics(&self) -> RuntimeMetrics
 ```
 
-可以使用 Runtime::enter() 或 Handle::enter() 进入 Runtime context，他会创建一个 thread local 变量来标识当前的 Runtime，然后就可以使用 tokio::spawn() 等方法在该 Runtime context 中提交异步任务了，一般用于手动创建 Runtime 的场景：
+Runtime::enter() 或 Handle::enter() 创建 Runtime context，它会创建一个 thread local 变量来标识当前的 Runtime，可以使用 tokio::spawn() 等方法在该 Runtime context 中提交异步任务，一般用于手动创建 Runtime 的场景：
+
+-   Runtime::new() 自动创建一个 Handle 并调用它的 enter();
+
+<!--listend-->
 
 ```rust
 use tokio::runtime::Runtime;
 use tokio::task::JoinHandle;
 
 fn function_that_spawns(msg: String) -> JoinHandle<()> {
-    // Had we not used `rt.enter` below, this would panic.
     tokio::spawn(async move {
         println!("{}", msg);
     })
 }
 
 fn main() {
+    // 手动创建 Runtime
     let rt = Runtime::new().unwrap();
 
     let s = "Hello World!".to_string();
@@ -494,7 +497,7 @@ fn main() {
 runtime.shutdown_timeout() 和 shutdown_background() 关闭 Runtime，而不等待所有 spawn 的 task 结束：
 
 -   Drop Runtime 时默认会等待所有 task 结束，则可能导致无限期等待；
--   这两个方法不会无限期等待，task 还会在后台运行，对应的 thread 可能会被泄露；
+-   这两个方法不会无限期等待，task 可能还会在后台运行，故对应的 thread 可能会被泄露；
 
 <!--listend-->
 
@@ -518,13 +521,14 @@ fn main() {
 }
 ```
 
-Runtime 对象本身可以通过多方方式进行 Sharing：
+Runtime 可以通过多方方式进行 Sharing：
 
 1.  Using an Arc&lt;Runtime&gt;.
-2.  Using a Handle.
-3.  Entering the runtime context.
+2.  Using a `Handle`.
+3.  `Entering` the runtime context.
 
-Arc&lt;Runtime&gt; 和 Handle（可以使用 Runtime.handle() 方法返回 ） 都基于引用计数实现了 Clone() 方法，可以将 Runtime 在多个 thread 间共享。
+Arc&lt;Runtime&gt; 和 Handle（Runtime.handle() 方法返回 ） 都基于引用计数实现了 Clone() 方法，可以将 Runtime 在多个
+thread 间共享。
 
 -   Handler::current() 返回当前 Runtime 的 Handle，可以 spawn() 并发异步任务；
 
@@ -537,6 +541,7 @@ use tokio::runtime::Handle;
 async fn main () {
     let handle = Handle::current();
 
+    // 创建一个 std 线程
     std::thread::spawn(move || {
         // Using Handle::block_on to run async code in the new thread.
         handle.block_on(async {
@@ -562,58 +567,48 @@ fn main() {
         .thread_stack_size(3 * 1024 * 1024)
         .build()
         .unwrap();
-
     // use runtime ...
 }
 ```
 
 Builder 方法：
 
--   new_current_thread() ： 单线程调度器；
--   new_multi_thread() : 多线程调度器
+-   new_current_thread() ：单线程调度器；
+-   new_multi_thread() : 多线程调度器；
 
 <!--listend-->
 
 ```rust
 impl Builder
 pub fn new_current_thread() -> Builder
-// Available on crate feature rt-multi-thread only.
 pub fn new_multi_thread() -> Builder
-// Available on tokio_unstable and crate feature rt-multi-thread only.
 pub fn new_multi_thread_alt() -> Builder
 
-// 启用所有 resource，如 io/net/timer 等
+// 启用所有 resource driver，如 io/net/timer 等
 pub fn enable_all(&mut self) -> &mut Self
-
+// 默认为 CPU Core 数量，会覆盖环境变量 TOKIO_WORKER_THREADS 值。一次性创建。
 pub fn worker_threads(&mut self, val: usize) -> &mut Self
-pub fn max_blocking_threads(&mut self, val: usize) -> &mut Self
-pub fn thread_name(&mut self, val: impl Into<String>) -> &mut Self
-pub fn thread_name_fn<F>(&mut self, f: F) -> &mut Self
-where
-    F: Fn() -> String + Send + Sync + 'static,
 
+// blocking 线程池中线程数量，按需创建，idle 超过一定时间后被回收
+pub fn max_blocking_threads(&mut self, val: usize) -> &mut Self
+// blocking 线程池中线程空闲时间，默认 10s
+pub fn thread_keep_alive(&mut self, duration: Duration) -> &mut Self
+
+pub fn thread_name(&mut self, val: impl Into<String>) -> &mut Self
+pub fn thread_name_fn<F>(&mut self, f: F) -> &mut Self where F: Fn() -> String + Send + Sync + 'static
 pub fn thread_stack_size(&mut self, val: usize) -> &mut Self
 
-pub fn on_thread_start<F>(&mut self, f: F) -> &mut Self
-where
-    F: Fn() + Send + Sync + 'static,
-pub fn on_thread_stop<F>(&mut self, f: F) -> &mut Self
-where
-    F: Fn() + Send + Sync + 'static,
-pub fn on_thread_park<F>(&mut self, f: F) -> &mut Self
-where
-    F: Fn() + Send + Sync + 'static,
-pub fn on_thread_unpark<F>(&mut self, f: F) -> &mut Self
-where
-    F: Fn() + Send + Sync + 'static,
+pub fn on_thread_start<F>(&mut self, f: F) -> &mut Self where F: Fn() + Send + Sync + 'static
+pub fn on_thread_stop<F>(&mut self, f: F) -> &mut Self where F: Fn() + Send + Sync + 'static
+pub fn on_thread_park<F>(&mut self, f: F) -> &mut Self where F: Fn() + Send + Sync + 'static
+pub fn on_thread_unpark<F>(&mut self, f: F) -> &mut Self where F: Fn() + Send + Sync + 'static
 
 // 构建生成 Runtime
 pub fn build(&mut self) -> Result<Runtime>
-// blocking 线程池中线程空闲时间
-pub fn thread_keep_alive(&mut self, duration: Duration) -> &mut Self
-// 检查 global queue event 的数量
+
+// 检查 global queue event 的 scheduler ticks
 pub fn global_queue_interval(&mut self, val: u32) -> &mut Self
-// 检查 event 的调度事件数量
+// 检查 event 的 scheduler ticks
 pub fn event_interval(&mut self, val: u32) -> &mut Self
 
 // Available on tokio_unstable only.
@@ -624,19 +619,9 @@ pub fn disable_lifo_slot(&mut self) -> &mut Self
 pub fn rng_seed(&mut self, seed: RngSeed) -> &mut Self
 // Available on tokio_unstable only.
 pub fn enable_metrics_poll_count_histogram(&mut self) -> &mut Self
-
-pub fn metrics_poll_count_histogram_scale(
-    &mut self,
-    histogram_scale: HistogramScale
-) -> &mut Self
-pub fn metrics_poll_count_histogram_resolution(
-    &mut self,
-    resolution: Duration
-) -> &mut Self
-pub fn metrics_poll_count_histogram_buckets(
-    &mut self,
-    buckets: usize
-) -> &mut Self
+pub fn metrics_poll_count_histogram_scale( &mut self, histogram_scale: HistogramScale ) -> &mut Self
+pub fn metrics_poll_count_histogram_resolution( &mut self, resolution: Duration) -> &mut Self
+pub fn metrics_poll_count_histogram_buckets( &mut self, buckets: usize ) -> &mut Self
 
 impl Builder
 // Available on crate feature net, or Unix and crate feature process, or Unix and crate feature signal only.
@@ -644,7 +629,6 @@ pub fn enable_io(&mut self) -> &mut Self
 // Available on crate feature net, or Unix and crate feature process, or Unix and crate feature signal only.
 pub fn max_io_events_per_tick(&mut self, capacity: usize) -> &mut Self
 
-impl Builder
 // Available on crate feature time only.
 pub fn enable_time(&mut self) -> &mut Self
 
@@ -655,32 +639,28 @@ pub fn start_paused(&mut self, start_paused: bool) -> &mut Self
 
 ## <span class="section-num">4</span> task {#task}
 
-Asynchronous green-threads.
-
-A task is `a light weight, non-blocking unit of execution`. A task is similar to an OS thread, but
-rather than being managed by the OS scheduler, they are managed by the `Tokio runtime`. Another name
-for this general pattern is `green threads`. If you are familiar with Go’s goroutines, Kotlin’s
-coroutines, or Erlang’s processes, you can think of Tokio’s tasks as something similar.
+A task is `a light weight, non-blocking unit of execution`. A task is similar to an OS thread, but rather than
+being managed by the OS scheduler, they are managed by the `Tokio runtime`. Another name for this general
+pattern is `green threads`. If you are familiar with Go’s goroutines, Kotlin’s coroutines, or Erlang’s
+processes, you can think of Tokio’s tasks as something similar.
 
 三大特点：
 
 1.  轻量级：scheduled by the Tokio runtime rather than the operating system；
-2.  协作式调度：OS thread 一般是抢占式调度；协作式调度 cooperatively 表示 task 会一直运行直到
-    yield（例如数据没有准备好，.await 位置会 yield，同时 tokio API lib 中默认强制插入了一些 yield
-    point，确保即使 task 没有 yield，底层的 lib 也会周期 yield），这时 Tokio Runtime 会调度其他 task
-    来运行；
-3.  非阻塞：需要使用 tokio crate 提供的非阻塞 IO 来进行 IO/Net/Fs 等到 async context 的 APIs 操作，这些 API 不会阻塞线程，而是 yield，这样 tokio Runtime 可以执行其他 task；
+2.  协作式调度：OS thread 一般是抢占式调度；协作式调度 cooperatively 表示 task 会一直运行直到 yield（例如数据没有准备好，.await 位置会 yield，同时 tokio API lib 中默认强制插入了一些 yield point，确保即使 task 没有yield，底层的 lib 也会周期 yield），这时 Tokio Runtime 会调度其他 task 来运行；
+3.  非阻塞：需要使用 tokio crate 提供的非阻塞 IO 来进行 IO/Net/Fs 在 async context 下的 APIs 操作，这些 API 不会阻塞线程，而是 yield，这样 tokio Runtime 可以执行其它 task；
 
-async task 可以使用 aysnc fn 或 async block 来构造，他们都是返回实现 Funture trait 的语法糖。
+async task 可以使用 aysnc fn 或 async move block 来构造，它们都是返回实现 Future trait 的语法糖。
 
--   async move block 更常用；
+-   task::spawn() 立即在后台运行异步任务，而不管是否 .await 它返回的 JoinHandle；
+-   JoinHandle 实现了 Feture trait，.await 它时返回  Result&lt;T, JoinError&gt;；
 
 <!--listend-->
 
 ```rust
 use tokio::task;
 
-// 需要位于 Runtime Context， spawn 的 task 立即在后台执行，而不管是否 .await
+// 需要位于 Runtime Context，spawn 的 task 立即在后台执行，而不管是否 .await
 let join = task::spawn(async {
     // ...
     "hello world!"
@@ -692,39 +672,41 @@ let join = task::spawn(async {
 let result = join.await?;
 assert_eq!(result, "hello world!");
 
-// 如果 task panic，则 await 返回  JoinErr
+// 如果 task panic，则 .await 返回 JoinErr
 use tokio::task;
-
 let join = task::spawn(async {
     panic!("something bad happened!")
 });
-
 // The returned result indicates that the task failed.
 assert!(join.await.is_err());
 ```
 
-spawn 的 task 可以通过 `JoinHandle.abort()` 方法来取消（Cancelled）, 对应的 task 会在 `下一次 .await 点被 yield` 时终止。另外当 shutdown Runtime 时，如 #[tokio::main] 修饰的 async fn 返回时，这些 task 也将被终止。这时，JoinHandle 的 .await 结果是 JoinErr，他的 is_cancelled() 为 true；
+spawn 的 task 可以通过 `JoinHandle.abort()` 方法来取消（Cancelled）, 对应的 task 会在 `下一次 yield 时（如
+.await)` 时被终止。这时，JoinHandle 的 .await 结果是 JoinErr，它的 is_cancelled() 为 true：
 
 -   abort task 并不代表 task 一定以 JoinErr 结束，因为有些任务可能在 yield 前正常结束，这时 .await 返回正常结果。
--   调用 JoinHandle.abort() 只是给运行的 task 发送了信号，但是并不等待 task 都结束才返回。
--   可以使用 JoinHandle .await 来确保 task 都返回。
 
-如果使用的是不是 tokio crate 的 APIs，如标准库的 IO APIs，则可能会阻塞 tokio Runtime。对于可能会引起阻塞的任务，tokio 提供了在 async context 中运行的 `task::spawn_blocking() 和 task::block_in_place()`
-函数, 前者是在单独的 blocing thread pool 中运行同步任务（clouse 来标识），从而避免阻塞运行 aysnc
+abort() 方法可能在 task 被终止前返回，可以使用 JoinHandle .await 来确保 task 被终止后返回。
+
+对于 spawn_blocking() 创建的任务，由于不是 async，所以调用它返回的 JoinHandle.abort() 是无效的，task 会持续运行。
+
+如果使用的不是 tokio crate 的 APIs，如标准库的 IO APIs，则可能会阻塞 tokio Runtime。对于可能会引起阻塞的任务，
+tokio 提供了在 async context 中运行的 `task::spawn_blocking() 和 task::block_in_place()` 函数。
+
+task::spawn_blocking() 是在单独的 blocing thread pool 中运行同步任务（clouse 来标识），从而避免阻塞运行 aysnc
 task 的线程。
 
 ```rust
-let join = task::spawn_blocking(|| { // 在单独的线程中运行可能会阻塞 tokio 的代码
+// async context 中，在单独的线程中运行可能会阻塞 tokio 的代码
+let join = task::spawn_blocking(|| {
     // do some compute-heavy work or call synchronous code
     "blocking completed"
 });
-
 let result = join.await?;
 assert_eq!(result, "blocking completed");
 ```
 
-如果使用的多线程 runtime，则 `task::block_in_place()` 也是可用的，和 task::spawn_blocking() 类似，他也是在 async context 中运行可能 blocking 当前线程的代码，但是他是将 Runtime 的 worker thread 转换为
-blocking thread 来实现的，这样可以避免上下文切换来提升性能：
+如果使用的多线程 runtime，则 `task::block_in_place()` 也是可用的，它也是在 async context 中运行可能 blocking 当前线程的代码，但是它是将 Runtime 的 worker thread 转换为 blocking thread 来实现的，这样可以避免上下文切换来提升性能：
 
 ```rust
 use tokio::task;
@@ -733,11 +715,11 @@ let result = task::block_in_place(|| {
     // do some compute-heavy work or call synchronous code
     "blocking completed"
 });
-
 assert_eq!(result, "blocking completed");
 ```
 
-调用 async fn `task::yield_now()` 函数类似于 std::thread::yield_now(), 调用并且 .await 该函数将会使当前 task yield to tokio Runtime 调度器，让其他 task 被调度执行。
+async fn `task::yield_now()` 类似于 std::thread::yield_now(), .await 该函数时会使当前 task yield to tokio
+Runtime 调度器，让其它 task 被调度执行。
 
 ```rust
 use tokio::task;
@@ -756,15 +738,13 @@ async {
 
 协作式调度：tokio Runtime 没有使用 OS thread 的抢占式调度，而是使用协作式调度，可以避免一个 task 执行时长时间占有 CPU 而影响其他 task 的执行。这是通过在 tokio libray 中 `强制插入一些 yield point` ，从而强制实现 task 周期返回 executor，从而可以调度其他 task 运行。
 
-`task::unconstrained` 可以对 task 规避 tokio 协作式调度，使用他包裹的 Future task 不会 forced to yield
-to Tokio：
+`task::unconstrained` 可以对 task 规避 tokio 协作式调度，使用它包裹的 Future task 不会 forced to yield to Tokio：
 
 ```rust
 use tokio::{task, sync::mpsc};
 
 let fut = async {
     let (tx, mut rx) = mpsc::unbounded_channel();
-
     for i in 0..1000 {
         let _ = tx.send(());
         // This will always be ready. If coop was in effect, this code would be forced to yield
@@ -779,10 +759,10 @@ task::unconstrained(fut).await;
 
 ### <span class="section-num">4.1</span> JoinSet/JoinHandle/AbortHandle {#joinset-joinhandle-aborthandle}
 
-在 tokion runtime 上 spawn 一批 task，等待一些或全部执行完成，task 按照完成的顺序返回。
+JoinSet: 在 tokion runtime 上 spawn 一批 task，等待一些或全部执行完成，按照完成的顺序返回。
 
 -   所有任务的返回类型 T 必须相同；
--   如果 JoinSet 被 Drop，则其中所有 task 都会立即被 aborted；
+-   如果 JoinSet 被 Drop，则其中的所有 task 立即被 aborted；
 
 <!--listend-->
 
@@ -798,7 +778,8 @@ async fn main() {
     }
 
     let mut seen = [false; 10];
-    while let Some(res) = set.join_next().await { // join_next() 返回下一个返回的 task 结果
+    // join_next() 返回下一个返回的 task 结果
+    while let Some(res) = set.join_next().await {
         let idx = res.unwrap();
         seen[idx] = true;
     }
@@ -813,15 +794,15 @@ JoinSet 的方法：
 
 ```rust
 impl<T> JoinSet<T>
-// 创建一个 JoinSet
 pub fn new() -> Self
 // 返回 JoinSet 中 task 数量
 pub fn len(&self) -> usize
 pub fn is_empty(&self) -> bool
 
 impl<T: 'static> JoinSet<T>
-// 使用 Builder 来构造一个 task（只能设置 然后再 ），name spawn
+// 使用 Builder 来构造一个 task：只能设置 name 然后再 spawn
 pub fn build_task(&mut self) -> Builder<'_, T>
+
 use tokio::task::JoinSet;
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -833,11 +814,8 @@ async fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-// 在 JoinSet 中 spwan 一个 task，该 task 会立即运行
-pub fn spawn<F>(&mut self, task: F) -> AbortHandle
-where
-    F: Future<Output = T> + Send + 'static,
-    T: Send,
+// 在 JoinSet 中 spawn 一个 task，该 task 会立即运行
+pub fn spawn<F>(&mut self, task: F) -> AbortHandle where F: Future<Output = T> + Send + 'static, T: Send,
 
 // 在指定的 Handler 对应的 Runtime 上 spawn task
 pub fn spawn_on<F>(&mut self, task: F, handle: &Handle) -> AbortHandle
@@ -847,14 +825,8 @@ where
 
 pub fn spawn_local<F>(&mut self, task: F) -> AbortHandle
 where
-    F: Future<Output = T> + 'static,
-pub fn spawn_local_on<F>(
-    &mut self,
-    task: F,
-    local_set: &LocalSet
-) -> AbortHandle
-where
-    F: Future<Output = T> + 'static,
+    F: Future<Output = T> + 'static
+pub fn spawn_local_on<F>( &mut self, task: F, local_set: &LocalSet ) -> AbortHandle where F: Future<Output = T> + 'static,
 
 pub fn spawn_blocking<F>(&mut self, f: F) -> AbortHandle
 where
@@ -881,44 +853,32 @@ async fn main() {
 pub fn spawn_blocking_on<F>(&mut self, f: F, handle: &Handle) -> AbortHandle
 where
     F: FnOnce() -> T + Send + 'static,
-    T: Send,
+    T: Send
 
-// 等待直到其中一个 task 完成，返回他的 output，注意是异步函数。
+// 等待直到其中一个 task 完成，返回它的 output，注意是异步函数。
 // 当 JoinSet 为空时，返回 None，可用于 while let 中。
 pub async fn join_next(&mut self) -> Option<Result<T, JoinError>>
-
 pub async fn join_next_with_id(&mut self) -> Option<Result<(Id, T), JoinError>>
 pub fn try_join_next(&mut self) -> Option<Result<T, JoinError>>
 pub fn try_join_next_with_id(&mut self) -> Option<Result<(Id, T), JoinError>>
 
-// Aborts all tasks and waits for them to finish shutting down. Calling this method is equivalent to
-// calling abort_all and then calling join_next in a loop until it returns None.
+// Aborts all tasks and waits for them to finish shutting down. Calling this method is equivalent to calling
+// abort_all and then calling join_next in a loop until it returns None.
 pub async fn shutdown(&mut self)
 
-// Aborts all tasks on this JoinSet. This does not remove the tasks from the JoinSet. To wait for
-// the tasks to complete cancellation, you should call join_next in a loop until the JoinSet is
-// empty.
+// Aborts all tasks on this JoinSet. This does not remove the tasks from the JoinSet. To wait for the tasks to
+// complete cancellation, you should call join_next in a loop until the JoinSet is empty.
 pub fn abort_all(&mut self)
 
-// Removes all tasks from this JoinSet without aborting them.
-// The tasks removed by this call will continue to run in the background even if the JoinSet is dropped.
+// Removes all tasks from this JoinSet without aborting them. The tasks removed by this call will continue to
+// run in the background even if the JoinSet is dropped.
 pub fn detach_all(&mut self)
-
-pub fn poll_join_next(
-    &mut self,
-    cx: &mut Context<'_>
-) -> Poll<Option<Result<T, JoinError>>>
-
-pub fn poll_join_next_with_id(
-    &mut self,
-    cx: &mut Context<'_>
-) -> Poll<Option<Result<(Id, T), JoinError>>>
 ```
 
-JoinSet 的个 spawn() 都返回 `AbortHandle` 对象，通过该对象可以 abort 对应的 spawned task，而不等待他运行结束。
+JoinSet 的各 spawn() 都返回 `AbortHandle` 对象，通过该对象可以 abort 对应的 spawned task，而不等待运行结束。
 
--   不像 JoinHandle 那样 await task 结束，AbortHandle 只用于 terminate task 而不等待他结束；
--   Drop AbortHandle 表示释放了终止任务的权利，并不会终止任务。
+-   不像 JoinHandle 那样 await task 结束，AbortHandle 只用于 terminate task 而不等待它结束；
+-   Drop AbortHandle 表示释放了终止 task 的权利，并不会终止任务。
 
 <!--listend-->
 
@@ -932,22 +892,31 @@ pub fn is_finished(&self) -> bool
 pub fn id(&self) -> Id
 ```
 
-另外，task::spwan() 和 task::spawn_blocking() 返回的 `JoinHandle` 类型的 abort_handle() 方法也可以返回该 task 的AbortHandle：
+task::spawn() 和 task::spawn_blocking() 返回 `JoinHandle` 类型：
 
 -   JoinHandle 实现了 Future，可以进行 .await 结果；
+-   当 JoinHandle 被 Drop 时，关联的 task 会被从 Runtime detach 并继续运行，但不能再 join 它。
+-   它的 abort_handle() 方法也可以返回该 task 的 AbortHandle；
 
 <!--listend-->
 
 ```rust
+
+impl<T> JoinHandle<T>
+// Abort the task associated with the handle.
+pub fn abort(&self)
+// Checks if the task associated with this JoinHandle has finished.
+pub fn is_finished(&self) -> bool
+// Returns a new AbortHandle that can be used to remotely abort this task.
+pub fn abort_handle(&self) -> AbortHandle
+
 use tokio::{time, task};
 
 let mut handles = Vec::new();
-
 handles.push(tokio::spawn(async {
    time::sleep(time::Duration::from_secs(10)).await;
    true
 }));
-
 handles.push(tokio::spawn(async {
    time::sleep(time::Duration::from_secs(10)).await;
    false
@@ -958,20 +927,21 @@ let abort_handles: Vec<task::AbortHandle> = handles.iter().map(|h| h.abort_handl
 for handle in abort_handles {
     handle.abort();
 }
-
 for handle in handles {
     assert!(handle.await.unwrap_err().is_cancelled());
 }
 ```
 
-JoinHandle 实现了 Future，他的 Output = Result&lt;T, JoinError&gt;， `JoinError`  类型可以判断 task 是否被
+JoinHandle 实现了 Future，它的 Output = Result&lt;T, JoinError&gt;， `JoinError` 类型可以判断 task 是否被
 cancelled/panic 等出错原因：
 
 ```rust
-§
 impl JoinError
 pub fn is_cancelled(&self) -> bool
 pub fn is_panic(&self) -> bool
+pub fn into_panic(self) -> Box<dyn Any + Send + 'static>
+pub fn try_into_panic(self) -> Result<Box<dyn Any + Send + 'static>, JoinError>
+pub fn id(&self) -> Id
 
 use std::panic;
 #[tokio::main]
@@ -981,23 +951,18 @@ async fn main() {
     }).await.unwrap_err();
     assert!(err.is_panic());
 }
-
-pub fn into_panic(self) -> Box<dyn Any + Send + 'static>
-pub fn try_into_panic(self) -> Result<Box<dyn Any + Send + 'static>, JoinError>
-pub fn id(&self) -> Id
 ```
 
 
 ### <span class="section-num">4.2</span> LocalSet/spawn_local() {#localset-spawn-local}
 
-在同一个 thread 上运行一批异步 task，可以避免 tokio::spawn() 等要求的 Future task 必须实现 Send 的要求。
+在同一个 thread 上运行一批异步 task，可以避免 tokio::spawn() 等的 Future task 必须实现 Send 的要求：
 
-1.  先使用 task::LocalSet::new() 创建一个 LocalSet；
-2.  在 LocalSet::run_until 来运行一个 async Future Block，该函数是一个 async fn，需要 .await 结果；
-    -   当 LocalSet 中所有 task 都结束时，.await 返回；
+1.  使用 task::LocalSet::new() 创建一个 LocalSet；
+2.  LocalSet::run_until() 运行一个 async Future Block，该函数是一个 async fn，当 LocalSet 中所有 task 都结束时，.await 返回。
     -   该 Future 在 `LocalSet context` 中执行，可以调用 tokio::task::spawn_local() 来提交 !Send task；
 3.  在 Future 中使用 `LocalSet::spawn_local() 或者 tokio::task::spawn_local()` 来运行一个 !Send 的 task；
-    -   只能使用这一个方法来提交任务，不能使用 task::spawn() 函数；
+    -   只能使用这一个 spawn_local() 方法来提交任务，不能使用 task::spawn() 函数；
 
 注意：
 
@@ -1017,17 +982,18 @@ use tokio::task;
 async fn main() {
     let nonsend_data = Rc::new("my nonsend data...");
     let local = task::LocalSet::new();
-    // Run the local task set.
-    local.run_until(async move { // 指定调用 local.enter(), Future 位于该 LocalSet context 中
-        let nonsend_data = nonsend_data.clone();
-        // `spawn_local` ensures that the future is spawned on the local task set.
 
-        // 在 run_until() 内部，使用 task::spawn_local() 提交任务。
-        task::spawn_local(async move { // 可以调用多次
+    // Run the local task set.
+    local.run_until(async move { // 自动调用 local.enter(), Future 位于该 LocalSet context 中
+        let nonsend_data = nonsend_data.clone();
+
+        // `spawn_local` ensures that the future is spawned on the local task set.
+        // 在 run_until() 内部，可以多次使用 task::spawn_local() 提交任务。
+        task::spawn_local(async move {
             println!("{}", nonsend_data);
             // ...
-        }).await.unwrap(); // .await 在所有 spawn_local() 提交的 task 结束时返回
-    }).await;
+        }).await.unwrap();
+    }).await; // .await 在所有 spawn_local() 提交的 task 结束时返回
 }
 
 // 另一个例子
@@ -1040,6 +1006,7 @@ async fn main() {
     let local = task::LocalSet::new();
 
     let nonsend_data2 = nonsend_data.clone();
+
     // 使用 LocalSet.spawn_local() 提交任务
     local.spawn_local(async move {
         // ...
@@ -1062,59 +1029,23 @@ LocalSet 的方法：
 ```rust
 source
 impl LocalSet
-// 创建一个 LocalSet
 pub fn new() -> LocalSet
+
 // 进入 LocalSet 的 context，这样后续使用 tokio::task::spawn_local() 提交 !Send task;
 pub fn enter(&self) -> LocalEnterGuard
-// 提交一个 !Send task， 返回可以 .await 的 JoinHandle
-pub fn spawn_local<F>(&self, future: F) -> JoinHandle<F::Output> ⓘ
-where
-    F: Future + 'static,
-    F::Output: 'static,
-// 同步执行 future，直到返回
-pub fn block_on<F>(&self, rt: &Runtime, future: F) -> F::Output
-where
-    F: Future,
-// 执行一个 Future, 内部可以使用 tokio::task::spawn_local() 提交 !Send task, 运行直到这些 task 结束；
-pub async fn run_until<F>(&self, future: F) -> F::Output
-where
-    F: Future,
 
-impl LocalSet
+// 提交一个 !Send task， 返回可以 .await 的 JoinHandle
+pub fn spawn_local<F>(&self, future: F) -> JoinHandle<F::Output> where F: Future + 'static, F::Output: 'static
+
+// 在指定的 Runtime 中同步执行 future，直到返回。
+// 内部调用 Runtime::block_on() 函数，所以需要在同步上下文中调用。
+pub fn block_on<F>(&self, rt: &Runtime, future: F) -> F::Output where F: Future,
+
+// 执行一个 Future, 内部可以使用 tokio::task::spawn_local() 提交 !Send task, 运行直到这些 task 结束；
+pub async fn run_until<F>(&self, future: F) -> F::Output where F: Future
+
 pub fn unhandled_panic(&mut self, behavior: UnhandledPanic) -> &mut Self
 pub fn id(&self) -> Id
-```
-
-示例：
-
-```rust
-use tokio::task;
-
-#[tokio::main]
-async fn main() {
-    let local = task::LocalSet::new();
-
-    // Spawn a future on the local set. This future will be run when
-    // we call `run_until` to drive the task set.
-    local.spawn_local(async {
-       // ...
-    });
-
-    // Run the local task set.
-    local.run_until(async move {
-        // ...
-    }).await;
-
-    // When `run` finishes, we can spawn _more_ futures, which will
-    // run in subsequent calls to `run_until`.
-    local.spawn_local(async {
-       // ...
-    });
-
-    local.run_until(async move {
-        // ...
-    }).await;
-}
 ```
 
 
@@ -1160,8 +1091,8 @@ async fn process(socket: TcpStream) {
 
 异步并发版本:
 
--   tokio Task 是非常轻量的 green-thread (相比数千字节的 thread stack, task 只占用 64 字节的内存开销),
-    通过 async block 来进行创建.
+-   tokio Task 是轻量的 green-thread (相比数千字节的 thread stack, task 只占用 64 字节的内存开销), 通过 async
+    block/async fn 来进行创建;
 -   tokio::spawn(async move {...}) 将异步任务提交给 tokio execution runtime 进行 concurrency 并发执行;
 
 <!--listend-->
@@ -1172,11 +1103,10 @@ use tokio::net::TcpListener;
 #[tokio::main]
 async fn main() {
     let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
-
     loop {
         let (socket, _) = listener.accept().await.unwrap();
-        // A new task is spawned for each inbound socket. The socket is moved to the new task and
-        // processed there.
+        // A new task is spawned for each inbound socket. The socket is moved to the new task and processed
+        // there.
         tokio::spawn(async move {
             process(socket).await;
         });
@@ -1184,7 +1114,7 @@ async fn main() {
 }
 ```
 
-async task block 必须是 'static 生命周期的, 所以不能直接共享引用 stack 上的变量:
+async task block 必须是 'static 生命周期, 所以不能直接共享借用 stack 上的变量:
 
 ```rust
 use tokio::task;
@@ -1198,11 +1128,10 @@ async fn main() {
 }
 ```
 
-报错: This happens because, by default, variables are `not moved into` async blocks. The v vector
-remains `owned by the main function`. The println! line borrows v. The rust compiler helpfully
-explains this to us and even suggests the fix! Changing line 7 to `task::spawn(async move {` will
-instruct the compiler to move v into the spawned task. Now, `the task owns all of its data`, making it
-'static.
+报错: This happens because, by default, variables are `not moved into` async blocks. The v vector remains `owned
+by the main function`. The println! line borrows v. The rust compiler helpfully explains this to us and even
+suggests the fix! Changing line 7 to `task::spawn(async move {` will instruct the compiler to move v into the
+spawned task. Now, `the task owns all of its data`, making it 'static.
 
 ```rust
 error[E0373]: async block may outlive the current function, but
@@ -1235,9 +1164,9 @@ help: to force the async block to take ownership of `v` (and any other
 
 async task 的签名是 Future + Send + 'static, 所以:
 
-1.  使用 move 来将引用的外部对象的所有权转移到 task, 从而满足 'static 的问题;
-2.  task 会在多个 thread 间调度, 所以必须是可以 Send 的, 这意味着 task 内部的跨 await 的变量(因为在
-    await 处生成 Future object, 它记录了上下文变量)必须实现了 Send;
+1.  使用 move 来将引用的外部对象的所有权转移到 task, 从而满足 'static 的要求;
+2.  task 在多个 thread 间调度, 所以必须是可以 Send 的, 这意味着 task 内部的跨 await 的变量(因为在 await 处生成
+    Future object, 它记录了上下文变量)必须实现 Send;
 
 <!--listend-->
 
@@ -1255,9 +1184,8 @@ async fn main() {
             println!("{}", rc);
         }
 
-        // `rc` is no longer used. It is **not** persisted when
-        // the task yields to the scheduler
-        yield_now().await;
+        // `rc` is no longer used. It is **not** persisted when the task yields to the scheduler
+        yield_now().await; // yield_now() 返回 Future，必须 await 才会实际 yield
     });
 }
 
@@ -1269,11 +1197,8 @@ use std::rc::Rc;
 async fn main() {
     tokio::spawn(async {
         let rc = Rc::new("hello");
-
-        // `rc` is used after `.await`. It must be persisted to
-        // the task's state.
+        // `rc` is used after `.await`. It must be persisted to the task's state.
         yield_now().await;
-
         println!("{}", rc);
     });
 }
@@ -1314,12 +1239,12 @@ note: future is not `Send` as this value is used across an await
 
 ## <span class="section-num">6</span> mutex {#mutex}
 
-异步任务中也可以使用 std::sync::Arc/Mutex 同步原语来对共享内存进行并发访问:
+异步任务中可以使用 std::sync::Arc/Mutex 同步原语来对共享内存进行并发访问:
 
--   这里使用 std::sync::Mutex 而非 tokio::sync::Mutex,  `只有当 Mutex 跨 await 时才需要使用异步 Mutex`;
+-   这里使用 std::sync::Mutex 而非 tokio::sync::Mutex, `只有当 Mutex 跨 await 时才需要使用异步 Mutex`;
 -   Mutex lock 阻塞时会阻塞当前 thread, 会导致其他 async task 也不能调度到该 thread 执行;
--   缺省情况下, tokio runtime 使用 multi-thread scheduler, task 被调度到那个 thread 是 tokio runtime
-    决定的; tokio 还提供 current_thread runtime flavor, 它是一个轻量级, 单线程的 runtime.
+-   缺省情况下, tokio runtime 使用 multi-thread scheduler, task 被调度到那个 thread 是 tokio runtime决定的;
+    tokio 还提供 current_thread runtime flavor, 它是一个轻量级, 单线程的 runtime.
 
 <!--listend-->
 
@@ -1526,11 +1451,9 @@ async fn increment_and_do_stuff(mutex: &Mutex<i32>) {
 
 tokio mpsc message passing:
 
-1.  一个 tokio spawn task 作为 manager 角色, 通过 buffered mpsc channel 接收 message, 然后根据
-    message 类型来操作有状态对象, 由于只有 manager 来串行操作该对象, 所以可以避免加锁.
+1.  一个 tokio spawn task 作为 manager 角色, 通过 buffered mpsc channel 接收 message, 然后根据message 类型来操作有状态对象, 由于只有 manager 来串行操作该对象, 所以可以避免加锁.
 2.  manager 通过 message 中的 response channel 来向发送者响应结果;
-3.  tokio::sync::oneshot 是 a single-producer, single-consumer channel optimized for sending a single
-    value.
+3.  tokio::sync::oneshot 是 a single-producer, single-consumer channel optimized for sending a single value.
 
 <!--listend-->
 
@@ -1630,38 +1553,526 @@ async fn main() {
 }
 ```
 
-std:sync::mpsc 和 crossbeam::channel 都是同步 channel, 不能在 async func 中使用, 否则可能 block 当前线程和 task.
+std:sync::mpsc 和 crossbeam::channel 都是同步 channel, 不能在 async func 中使用, 否则可能 block 当前线程和
+task.
 
 
-## <span class="section-num">8</span> async io {#async-io}
+## <span class="section-num">8</span> tokio::sync {#tokio-sync}
 
-I/O in Tokio operates in much the same way as in std, but asynchronously. There is a trait for
-`reading (AsyncRead)` and a trait for `writing (AsyncWrite)`. Specific types implement these traits as
-appropriate (TcpStream, File, Stdout). AsyncRead and AsyncWrite are also implemented by a number of
-data structures, such as Vec&lt;u8&gt; and &amp;[u8]. This allows using byte arrays where a reader or writer
-is expected. The methods on these traits are typically not called directly, similar to how you don't
-manually call `the poll method from the Future trait`. Instead, you will use them through the utility
-methods provided by `AsyncReadExt and AsyncWriteExt`.
+tokio 提供了 4 种类型 channel：
 
-AsyncReadExt trait 提供的方法返回的对象都实现了 Future:
+1.  oneshot：发送和接收一个值；
+2.  mpsc：多个发送方，一个接收方；
+3.  broadcast：多个发送方，多个接收方；
+4.  watch：只保证接收方收到最新值，不保证它们收到所有值；
+
+oneshot：The oneshot channel supports `sending a single value from a single producer to a single consumer`. This
+channel is usually used to send the result of a computation to a waiter. Example: using a oneshot channel to
+receive the result of a computation.
+
+1.  oneshot::channel() 用于创建一对 Sender and Receiver；
+2.  Sender 的 send() 方法是同步方法，故可以在同步或异步上下文中使用；
+
+<!--listend-->
+
+```rust
+use tokio::sync::oneshot;
+
+async fn some_computation() -> String {
+    "represents the result of the computation".to_string()
+}
+
+#[tokio::main]
+async fn main() {
+    let (tx, rx) = oneshot::channel(); // 创建一对发送和接收 handler
+
+    tokio::spawn(async move {
+        let res = some_computation().await;
+        tx.send(res).unwrap(); // send() 是非异步的方法
+    });
+
+    // Do other work while the computation is happening in the background
+
+    // Wait for the computation result
+    let res = rx.await.unwrap();
+}
+```
+
+If the sender is dropped without sending, the receiver will fail with `error::RecvError`:
+
+```rust
+use tokio::sync::oneshot;
+
+#[tokio::main]
+async fn main() {
+    let (tx, rx) = oneshot::channel::<u32>();
+
+    tokio::spawn(async move {
+        drop(tx);
+    });
+
+    match rx.await {
+        Ok(_) => panic!("This doesn't happen"),
+        Err(_) => println!("the sender dropped"),
+    }
+}
+```
+
+To use a oneshot channel in a tokio::select! loop, add `&mut` in front of the channel.
+
+```rust
+use tokio::sync::oneshot;
+use tokio::time::{interval, sleep, Duration};
+
+#[tokio::main]
+async fn main() {
+    let (send, mut recv) = oneshot::channel();
+    let mut interval = interval(Duration::from_millis(100));
+
+    tokio::spawn(async move {
+        sleep(Duration::from_secs(1)).await;
+        send.send("shut down").unwrap();
+    });
+
+    loop {
+        tokio::select! {
+            _ = interval.tick() => println!("Another 100ms"),
+            msg = &mut recv => {
+                println!("Got message: {}", msg.unwrap());
+                break;
+            }
+        }
+    }
+}
+```
+
+oneshot::Receiver 的 close() 方法用于关闭 Receiver，这时 Sender 调用 send() 方法会失败。
+
+```rust
+use tokio::sync::oneshot;
+use tokio::sync::oneshot::error::TryRecvError;
+
+#[tokio::main]
+async fn main() {
+    let (tx, mut rx) = oneshot::channel();
+
+    assert!(!tx.is_closed());
+
+    rx.close();
+
+    assert!(tx.is_closed());
+    assert!(tx.send("never received").is_err());
+
+    match rx.try_recv() {
+        Err(TryRecvError::Closed) => {}
+        _ => unreachable!(),
+    }
+}
+```
+
+oneshot::Sender 的 closed() 方法可以等待 oneshot::Receiver 被 closed 或被 Drop 时返回。Senderr 的 is_closed()
+方法用于获取 Receiver 是否被 closed 或 Drop：
+
+-   如果 Receiver 被 closed 或 Drop，则 Sender 的 send() 方法会失败；
+
+<!--listend-->
+
+```rust
+use tokio::sync::oneshot;
+
+#[tokio::main]
+async fn main() {
+    let (mut tx, rx) = oneshot::channel::<()>();
+
+    tokio::spawn(async move {
+        drop(rx);
+    });
+
+    tx.closed().await; // 等待 rx 被 drop 时返回
+    println!("the receiver dropped");
+}
+
+// 使用 select!
+use tokio::sync::oneshot;
+use tokio::time::{self, Duration};
+async fn compute() -> String {
+    // Complex computation returning a `String`
+}
+#[tokio::main]
+async fn main() {
+    let (mut tx, rx) = oneshot::channel();
+
+    tokio::spawn(async move {
+        tokio::select! {
+            _ = tx.closed() => {
+                // The receiver dropped, no need to do any further work
+            }
+            value = compute() => {
+                // The send can fail if the channel was closed at the exact same
+                // time as when compute() finished, so just ignore the failure.
+                let _ = tx.send(value);
+            }
+        }
+    });
+
+    // Wait for up to 10 seconds
+    let _ = time::timeout(Duration::from_secs(10), rx).await;
+}
+```
+
+mpsc 是标准库的 mpsc 的异步版本：
+
+```rust
+use tokio::io::{self, AsyncWriteExt};
+use tokio::net::TcpStream;
+use tokio::sync::mpsc;
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let mut socket = TcpStream::connect("www.example.com:1234").await?;
+    let (tx, mut rx) = mpsc::channel(100);
+
+    for _ in 0..10 {
+        // Each task needs its own `tx` handle. This is done by cloning the original handle.
+        let tx = tx.clone();
+
+        tokio::spawn(async move {
+            tx.send(&b"data to write"[..]).await.unwrap();
+        });
+    }
+
+    // The `rx` half of the channel returns `None` once **all** `tx` clones drop. To ensure `None` is
+    // returned, drop the handle owned by the current task. If this `tx` handle is not dropped, there will
+    // always be a single outstanding `tx` handle.
+    drop(tx);
+
+    while let Some(res) = rx.recv().await {
+        socket.write_all(res).await?;
+    }
+
+    Ok(())
+}
+```
+
+mpsc 和 oneshot 联合使用，可以实现 req/resp 响应的对共享资源的处理：
+
+```rust
+use tokio::sync::{oneshot, mpsc};
+use Command::Increment;
+
+enum Command {
+    Increment,
+    // Other commands can be added here
+}
+
+#[tokio::main]
+async fn main() {
+    let (cmd_tx, mut cmd_rx) = mpsc::channel::<(Command, oneshot::Sender<u64>)>(100);
+
+    // Spawn a task to manage the counter
+    tokio::spawn(async move {
+        let mut counter: u64 = 0;
+
+        while let Some((cmd, response)) = cmd_rx.recv().await {
+            match cmd {
+                Increment => {
+                    let prev = counter;
+                    counter += 1;
+                    response.send(prev).unwrap();
+                }
+            }
+        }
+    });
+
+    let mut join_handles = vec![];
+
+    // Spawn tasks that will send the increment command.
+    for _ in 0..10 {
+        let cmd_tx = cmd_tx.clone();
+
+        join_handles.push(tokio::spawn(async move {
+            let (resp_tx, resp_rx) = oneshot::channel();
+
+            cmd_tx.send((Increment, resp_tx)).await.ok().unwrap();
+            let res = resp_rx.await.unwrap();
+
+            println!("previous value = {}", res);
+        }));
+    }
+
+    // Wait for all tasks to complete
+    for join_handle in join_handles.drain(..) {
+        join_handle.await.unwrap();
+    }
+}
+```
+
+broadcast channel：从多个发送端向多个接收端发送多个值，可以实现 fan out 模式，如 pub/sub 或 chat 系统。
+
+-   tokio::sync::broadcast::channel(N) 创建一个指定容量为 N 的 bounded，multi-producer, multi-consumer channel，当 channel 中元素数量达到 N 后，最老的元素将被清理，同时没有消费该元素的 Receiver 的 recv() 方法将返回
+    RecvError::Lagged 错误，然后该 Receiver 的读写位置将更新到 channel 中当前最老的元素，下一次 recv() 将返回该元素；
+    -   通过这种机制，Receiver 可以感知是否 Lagged 以及做相应的处理。
+-   Sender 实现了 clone，可以 clone 多个实例，然后在多个 task 中使用。当所有 Sender 都被 drop 时，channel 将处于
+    closed 状态，这时 Receiver 的 recv() 将返回 RecvError::Closed 错误。
+-   Sender::subscribe() 创建新的 Receiver，它接收调用 subscribe() 创建它 `后` 发送的消息。当所有 Receiver 都被drop
+    时，Sender::send() 方法返回 SendError；
+-   Sender 发送的值，会被 clone 后发送给所有 Receiver，直到它们 `都收到` 这个值后，该值才会从 channel 中移除；
+
+<!--listend-->
+
+```rust
+use tokio::sync::broadcast;
+
+#[tokio::main]
+async fn main() {
+    let (tx, mut rx1) = broadcast::channel(16);
+    let mut rx2 = tx.subscribe();
+
+    tokio::spawn(async move {
+        assert_eq!(rx1.recv().await.unwrap(), 10);
+        assert_eq!(rx1.recv().await.unwrap(), 20);
+    });
+
+    tokio::spawn(async move {
+        assert_eq!(rx2.recv().await.unwrap(), 10);
+        assert_eq!(rx2.recv().await.unwrap(), 20);
+    });
+
+    tx.send(10).unwrap();
+    tx.send(20).unwrap();
+}
+
+// 感知 Lagged
+use tokio::sync::broadcast;
+
+#[tokio::main]
+async fn main() {
+    let (tx, mut rx) = broadcast::channel(2);
+
+    tx.send(10).unwrap();
+    tx.send(20).unwrap();
+    tx.send(30).unwrap();
+
+    // The receiver lagged behind
+    assert!(rx.recv().await.is_err());
+
+    // At this point, we can abort or continue with lost messages
+    assert_eq!(20, rx.recv().await.unwrap());
+    assert_eq!(30, rx.recv().await.unwrap());
+}
+```
+
+watch channel：从多个发送端想多个接收端发送多个值，但是 channel 中只保存最新的一个值，所以如果接收端存在延迟，则不能保证它接收了所有的中间值。类似于容量为 1 的 broadcast channel。使用场景：广播配置变更，应用状态变更，优雅关闭等。
+
+-   watch::channel(initial_value): 创建一个 watch channel 时可以指定一个初始值；
+-   Sender::subscribe() 创建一个新的 Receiver，它只接收后面新发送的值；
+-   Sender 实现了 Clone trait，可以 clone 多个实例来发送数据。同时 Sender 和 Receiver 都是 thread safe；
+-   Sender::is_closed() 和 Sender::closed() 为 Sender 提供检查所有 Receiver 是否被 closed 或 Drop 的方法。
+-   Sender::send() 必须在有 Receiver 的情况下才能发送成功，而 send_if_modified, send_modify, or send_replace 方法可以在没有 Receiver 的情况下发送成功；
+-   Receiver 使用 Receiver::borrow_and_update() 来获取最新值，并标记为 seen。如果只是获取最新值而不标记为 seen，则使用 Receiver::borrow()；
+    -   borrow() 没有将值标记为 seen，所以下一次调用 Receiver::changed() 时将立即返回 Ok(())；而
+        borrow_and_update() 将只标记为 seen，所以下一次 调用 Receiver::changed() 时将 sleep 直到有新的值；
+    -   Receiver 在 borrow 值时会将 channel 设置一个 read lock，所以当 borrow 时间较长时，可能会阻塞 Sender；
+-   Receiver 使用 Receiver::changed() 方法来接收 un-seen 值更新，如果没有 un-seen 值，则该方法会 sleep 直到有
+    un-seen 值或者 Sender 被 Drop，如果有 un-seen 值则该方法立即返回 Ok(()) 。
+
+<!--listend-->
+
+```rust
+use tokio::sync::watch;
+use tokio::time::{self, Duration, Instant};
+
+use std::io;
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct Config {
+    timeout: Duration,
+}
+
+impl Config {
+    async fn load_from_file() -> io::Result<Config> {
+        // file loading and deserialization logic here
+    }
+}
+
+async fn my_async_operation() {
+    // Do something here
+}
+
+#[tokio::main]
+async fn main() {
+    // Load initial configuration value
+    let mut config = Config::load_from_file().await.unwrap();
+
+    // Create the watch channel, initialized with the loaded configuration
+    let (tx, rx) = watch::channel(config.clone());
+
+    // Spawn a task to monitor the file.
+    tokio::spawn(async move {
+        loop {
+            // Wait 10 seconds between checks
+            time::sleep(Duration::from_secs(10)).await;
+
+            // Load the configuration file
+            let new_config = Config::load_from_file().await.unwrap();
+
+            // If the configuration changed, send the new config value
+            // on the watch channel.
+            if new_config != config {
+                tx.send(new_config.clone()).unwrap();
+                config = new_config;
+            }
+        }
+    });
+
+    let mut handles = vec![];
+
+    // Spawn tasks that runs the async operation for at most `timeout`. If the timeout elapses, restart the
+    // operation.
+    //
+    // The task simultaneously watches the `Config` for changes. When the timeout duration changes, the
+    // timeout is updated without restarting the in-flight operation.
+    for _ in 0..5 {
+        // Clone a config watch handle for use in this task
+        let mut rx = rx.clone();
+
+        let handle = tokio::spawn(async move {
+            // Start the initial operation and pin the future to the stack.  Pinning to the stack is required
+            // to resume the operation across multiple calls to `select!`
+            let op = my_async_operation();
+            tokio::pin!(op);
+
+            // Get the initial config value
+            let mut conf = rx.borrow().clone();
+
+            let mut op_start = Instant::now();
+            let sleep = time::sleep_until(op_start + conf.timeout);
+            tokio::pin!(sleep);
+
+            loop {
+                tokio::select! {
+                    _ = &mut sleep => {
+                        // The operation elapsed. Restart it
+                        op.set(my_async_operation());
+
+                        // Track the new start time
+                        op_start = Instant::now();
+
+                        // Restart the timeout
+                        sleep.set(time::sleep_until(op_start + conf.timeout));
+                    }
+                    _ = rx.changed() => {
+                        conf = rx.borrow_and_update().clone(); // 获得最新值，然后标记为 seen
+
+                        // The configuration has been updated. Update the
+                        // `sleep` using the new `timeout` value.
+                        sleep.as_mut().reset(op_start + conf.timeout);
+                    }
+                    _ = &mut op => {
+                        // The operation completed!
+                        return
+                    }
+                }
+            }
+        });
+
+        handles.push(handle);
+    }
+
+    for handle in handles.drain(..) {
+        handle.await.unwrap();
+    }
+}
+```
+
+tokio::sync::Notify 用于通知一个或所有的 task wakup，它本身不携带任何数据：
+
+1.  A Notify can be thought of as a Semaphore starting with `0 permits`. The `notified().await` method waits for a
+    permit to become available, and `notify_one() sets a permit` if there currently are no available permits.
+2.  notified(&amp;self) -&gt; Notified&lt;'_&gt; : `Wait` for a notification. .await 返回的 Notified 时将被阻塞，直到收到通知；
+3.  notify_one(): Notifies the `first` waiting task.
+4.  notify_last(&amp;self): Notifies the `last` waiting task.
+5.  notify_waiters(&amp;self): Notifies `all` waiting tasks.
+
+<!--listend-->
+
+```rust
+use tokio::sync::Notify;
+use std::sync::Arc;
+
+#[tokio::main]
+async fn main() {
+    let notify = Arc::new(Notify::new());
+    let notify2 = notify.clone();
+
+    let handle = tokio::spawn(async move {
+        notify2.notified().await; // 等待被 Notify
+        println!("received notification");
+    });
+
+    println!("sending notification");
+    notify.notify_one();
+
+    // Wait for task to receive notification.
+    handle.await.unwrap();
+}
+
+
+#[tokio::main]
+async fn main() {
+    let notify = Arc::new(Notify::new());
+    let notify2 = notify.clone();
+
+    let notified1 = notify.notified();
+    let notified2 = notify.notified();
+
+    let handle = tokio::spawn(async move {
+        println!("sending notifications");
+        notify2.notify_waiters();
+    });
+
+    notified1.await;
+    notified2.await;
+    println!("received notifications");
+}
+```
+
+
+## <span class="section-num">9</span> async io {#async-io}
+
+tokio::io 没有定义和使用 Read/Write trait，而是定义和使用 AsyncRead/AsyncWrite/AsyncSeek trait，同时为这两个
+trait 定义了：
+
+1.  异步 Buf 版本：AsyncBufRead，AsyncBufReadExt；
+2.  Ext trait：AsyncReadExt/AsyncWriteExt/AsyncSeekExt；
+
+AsyncRead/AsyncWrite/AsyncBufRead trait 提供的是 poll_XX() 开头的方法，不太实用，而各种 Ext trait 则提供了更常用的 Read/Write/Lines 等方法。
+
+可以从 AsyncRead 创建 Struct tokio::io::BufReader 对象, 它实现了 AsyncRead/AsyncBufRead trait.
+
+可以从 AsyncWrite 创建 Struct tokio::io::BufWriter 对象, 它实现了 AsyncWrite trait.
+
+可以从同时实现了 AsyncRead/AsyncWrite 创建 pub struct BufStream&lt;RW&gt; (例如 TCPStream 对象), 它实现了
+AsyncBufRead 和 AsyncWrite.
+
+AsyncReadExt trait 的方法返回的对象都实现了 Future:
 
 ```rust
 pub trait AsyncReadExt: AsyncRead {
     // Provided methods
     fn chain<R>(self, next: R) -> Chain<Self, R> where Self: Sized, R: AsyncRead { ... }
     fn read<'a>(&'a mut self, buf: &'a mut [u8]) -> Read<'a, Self> where Self: Unpin { ... }
-    fn read_buf<'a, B>(&'a mut self, buf: &'a mut B) -> ReadBuf<'a, Self, B> where Self: Unpin, B: BufMut + ?Sized { ... }
+    fn read_buf<'a, B>(&'a mut self, buf: &'a mut B) -> ReadBuf<'a, Self, B> where Self: Unpin, B: BufMut + ?Sized
     fn read_exact<'a>(&'a mut self, buf: &'a mut [u8]) -> ReadExact<'a, Self> where Self: Unpin { ... }
     fn read_u8(&mut self) -> ReadU8<&mut Self> where Self: Unpin { ... }
 ```
 
-例如 read() 方法返回的 Read 对象实现了 Future, Poll ready 时返回 io::Result&lt;usize&gt;, 所以, 即使这些方法没有使用 async fn 但由于返回的对象实现了 Future, 它们也是异步函数;
+例如 read() 返回的 Read 对象实现了 Future, Poll ready 时返回 io::Result&lt;usize&gt;, 所以即使这些方法没有使用 async
+fn 形式，但由于返回的对象实现了 Future, 它们也是异步函数;
 
 ```rust
 // https://docs.rs/tokio/latest/src/tokio/io/util/read.rs.html#43
-impl<R> Future for Read<'_, R>
-where
-    R: AsyncRead + Unpin + ?Sized,
+impl<R> Future for Read<'_, R> where R: AsyncRead + Unpin + ?Sized,
 {
     type Output = io::Result<usize>;
 
@@ -1674,65 +2085,40 @@ where
 }
 ```
 
-使用示例:
+示例:
 
 ```rust
 use tokio::fs::File;
-use tokio::io::{self, AsyncReadExt};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt}; // 需要显式导入 AsyncReadExt 和 AsyncWriteExt trait
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let mut f = File::open("foo.txt").await?;
     let mut buffer = [0; 10];
-
     // read up to 10 bytes
     let n = f.read(&mut buffer[..]).await?;
-
     println!("The bytes: {:?}", &buffer[..n]);
-    Ok(())
-}
 
-use tokio::io::{self, AsyncReadExt};
-use tokio::fs::File;
-
-#[tokio::main]
-async fn main() -> io::Result<()> {
-    let mut f = File::open("foo.txt").await?;
     let mut buffer = Vec::new();
-
     // read the whole file
     f.read_to_end(&mut buffer).await?;
+    Ok(())
+
+    let mut file = File::create("foo.txt").await?;
+    // Writes some prefix of the byte string, but not necessarily all of it.
+    let n = file.write(b"some bytes").await?;
+    println!("Wrote the first {} bytes of 'some bytes'.", n);
     Ok(())
 }
 ```
 
-async write:
+tokio::io::split() 函数将传入的支持 AsyncRead + AsyncWrite 的 Stream 对象, 如 TCPStream, 拆分为 ReadHalf&lt;T&gt;,
+WriteHalf&lt;T&gt;, 前者实现 AsyncRead trait, 后者实现 AsyncWrite trait:
 
 ```rust
-use tokio::io::{self, AsyncWriteExt};
-use tokio::fs::File;
-
-#[tokio::main]
-async fn main() -> io::Result<()> {
-    let mut file = File::create("foo.txt").await?;
-
-    // Writes some prefix of the byte string, but not necessarily all of it.
-    let n = file.write(b"some bytes").await?;
-
-    println!("Wrote the first {} bytes of 'some bytes'.", n);
-    Ok(())
-}
-
-use tokio::io::{self, AsyncWriteExt};
-use tokio::fs::File;
-
-#[tokio::main]
-async fn main() -> io::Result<()> {
-    let mut file = File::create("foo.txt").await?;
-
-    file.write_all(b"some bytes").await?;
-    Ok(())
-}
+pub fn split<T>(stream: T) -> (ReadHalf<T>, WriteHalf<T>)
+where
+    T: AsyncRead + AsyncWrite,
 ```
 
 echo server client:
@@ -1756,44 +2142,26 @@ async fn main() -> io::Result<()> {
     tokio::spawn(async move {
         wr.write_all(b"hello\r\n").await?;
         wr.write_all(b"world\r\n").await?;
-
-        // Sometimes, the rust type inferencer needs
-        // a little help
+        // Sometimes, the rust type inferencer needs a little help
         Ok::<_, io::Error>(())
     });
 
     let mut buf = vec![0; 128];
-
     loop {
         let n = rd.read(&mut buf).await?;
-
         if n == 0 {
             break;
         }
-
         println!("GOT {:?}", &buf[..n]);
     }
-
     Ok(())
 }
 ```
 
-也可以使用 tokio::io::copy() 来实现 copy:
-
-```rust
-tokio::spawn(async move {
-    let (mut rd, mut wr) = socket.split();
-
-    if io::copy(&mut rd, &mut wr).await.is_err() {
-        eprintln!("failed to copy");
-    }
-});
-```
-
 echo server:
 
--   尽量避免 stack buffer, 因为跨 .await 的上下文变量会随者 task Future 对象一起被保存, 如果使用较大的
-    stack buffer 变量, 则自动生成的 task Future 对象就比较大, buffer size 一般是 page sized 对齐的, 这导致task 的大小大概是 $page-size + a-few-bytes, 从而比较浪费内存.
+-   尽量避免 stack buffer, 因为跨 .await 的上下文变量会随者 task Future 对象一起被保存, 如果使用较大的 stack
+    buffer 变量, 则自动生成的 task Future 对象就比较大, buffer size 一般是 page sized 对齐的, 这导致task 的大小大概是 $page-size + a-few-bytes, 从而比较浪费内存.
 
 <!--listend-->
 
@@ -1835,8 +2203,33 @@ async fn main() -> io::Result<()> {
 }
 ```
 
+Function tokio::io::duplex() 函数创建一个使用内存作为缓冲的 DuplexStream 类型对象
 
-## <span class="section-num">9</span> framing {#framing}
+-   DuplexStream 实现了 AsyncRead/AsyncWrite trait;
+-   DuplexStream 被 drop 时, 另一端 read 还可以继续读取内存中的数据, 读到 0 byte 表示 EOF; 而另一端 write 时立即返回 Err(BrokenPipe) ;
+
+<!--listend-->
+
+```rust
+pub fn duplex(max_buf_size: usize) -> (DuplexStream, DuplexStream)
+
+// 示例
+let (mut client, mut server) = tokio::io::duplex(64);
+
+client.write_all(b"ping").await?;
+
+let mut buf = [0u8; 4];
+server.read_exact(&mut buf).await?;
+assert_eq!(&buf, b"ping");
+
+server.write_all(b"pong").await?;
+
+client.read_exact(&mut buf).await?;
+assert_eq!(&buf, b"pong");
+```
+
+
+## <span class="section-num">10</span> framing {#framing}
 
 <https://tokio.rs/tokio/tutorial/framing>
 
@@ -1844,8 +2237,8 @@ TCP Stream 是面向 byte stream 的协议, 而 redis 操作是以 frame 为单�
 
 核心是使用 bytes::BytesBuf 作为读写缓存, 它内部维护了读写位置, 自动根据读写位置来伸缩内部的缓冲区.
 
-Framing is the process of taking a byte stream and converting it to a stream of frames. A frame is a
-unit of data transmitted between two peers. The Redis protocol frame is defined as follows:
+Framing is the process of taking a byte stream and converting it to a stream of frames. A frame is a unit of
+data transmitted between two peers. The Redis protocol frame is defined as follows:
 
 ```rust
 use bytes::Bytes;
@@ -1992,7 +2385,7 @@ async fn write_frame(&mut self, frame: &Frame)
 ```
 
 
-## <span class="section-num">10</span> Async in depth {#async-in-depth}
+## <span class="section-num">11</span> Async in depth {#async-in-depth}
 
 ```rust
 use tokio::net::TcpStream;
@@ -2433,14 +2826,14 @@ async fn delay(dur: Duration) {
 ```
 
 
-## <span class="section-num">11</span> select {#select}
+## <span class="section-num">12</span> select!{} {#select}
 
-The `tokio::select!` macro allows waiting on `multiple async computations` and returns when a single
-computation completes. The branch that does not complete `is dropped`. In the example, the computation
-is awaiting the oneshot::Receiver for each channel. `The oneshot::Receiver for the channel that did
-not complete yet is dropped`.
+The `tokio::select!` macro allows waiting on `multiple async computations` and returns when a single computation
+completes. The branch that does not complete `is dropped`. In the example, the computation is awaiting the
+oneshot::Receiver for each channel. `The oneshot::Receiver for the channel that did not complete yet is
+dropped`.
 
--   select 随机选择一个 branch 来 first poll;
+-   必须在 async context 中使用 select!, 如 async functions, closures, and blocks;
 
 <!--listend-->
 
@@ -2460,7 +2853,8 @@ async fn main() {
         let _ = tx2.send("two");
     });
 
-    tokio::select! {  // select 并发 poll rx1 和 rx2, 如果 rx1 先 Ready 则结果赋值给 val, 同时 drop rx2.
+    // select 并发 poll rx1 和 rx2, 如果 rx1 先 Ready 则结果赋值给 val, 同时 drop rx2.
+    tokio::select! {
         val = rx1 => {
             println!("rx1 completed first with {:?}", val);
         }
@@ -2471,17 +2865,18 @@ async fn main() {
 }
 ```
 
-tokio::sync::oneshot::Receiver 实现了 Drop, 当他被 Drop 时对应的 tokio::sync::oneshot::Sender 可以收到 closed 通知(sender 的 async closed() 方法返回).
+tokio::sync::oneshot::Receiver 实现了 Drop, 被 Drop 时对应的 tokio::sync::oneshot::Sender 可以收到 closed 通知
+(sender 的 async closed() 方法返回).
 
--   tokio::spawn(async {...}) 向 executor 理解调度执行一个异步 task, 返回一个实现 Future 的JoinHandle,
-    Future 的关联类型是 Result&lt;T, JoinError&gt;, 所以通过 .await  它可以获得 task 的返回值 T.
+-   tokio::spawn(async {...}) 立即调度执行一个异步 task, 返回一个实现 Future 的 JoinHandle, Future 的关联类型是
+    Result&lt;T, JoinError&gt;, 所以通过 .await 它可以获得 task 的返回值 T.
 
 <!--listend-->
 
 ```rust
 use tokio::sync::oneshot;
 
-async fn some_operation() -> String { // 异步函数
+async fn some_operation() -> String {
     // Compute value here
 }
 
@@ -2507,6 +2902,7 @@ async fn main() {
         let _ = tx2.send("two");
     });
 
+    // rx2 先 .await 返回时, rx1 会被 Drop, 这时上面的 tx1.closed() .await 返回
     tokio::select! {
         val = rx1 => {
             println!("rx1 completed first with {:?}", val);
@@ -2522,28 +2918,38 @@ The select! macro can handle more than two branches. `The current limit is 64 br
 is structured as:
 
 ```text
-<pattern> = <async expression> => <handler>,
+<pattern> = <async expression> (, if <precondition>)? => <handler>
+else => <expression>
 ```
 
-When the select macro is evaluated, `all the <async expression>s are aggregated and executed
-concurrently` . When an expression completes, the result is matched against &lt;pattern&gt;. If the result
-matches the pattern, `then all remaining async expressions are dropped` and &lt;handler&gt; is executed. The
-&lt;handler&gt; expression has access to any bindings established by &lt;pattern&gt;.
+When the select macro is evaluated, `all the <async expression>s are aggregated and executed concurrently`
+. When an expression completes, the result is matched against &lt;pattern&gt;. If the result matches the pattern,
+`then all remaining async expressions are dropped` and &lt;handler&gt; is executed. The &lt;handler&gt; expression has
+access to any bindings established by &lt;pattern&gt;.
 
--   rust 并发执行所有的 aync expressions;
--   当第一个 async expressions 返回时, 将他的 result 与 pattern 匹配时, drop 所有其他的 async
-    expression, 然后执行 handler. 如果 result 与 pattern 不匹配时, 继续等待下一个异步返回并检查返回值是否匹配.
+Rust 在 `单线程异步执行` 所有 branch 的 async expressions (一个 branch 的 async expression 不 Ready 时, 调度执行另一个 branch 的 async expression), 当第一个 async expressions 返回且它的 result 与 pattern 匹配时, Drop 所有其它 async expression, 然后执行 handler. 如果 result 与 pattern 不匹配, 继续等待下一个异步返回并检查返回值是否匹配.
 
-The basic case for &lt;pattern&gt; is a variable name, the result of the async expression is bound to the
-variable name and &lt;handler&gt; has access to that variable. This is why, in the original example, val
-was used for &lt;pattern&gt; and &lt;handler&gt; was able to access val.
+每个 branch 还可以有 if 表达式, 如果 if 表达式结果为 false, 则对应 async expression 还是会被执行, 但是返回的
+Future 不会被 .await Poll. (例如在 loop 中多次 poll 一个 Pin 的 Future 对象, 一旦该对象 Ready, 后续就不能再
+poll 了, 这时需要使用 if 表达式来排除该 branch).
 
-If &lt;pattern&gt; does not match the result of the async computation, then the remaining async
-expressions `continue to execute concurrently` until the next one completes. At this time, the same
-logic is applied to that result.
+每次进入执行 select! 时:
 
-Because select! takes any async expression, it is possible to define more complicated computations
-to select on.
+1.  先执行个 branch 的 if 表达式, 结果为 false 时, disable 对应 branch;
+2.  执行所有 async expression(包括 disable 的 branch, 但是不 poll 它) , 注意是在单 thread 中异步执行这些
+    expression;
+3.  并发 .await poll 为 disable 的 expression 返回的 Future 对象;
+4.  当第一个 poll 返回时, 看是否匹配 pattern, 如果不匹配则 disable 该 branch, 继续等待其它 branhc .await poll返回, 重复 1-3; 如果匹配, 则执行该 branch 的 handler, 同时 drop 其它 branch 的 Future 对象.
+5.  如果所有 branch 都被 disable(如都不匹配 pattern), 则执行 else branch handler, 如果没有提供 else 则 panic.
+
+The basic case for &lt;pattern&gt; is a variable name, the result of the async expression is bound to the variable
+name and &lt;handler&gt; has access to that variable. This is why, in the original example, val was used for
+&lt;pattern&gt; and &lt;handler&gt; was able to access val. If &lt;pattern&gt; does not match the result of the async
+computation, then the remaining async expressions `continue to execute concurrently` until the next one
+completes. At this time, the same logic is applied to that result.
+
+Because select! takes `any async expression`, it is possible to define more complicated computations to select
+on.
 
 ```rust
 use tokio::net::TcpStream;
@@ -2585,6 +2991,8 @@ async fn main() -> io::Result<()> {
 
     // 并发执行两个 branch, 直到 rx 收到消息或者 accept 出错.
     tokio::select! {
+        // 使用 async {} 来定义一个 async expression, 该 expression 返回 Result
+        // select! 会 .await 这个 expression 和 rx, 当 rx 返回时该 expression 才不会被继续 .await
         _ = async {
             loop {
                 let (socket, _) = listener.accept().await?; // listener 出错时才返回
@@ -2594,6 +3002,7 @@ async fn main() -> io::Result<()> {
             // Help the rust type inferencer out
             Ok::<_, io::Error>(())
         } => {}
+
         _ = rx => {
             println!("terminating accept loop");
         }
@@ -2603,7 +3012,37 @@ async fn main() -> io::Result<()> {
 }
 ```
 
-select 宏有返回值, 各 branch 必须返回相同类型值:
+async expression 返回值支持 pattern match, 并且可以有一个 else 分支, 当所有 pattern match 都不匹配时, 才执行
+else 分支.
+
+```rust
+use tokio::sync::mpsc;
+
+#[tokio::main]
+async fn main() {
+    let (mut tx1, mut rx1) = mpsc::channel(128);
+    let (mut tx2, mut rx2) = mpsc::channel(128);
+
+    tokio::spawn(async move {
+        // Do something w/ `tx1` and `tx2`
+    });
+
+    // 这里 drop 的是 recv() 返回的 Future,而非 rx1 和 rx2 对象本身
+    tokio::select! {
+        Some(v) = rx1.recv() => {
+            println!("Got {:?} from rx1", v);
+        }
+        Some(v) = rx2.recv() => {
+            println!("Got {:?} from rx2", v);
+        }
+        else => {
+            println!("Both channels closed");
+        }
+    }
+}
+```
+
+select! 宏有返回值, 各 branch 必须返回相同类型值:
 
 ```rust
 async fn computation1() -> String {
@@ -2627,9 +3066,8 @@ async fn main() {
 
 Errors:
 
--   如果 async exprssion 中有 ? 则该表达式返回 Result::Err, 例如 accept().await? 出错时, res 为
-    Result::Err;
--   如果是 handler 中有 ?, 则会立即向 error 传递到 select 表达式外部, 如 res? 会将错误传递到 main() 函数;
+-   如果 async exprssion 中有 ? 则表达式返回 Result, 例如 accept().await? 出错时, res 为 Result::Err.
+-   如果是 handler 中有 ?, 则会立即将 error 传递到 select 表达式外, 如 res? 会将错误传递到 main() 函数;
 
 <!--listend-->
 
@@ -2656,6 +3094,7 @@ async fn main() -> io::Result<()> {
         } => {
             res?;
         }
+
         _ = rx => {
             println!("terminating accept loop");
         }
@@ -2665,47 +3104,15 @@ async fn main() -> io::Result<()> {
 }
 ```
 
-async expression 返回值支持 pattern match, 并且可以有一个 else 分支:
+Borrowing: 对于 tokio::spawn(async {..}) 必须 move 捕获要使用的数据, 但是对于 select! 的多 branch async
+expression 则不需要, 只要遵守 borrow 的规则即可, 比如同时访问 &amp; 共享数据, 唯一访问 &amp;mut 数据:
 
--   当所有 pattern match 都不匹配时, 才执行 else 分支.
-
-<!--listend-->
-
-```rust
-use tokio::sync::mpsc;
-
-#[tokio::main]
-async fn main() {
-    let (mut tx1, mut rx1) = mpsc::channel(128);
-    let (mut tx2, mut rx2) = mpsc::channel(128);
-
-    tokio::spawn(async move {
-        // Do something w/ `tx1` and `tx2`
-    });
-
-    tokio::select! {
-        Some(v) = rx1.recv() => {
-            println!("Got {:?} from rx1", v);
-        }
-        Some(v) = rx2.recv() => {
-            println!("Got {:?} from rx2", v);
-        }
-        else => {
-            println!("Both channels closed");
-        }
-    }
-}
-```
-
-Borrowing: 对于 tokio::spawn(async {..}) 必须 move 捕获要使用的数据, 但是对于 select 的多 branch
-async expression 则不需要, 只要遵守 borrow 的规则即可, 比如同时访问 &amp; 共享数据, 唯一访问 &amp;mut 数据:
-
--   The `data` variable is being borrowed immutably from both async expressions. When one of the
-    operations completes successfully, the other one is dropped. Because we pattern match on Ok(_), if
-    an expression fails, the other one `continues to execute`.
-    -   select 必须异步并发执行所有 aysnc expression, 并且当第一个 expression 返回的结果匹配 pattern 时才 drop 其他正在执行的 async expression.
--   When it comes to each branch's &lt;handler&gt;, select! guarantees that `only a single <handler> runs`
-    . Because of this, each &lt;handler&gt; `may mutably borrow the same data`.
+-   The `data` variable is being borrowed immutably from both async expressions. When one of the operations
+    completes successfully, the other one is dropped. Because we pattern match on Ok(_), if an expression fails,
+    the other one `continues to execute`.
+    -   select 必须异步并发执行所有 aysnc expression, 并且当第一个 expression 返回的结果匹配 pattern 时才 drop 其它正在执行的 async expression.
+-   When it comes to each branch's &lt;handler&gt;, select! guarantees that `only a single <handler> runs` . Because of
+    this, each &lt;handler&gt; `may mutably borrow the same data`.
 
 <!--listend-->
 
@@ -2721,24 +3128,25 @@ async fn race(
     addr2: SocketAddr
 ) -> io::Result<()> {
     tokio::select! {
+        // 两个 async expression 共享借用 data
         Ok(_) = async {
             let mut socket = TcpStream::connect(addr1).await?;
+
             socket.write_all(data).await?;
             Ok::<_, io::Error>(())
         } => {}
+
         Ok(_) = async {
             let mut socket = TcpStream::connect(addr2).await?;
             socket.write_all(data).await?;
             Ok::<_, io::Error>(())
         } => {}
+
         else => {}
     };
 
     Ok(())
 }
-
-// 由于 select 保证只执行一个 handler, 所以多个 handler 中可以 &mut 使用相同的数据.
-use tokio::sync::oneshot;
 
 #[tokio::main]
 async fn main() {
@@ -2751,6 +3159,7 @@ async fn main() {
         // Send values on `tx1` and `tx2`.
     });
 
+    // 由于 select 保证只执行一个 handler, 所以多个 handler 中可以 &mut 使用相同的数据.
     tokio::select! {
         _ = rx1 => {
             out.push_str("rx1 completed");
@@ -2764,12 +3173,7 @@ async fn main() {
 }
 ```
 
-Loop:
-
--   并发执行多个 aysnc expression, 当他们都 recv() 返回时, select 随机选择一个 branch 来执行
-    handler. 未执行的 handler branch 的 message 也不会丢.
-
-<!--listend-->
+Loop: 并发执行多个 async expression, 当它们都 recv() 返回时, select 随机选择一个 branch 来执行 handler, 未执行的 handler branch 的 message 也不会丢(称为 Cancellation safety).
 
 ```rust
 use tokio::sync::mpsc;
@@ -2781,13 +3185,13 @@ async fn main() {
     let (tx3, mut rx3) = mpsc::channel(128);
 
     loop {
-	    // 当 rx1.recv() 返回时, drop 的是 rx2.recv() 和 rx3.recv() 的 Future 对象, 而不是 rx2和
-	    // rx3,所以下一次 loop 还可以继续调用.
+	// 当 rx1.recv() 返回时, drop 的是 rx2.recv() 和 rx3.recv() 的 Future 对象, 而不是 rx2 和 rx3, 所
+	// 以下一次 loop 还可以继续调用.
 
-	    // 当 channel 被 close , .recv() 返回 None, 不匹配 Some, 所以其他 rx 还是继续进行, 直到
-	    // 所有 rx 都被关闭.
+	// 当 channel 被 close , .recv() 返回 None, 不匹配 Some, 所以其它 rx 还是继续进行, 直到所有 rx 都
+	// 被关闭.
 
-	    // 注意: std::sync::mpsc 的 Receiver.recv() 返回 Result, 而 async 的返回 Option
+	// 注意: std::sync::mpsc 的 Receiver.recv() 返回 Result, 而 async 的返回 Option
         let msg = tokio::select! {
             Some(msg) = rx1.recv() => msg,
             Some(msg) = rx2.recv() => msg,
@@ -2802,12 +3206,56 @@ async fn main() {
 }
 ```
 
-重用 aysnc 操作:
+`Cancellation safety` : 在 loop 中使用 select! 来从多个 branch source 接收 message 时, 需要确保接收调用被 cancel
+时不会丢失 message.
 
--   必须先 tokio::pin!(operation), 该宏将返回同名的变量 operation , 但是类型已经时 Pin 类型.
--   再在 async expression 中 &amp;mut 借用;
+以下方法是 cancellation safe 的:
 
-<!--listend-->
+-   tokio::sync::mpsc::Receiver::recv
+-   tokio::sync::mpsc::UnboundedReceiver::recv
+-   tokio::sync::broadcast::Receiver::recv
+-   tokio::sync::watch::Receiver::changed
+-   tokio::net::TcpListener::accept
+-   tokio::net::UnixListener::accept
+-   tokio::signal::unix::Signal::recv
+-   tokio::io::AsyncReadExt::read on any AsyncRead
+-   tokio::io::AsyncReadExt::read_buf on any AsyncRead
+-   tokio::io::AsyncWriteExt::write on any AsyncWrite
+-   tokio::io::AsyncWriteExt::write_buf on any AsyncWrite
+-   tokio_stream::StreamExt::next on any Stream
+-   futures::stream::StreamExt::next on any Stream
+
+以下方法不是 cancellation safe 的, 有可能会导致丢失数据:
+
+-   tokio::io::AsyncReadExt::read_exact
+-   tokio::io::AsyncReadExt::read_to_end
+-   tokio::io::AsyncReadExt::read_to_string
+-   tokio::io::AsyncWriteExt::write_all
+
+以下方法也不是 cancellation safe 的,因为它们使用 queue 来保证公平, cancel 时会丢失 queue 中的数据:
+
+-   tokio::sync::Mutex::lock
+-   tokio::sync::RwLock::read
+-   tokio::sync::RwLock::write
+-   tokio::sync::Semaphore::acquire
+-   tokio::sync::Notify::notified
+
+To determine whether your own methods are cancellation safe, look for the location of uses of .await. This is
+because `when an asynchronous method is cancelled, that always happens at an .await`. If your function behaves
+correctly even if it is restarted while waiting at an .await, then it is cancellation safe.
+
+Cancellation safety can be defined in the following way: If you have `a future that has not yet completed, then
+it must be a no-op to drop that future and recreate it`. This definition is motivated by the situation where a
+select! is used in a loop. Without this guarantee, you would lose your progress when another branch completes
+and you restart the select! by going around the loop.
+
+cancellation safety 可以这样定义: 即当一个 feature 未 ready 时, 如果 drop 该 future 则什么都不影响.
+
+Be aware that cancelling something that is not cancellation safe is not necessarily wrong. For example, if you
+are cancelling a task because the application is shutting down, then you probably don’t care that partially
+read data is lost.
+
+重用 async expression: 先 tokio::pin!(operation), 该宏将返回同名的变量 operation , 但是类型已经是 Pin 类型, 然后在 async expression 中 &amp;mut operation, 这样确保不会 drop 返回的 operation Pin 对象;
 
 ```rust
 async fn action() {
@@ -2823,7 +3271,7 @@ async fn main() {
 
     loop {
         tokio::select! {
-	        // BUG:  operation 一旦完成, 就不能被重用. 需要使用  if precheck 条件来避免.
+	    // BUG:  operation 一旦完成, 就不能被重用. 需要使用  if precheck 条件来避免.
             _ = &mut operation => break, // 重用该 Future 对象, 而不是调用 action(). 同时必须是 &mut 借用.
             Some(v) = rx.recv() => {
                 if v % 2 == 0 {
@@ -2835,7 +3283,7 @@ async fn main() {
 }
 ```
 
-这里必须使用 tokio::pin!(operation) 来 Pin Future 对象(返回一个同名的但是类型时 Pin 的对象), 否则报错:
+这里必须使用 tokio::pin!(operation) 来 Pin Future 对象(返回一个同名的但是类型是 Pin 的对象), 否则报错:
 
 -   std::pin::Pin&lt;&amp;mut &amp;mut impl std::future::Future&gt; 的解释:
     -   &amp;mut impl std::future::Future 是一个实现 Future trait 的 &amp;mut 引用;
@@ -2868,8 +3316,8 @@ error[E0599]: no method named `poll` found for struct
 
 Modifying a branch
 
--   async fn 一旦 completion 就不能再 resume 执行. 一般情况下, future.await? 会消耗 future 对象.
--   branch 可以使用 if 表达式先判断是否需要执行  &amp;mut operation, if !done =&gt; {xxx};
+-   async fn 一旦 completion 就不能再 resume 执行: 一般情况下, future.await? 会消耗 future 对象.
+-   branch 可以使用 if 表达式先判断是否需要执行, 如: &amp;mut operation, if !done =&gt; {xxx};
 
 <!--listend-->
 
@@ -2900,16 +3348,16 @@ async fn main() {
 
     loop {
         tokio::select! {
-             // 先判断 done, 为 true 时才执行 async expression. 这里使用的是 &mut 引用, 多以 .await
-	         // 并不会消耗对象, operation 在下一次 loop 还存在.
+            // 先判断 done, 为 true 时才执行 async expression. 这里使用的是 &mut 引用, 所以 .await 并不会消耗
+	    // 对象, operation 在下一次 loop 还存在.
             res = &mut operation, if !done => {
                 done = true;
-
                 if let Some(v) = res {
                     println!("GOT = {}", v);
                     return;
                 }
             }
+
             Some(v) = rx.recv() => {
                 if v % 2 == 0 {
                     // `.set` is a method on `Pin`.
@@ -2924,27 +3372,20 @@ async fn main() {
 
 tokio::spawn 和 select! 的区别:
 
-1.  Both tokio::spawn and select! enable `running concurrent asynchronous operations`. However, the
-    strategy used to run concurrent operations differs. The `tokio::spawn` function takes an
-    asynchronous operation and `spawns a new task` to run it. A task is the object that the Tokio
-    runtime schedules. Two different tasks are `scheduled independently` by Tokio. They may run
-    simultaneously on `different operating system threads`. Because of this, a spawned task has the
-    same restriction as a spawned thread: `no borrowing`.
-2.  The select! macro runs all branches `concurrently on the same task`. Because all branches of the
-    select! macro are executed on the same task, they will `never run simultaneously`. The select!
-    macro multiplexes asynchronous operations `on a single task`.
+1.  Both tokio::spawn and select! enable `running concurrent asynchronous operations`. However, the strategy used
+    to run concurrent operations differs. The `tokio::spawn` function takes an asynchronous operation and `spawns
+          a new task` to run it. A task is the object that the Tokio runtime schedules. Two different tasks are
+    `scheduled independently` by Tokio. They may run simultaneously on `different operating system
+          threads`. Because of this, a spawned task has the same restriction as a spawned thread: `no borrowing`.
+2.  The select! macro runs all branches `concurrently on the same task`. Because all branches of the select!
+    macro are executed on the same task, they will `never run simultaneously`. The select! macro multiplexes
+    asynchronous operations `on a single task` (比如一个 async expression 未 Ready 时,执行另一个 branch 的 async
+    expression).
 
 
-## <span class="section-num">12</span> stream {#stream}
+## <span class="section-num">13</span> tokio-stream {#tokio-stream}
 
-Stream 是同步 std::iter::Iterator 的异步版本, 返回一系列 value, 它是 `futures` crate 定义的 Stream
-trait 类型:
-
--   Stream 可以在 async fn 里进行迭代, 也可以使用类似于 Iterator 的 adapter(tokio 的 StreamExt trait
-    提供);
--   tokio 在单独的 tokio-stream create 中提供 Stream 支持功能.
-
-<!--listend-->
+Stream 是 std::iter::Iterator 的异步版本, 返回一系列 value, 它是 `futures-core` crate 定义的 Stream trait 类型。
 
 ```rust
 // https://docs.rs/futures-core/0.3.30/futures_core/stream/trait.Stream.html
@@ -2962,14 +3403,127 @@ pub trait Stream {
 }
 ```
 
-迭代 Stream:
+tokio 在单独的 `tokio-stream crate` 中提供 Stream 支持功能，它通过 pub use futures_core::Stream; 来 re-export
+futures-core crate 定义的 Stream trait。
 
--   tokio_stream::StreamExt 是 futures_core::stream::Stream 子 trait, 提供了额外的 trait 方法, 包括:
-    各种 adapter 方法(如 map/filter 等), 以及用于迭代的 next() 方法;
+tokio_stream crate 提供了如下 module 函数：
+
+-   empty	Creates a stream that yields nothing.
+-   iter	Converts an Iterator into a Stream which is always ready to yield the next value.
+-   once	Creates a stream that emits an element exactly once.
+-   pending	Creates a stream that is never ready
 
 <!--listend-->
 
 ```rust
+use tokio_stream::{self as stream, StreamExt};
+
+#[tokio::main]
+async fn main() {
+    let mut none = stream::empty::<i32>();
+    assert_eq!(None, none.next().await);
+
+    // iter() 函数将一个 Iterator 转换为 Stream
+    let mut stream = stream::iter(vec![17, 19]);
+    assert_eq!(stream.next().await, Some(17));
+    assert_eq!(stream.next().await, Some(19));
+    assert_eq!(stream.next().await, None);
+
+
+    // once() 函数返回只能迭代生成一个元素的 stream
+    // one is the loneliest number
+    let mut one = stream::once(1);
+    assert_eq!(Some(1), one.next().await);
+    // just one, that's all we get
+    assert_eq!(None, one.next().await);
+
+    // pending() 函数返回一个迭代式 pending 的 stream
+    let mut never = stream::pending::<i32>();
+    // This will never complete
+    never.next().await;
+    unreachable!();
+}
+```
+
+`tokio_stream::StreamExt` 是 futures_core::stream::Stream 子 trait, 提供了常用的额外 trait 方法, 包括: 各种
+adapter 方法(如 map/filter 等), 以及 `用于迭代的 next() 方法` ：
+
+```rust
+pub trait StreamExt: Stream {
+
+    // next() 迭代返回下一个元素，返回的 Next 类型对象实现了 Future trait，.await 时返回 Option
+    fn next(&mut self) -> Next<'_, Self>
+       where Self: Unpin { ... }
+    fn try_next<T, E>(&mut self) -> TryNext<'_, Self>
+       where Self: Stream<Item = Result<T, E>> + Unpin { ... }
+
+    fn map<T, F>(self, f: F) -> Map<Self, F>
+       where F: FnMut(Self::Item) -> T,
+             Self: Sized { ... }
+    fn map_while<T, F>(self, f: F) -> MapWhile<Self, F>
+       where F: FnMut(Self::Item) -> Option<T>,
+             Self: Sized { ... }
+    fn then<F, Fut>(self, f: F) -> Then<Self, Fut, F>
+       where F: FnMut(Self::Item) -> Fut,
+             Fut: Future,
+             Self: Sized { ... }
+    fn merge<U>(self, other: U) -> Merge<Self, U>
+       where U: Stream<Item = Self::Item>,
+             Self: Sized { ... }
+    fn filter<F>(self, f: F) -> Filter<Self, F>
+       where F: FnMut(&Self::Item) -> bool,
+             Self: Sized { ... }
+    fn filter_map<T, F>(self, f: F) -> FilterMap<Self, F>
+       where F: FnMut(Self::Item) -> Option<T>,
+             Self: Sized { ... }
+    fn fuse(self) -> Fuse<Self>
+       where Self: Sized { ... }
+    fn take(self, n: usize) -> Take<Self>
+       where Self: Sized { ... }
+    fn take_while<F>(self, f: F) -> TakeWhile<Self, F>
+       where F: FnMut(&Self::Item) -> bool,
+             Self: Sized { ... }
+    fn skip(self, n: usize) -> Skip<Self>
+       where Self: Sized { ... }
+    fn skip_while<F>(self, f: F) -> SkipWhile<Self, F>
+       where F: FnMut(&Self::Item) -> bool,
+             Self: Sized { ... }
+    fn all<F>(&mut self, f: F) -> AllFuture<'_, Self, F>
+       where Self: Unpin,
+             F: FnMut(Self::Item) -> bool { ... }
+    fn any<F>(&mut self, f: F) -> AnyFuture<'_, Self, F>
+       where Self: Unpin,
+             F: FnMut(Self::Item) -> bool { ... }
+    fn chain<U>(self, other: U) -> Chain<Self, U>
+       where U: Stream<Item = Self::Item>,
+             Self: Sized { ... }
+    fn fold<B, F>(self, init: B, f: F) -> FoldFuture<Self, B, F>
+       where Self: Sized,
+             F: FnMut(B, Self::Item) -> B { ... }
+    fn collect<T>(self) -> Collect<Self, T>
+       where T: FromStream<Self::Item>,
+             Self: Sized { ... }
+
+    // 迭代时返回一个元素的超时时间，返回的 Timeout 对象实现了 Future trait，.await 时返回 Result
+    // 即使某一个元素超时，还是可以继续迭代的。
+    fn timeout(self, duration: Duration) -> Timeout<Self>
+       where Self: Sized { ... }
+    fn timeout_repeating(self, interval: Interval) -> TimeoutRepeating<Self>
+       where Self: Sized { ... }
+    fn throttle(self, duration: Duration) -> Throttle<Self>
+       where Self: Sized { ... }
+    fn chunks_timeout(
+        self,
+        max_size: usize,
+        duration: Duration
+    ) -> ChunksTimeout<Self>
+       where Self: Sized { ... }
+    fn peekable(self) -> Peekable<Self>
+       where Self: Sized { ... }
+}
+
+
+// 示例
 use tokio_stream::StreamExt;
 
 #[tokio::main]
@@ -2980,6 +3534,48 @@ async fn main() {
         println!("GOT = {:?}", v);
     }
 }
+
+// timeout() 示例
+use tokio_stream::{self as stream, StreamExt};
+use std::time::Duration;
+let int_stream = int_stream.timeout(Duration::from_secs(1));
+tokio::pin!(int_stream);
+// When no items time out, we get the 3 elements in succession:
+assert_eq!(int_stream.try_next().await, Ok(Some(1)));
+assert_eq!(int_stream.try_next().await, Ok(Some(2)));
+assert_eq!(int_stream.try_next().await, Ok(Some(3)));
+assert_eq!(int_stream.try_next().await, Ok(None));
+```
+
+module tokio_stream::wrappers 提供将 tokio 其它类型转换为 Stream 的 wrappers 类型：
+
+-   BroadcastStream	A wrapper around tokio::sync::broadcast::Receiver that implements Stream.
+-   CtrlBreakStreaml	A wrapper around CtrlBreak that implements Stream.
+-   CtrlCStream	A wrapper around CtrlC that implements Stream.
+-   IntervalStream	A wrapper around Interval that implements Stream.
+-   LinesStream	A wrapper around tokio::io::Lines that implements Stream.
+-   ReadDirStream	A wrapper around tokio::fs::ReadDir that implements Stream.
+-   ReceiverStream	A wrapper around tokio::sync::mpsc::Receiver that implements Stream.
+-   SignalStream	A wrapper around Signal that implements Stream.
+-   SplitStream	A wrapper around tokio::io::Split that implements Stream.
+-   TcpListenerStream	A wrapper around TcpListener that implements Stream.
+-   UnboundedReceiverStream	A wrapper around tokio::sync::mpsc::UnboundedReceiver that implements Stream.
+-   UnixListenerStream	A wrapper around UnixListener that implements Stream.
+-   WatchStream	A wrapper around tokio::sync::watch::Receiver that implements Stream.
+
+<!--listend-->
+
+```rust
+use tokio_stream::{StreamExt, wrappers::WatchStream};
+use tokio::sync::watch;
+
+let (tx, rx) = watch::channel("hello");
+let mut rx = WatchStream::new(rx);
+
+assert_eq!(rx.next().await, Some("hello"));
+
+tx.send("goodbye").unwrap();
+assert_eq!(rx.next().await, Some("goodbye"));
 ```
 
 复杂的例子:
@@ -3009,7 +3605,7 @@ async fn subscribe() -> mini_redis::Result<()> {
     // tokio_stream::iter() 返回的 Stream 实现了 Unpin trait, 不需要明确的 Pin 操作
     tokio::pin!(messages); // Pin 到 stack
 
-    while let Some(msg) = messages.next().await { // next 要求 message Stream 必须时 Pinned
+    while let Some(msg) = messages.next().await { // next 要求 message Stream 必须是 Pinned
         println!("got = {:?}", msg);
     }
 
@@ -3030,20 +3626,13 @@ async fn main() -> mini_redis::Result<()> {
 }
 ```
 
-A Rust value is "pinned" when it can `no longer be moved in memory`. A key property of a pinned value
-is that pointers can be taken to the pinned data and the caller can be confident `the pointer stays
- valid`. This feature is used by `async/await` to support `borrowing data across .await points`.
+A Rust value is "pinned" when it can `no longer be moved in memory`. A key property of a pinned value is that
+pointers can be taken to the pinned data and the caller can be confident `the pointer stays valid`. This feature
+is used by `async/await` to support `borrowing data across .await points`.
 
--   因为 async fn 内的 data 时保存在 stack 上的, 但 across .await 使用这些 data 时, 在 .await 位置,
-    async fn 执行可能会暂停或被调度到其他 thread 上运行, 所以生成的 Future 对象会保存这些 data 在
-    stack 上的指针, 并且确保这些 data 时 Pin/Send/Sync 类型的.
+-   因为 async fn 内的 data 时保存在 stack 上的, 但 across .await 使用这些 data 时, 在 .await 位置, async fn 执行可能会暂停或被调度到其他 thread 上运行, 所以生成的 Future 对象会保存这些 data 在stack 上的指针, 并且确保这些 data 时 Pin/Send/Sync 类型的.
 
-Adapters 指的是从 Stream 生成新的 Stream, 如 map/take/filter;
-
--   tokio_stream::StreamExt 是 futures_core::stream::Stream 子 trait, 提供了额外的 trait 方法, 包括:
-    各种 adapter 方法(如 map/filter 等), 以及用于迭代的 next() 方法;
-
-<!--listend-->
+Adapters 指从 Stream 生成新的 Stream, 如 map/take/filter：
 
 ```rust
 let messages = subscriber
@@ -3119,7 +3708,492 @@ impl Stream for Interval {
 }
 ```
 
-Rust 的 async/await 还不支持定义 Stream, 但是 async-stream crate 提供了 stream! 宏,可以用来创建 Stream:
+
+## <span class="section-num">14</span> tokio_util crate 的 ReaderStream 和 StreamReader {#tokio-util-crate-的-readerstream-和-streamreader}
+
+tokio_util crate 提供了两个 Stream/Reader 相关的 struct 类型。
+
+1.  ReaderStream：Convert an AsyncRead into a Stream of byte chunks.
+
+<!--listend-->
+
+```rust
+// ReaderStream 类型的关联函数
+impl<R: AsyncRead> ReaderStream<R>
+// Convert an AsyncRead into a Stream with item type Result<Bytes, std::io::Error>.
+pub fn new(reader: R) -> Self
+// Convert an AsyncRead into a Stream with item type Result<Bytes, std::io::Error>, with a specific read buffer initial capacity.
+pub fn with_capacity(reader: R, capacity: usize) -> Self
+
+// ReaderStream 实现了 Stream trait，迭代返回的元素类型为 Bytes，即一块连续的 u8 内存区域
+impl<R: AsyncRead> Stream for ReaderStream<R>
+type Item = Result<Bytes, Error>
+
+
+
+// 示例
+use tokio_stream::StreamExt;
+use tokio_util::io::ReaderStream;
+
+// Create a stream of data.
+let data = b"hello, world!";
+let mut stream = ReaderStream::new(&data[..]); // &[u8] 实现了 AsyncRead trait
+
+// Read all of the chunks into a vector.
+let mut stream_contents = Vec::new();
+while let Some(chunk) = stream.next().await { // chunk 类型为 bytes::Bytes, 可以 Deref<[u8]> 来使用
+   stream_contents.extend_from_slice(&chunk?);
+}
+
+// Once the chunks are concatenated, we should have the original data.
+assert_eq!(stream_contents, data);
+```
+
+1.  StreamReader：Convert a Stream of byte chunks into an AsyncRead.
+2.  返回的 Reader 也实现了 AsyncBufRead trait
+
+<!--listend-->
+
+```rust
+impl<S, B, E> StreamReader<S, B>
+where
+    S: Stream<Item = Result<B, E>>,
+    B: Buf,
+    E: Into<Error>,
+// new() 从 Stream 创建一个 StreamReader，Stream 需要每次迭代返回一个 Result<bytes::Buf, E> 对象
+// Bytes, BytesMut, &[u8], VecDeque<u8> 等（不含 Vec<u8>）均实现了 bytes::Buf
+pub fn new(stream: S) -> Self
+
+
+use bytes::Bytes;
+use tokio::io::{AsyncReadExt, Result};
+use tokio_util::io::StreamReader;
+
+// Create a stream from an iterator.
+let stream = tokio_stream::iter(vec![
+    Result::Ok(Bytes::from_static(&[0, 1, 2, 3])), // Bytes 实现了 Buf trait
+    Result::Ok(Bytes::from_static(&[4, 5, 6, 7])),
+    Result::Ok(Bytes::from_static(&[8, 9, 10, 11])),
+]);
+
+// Convert it to an AsyncRead.
+let mut read = StreamReader::new(stream);
+
+// Read five bytes from the stream.
+let mut buf = [0; 5];
+read.read_exact(&mut buf).await?;
+assert_eq!(buf, [0, 1, 2, 3, 4]);
+
+// Read the rest of the current chunk.
+assert_eq!(read.read(&mut buf).await?, 3);
+assert_eq!(&buf[..3], [5, 6, 7]);
+
+// Read the next chunk.
+assert_eq!(read.read(&mut buf).await?, 4);
+assert_eq!(&buf[..4], [8, 9, 10, 11]);
+
+// We have now reached the end.
+assert_eq!(read.read(&mut buf).await?, 0);
+```
+
+
+## <span class="section-num">15</span> tokio_util crate {#tokio-util-crate}
+
+`futures_util` crate 提供了 Sink 和 SinkExt trait 的定义:
+
+-   Sink	A Sink is a value into which other values can be sent, asynchronously.
+-   SinkExt	An extension trait for Sinks that provides a variety of convenient combinator functions.
+
+<!--listend-->
+
+```rust
+pub trait Sink<Item> {
+    type Error;
+
+    // Required methods
+    fn poll_ready(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>
+    ) -> Poll<Result<(), Self::Error>>;
+    fn start_send(self: Pin<&mut Self>, item: Item) -> Result<(), Self::Error>;
+    fn poll_flush(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>
+    ) -> Poll<Result<(), Self::Error>>;
+    fn poll_close(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>
+    ) -> Poll<Result<(), Self::Error>>;
+}
+
+// 更常用的是 SinkExt 提供的方法, 如 send()/send_all()
+pub trait SinkExt<Item>: Sink<Item> {
+    // Provided methods
+    fn with<U, Fut, F, E>(self, f: F) -> With<Self, Item, U, Fut, F>
+       where F: FnMut(U) -> Fut,
+             Fut: Future<Output = Result<Item, E>>,
+             E: From<Self::Error>,
+             Self: Sized { ... }
+    fn with_flat_map<U, St, F>(self, f: F) -> WithFlatMap<Self, Item, U, St, F>
+       where F: FnMut(U) -> St,
+             St: Stream<Item = Result<Item, Self::Error>>,
+             Self: Sized { ... }
+    fn sink_map_err<E, F>(self, f: F) -> SinkMapErr<Self, F>
+       where F: FnOnce(Self::Error) -> E,
+             Self: Sized { ... }
+    fn sink_err_into<E>(self) -> SinkErrInto<Self, Item, E>
+       where Self: Sized,
+             Self::Error: Into<E> { ... }
+    fn buffer(self, capacity: usize) -> Buffer<Self, Item>
+       where Self: Sized { ... }
+    fn close(&mut self) -> Close<'_, Self, Item> ⓘ
+       where Self: Unpin { ... }
+    fn fanout<Si>(self, other: Si) -> Fanout<Self, Si>
+       where Self: Sized,
+             Item: Clone,
+             Si: Sink<Item, Error = Self::Error> { ... }
+    fn flush(&mut self) -> Flush<'_, Self, Item> ⓘ
+       where Self: Unpin { ... }
+    fn send(&mut self, item: Item) -> Send<'_, Self, Item> ⓘ
+       where Self: Unpin { ... }
+    fn feed(&mut self, item: Item) -> Feed<'_, Self, Item> ⓘ
+       where Self: Unpin { ... }
+    fn send_all<'a, St>(
+        &'a mut self,
+        stream: &'a mut St
+    ) -> SendAll<'a, Self, St> ⓘ
+       where St: TryStream<Ok = Item, Error = Self::Error> + Stream + Unpin + ?Sized,
+             Self: Unpin { ... }
+    fn left_sink<Si2>(self) -> Either<Self, Si2> ⓘ
+       where Si2: Sink<Item, Error = Self::Error>,
+             Self: Sized { ... }
+    fn right_sink<Si1>(self) -> Either<Si1, Self> ⓘ
+       where Si1: Sink<Item, Error = Self::Error>,
+             Self: Sized { ... }
+    fn compat(self) -> CompatSink<Self, Item>
+       where Self: Sized + Unpin { ... }
+    fn poll_ready_unpin(
+        &mut self,
+        cx: &mut Context<'_>
+    ) -> Poll<Result<(), Self::Error>>
+       where Self: Unpin { ... }
+    fn start_send_unpin(&mut self, item: Item) -> Result<(), Self::Error>
+       where Self: Unpin { ... }
+    fn poll_flush_unpin(
+        &mut self,
+        cx: &mut Context<'_>
+    ) -> Poll<Result<(), Self::Error>>
+       where Self: Unpin { ... }
+    fn poll_close_unpin(
+        &mut self,
+        cx: &mut Context<'_>
+    ) -> Poll<Result<(), Self::Error>>
+       where Self: Unpin { ... }
+}
+```
+
+Module tokio_util::codec 提供了将 AsyncRead/AsyncWrite 转换为 Stream/Sink, 并且将 byte stream sequence 转换为有意义的 chunks 即 frames 的能力:
+
+-   struct FrameWrite: A `Sink` of frames encoded to an `AsyncWrite`.
+-   struct FrameRead: A `Stream` of messages decoded from an `AsyncRead` .
+-   A `unified Stream and Sink` interface to an underlying I/O object, using the Encoder and
+    Decoder traits to encode and decode frames.
+
+Stream 从 AsyncRead 转换而来, 它的 StreamExt trait 提供的 next() 方法一次返回一个 chunk(bytes::Bytes 类型) .而
+Sink 从 AsyncWrite 转换而来, 它的 SinkExt trait 提供的 send()/send_all()/feed() 方法可以用于发送数据.
+
+在创建 FrameWrite/FrameRead/Framed 时需要传入实现 Encoder 和 Decoder trait 的对象, 用于从 Stream 中解码出
+Frame 对象, 向 Sink 中写入编码的 Frame 对象.
+
+tokio_util::codec 提供了如下实现 Encoder 和 Decoder trait 的类型:
+
+-   AnyDelimiterCodec A simple Decoder and Encoder implementation that splits up data into chunks based on any
+    character in the given delimiter string.
+-   BytesCodec	A simple Decoder and Encoder implementation that just ships bytes around.
+-   LinesCodec	A simple Decoder and Encoder implementation that splits up data into lines.
+
+<!--listend-->
+
+```rust
+// encoding
+use futures::sink::SinkExt;
+use tokio_util::codec::LinesCodec;
+use tokio_util::codec::FramedWrite;
+
+#[tokio::main]
+async fn main() {
+    let buffer = Vec::new();
+    let messages = vec!["Hello", "World"];
+    let encoder = LinesCodec::new();
+
+    // FramedWrite is a sink which means you can send values into it asynchronously
+    // buffer 实现了 AsyncWrite
+    let mut writer = FramedWrite::new(buffer, encoder);
+
+    // To be able to send values into a FramedWrite, you need to bring the `SinkExt` trait into scope.
+    // writer 实现了 Sink 和 SinkExt
+    writer.send(messages[0]).await.unwrap();
+    writer.send(messages[1]).await.unwrap();
+
+    let buffer = writer.get_ref();
+
+    assert_eq!(buffer.as_slice(), "Hello\nWorld\n".as_bytes());
+}
+
+// decoding
+use tokio_stream::StreamExt;
+use tokio_util::codec::LinesCodec;
+use tokio_util::codec::FramedRead;
+
+#[tokio::main]
+async fn main() {
+    let message = "Hello\nWorld".as_bytes();
+    let decoder = LinesCodec::new();
+
+    // FramedRead can be used to read a stream of values that are framed according to a codec. FramedRead will
+    // read from its input (here `buffer`) until a whole frame can be parsed.
+    // message 实现了 AsyncRead
+    let mut reader = FramedRead::new(message, decoder);
+
+    // To read values from a FramedRead, you need to bring the `StreamExt` trait into scope.
+    // reader 实现了 Stream 和 StreamExt
+    let frame1 = reader.next().await.unwrap().unwrap();
+    let frame2 = reader.next().await.unwrap().unwrap();
+
+    assert!(reader.next().await.is_none());
+    assert_eq!(frame1, "Hello");
+    assert_eq!(frame2, "World");
+}
+```
+
+FrameReader 从 Stream Buf 中使用 decoder 来解码出 Frame 的过程大概如下:
+
+```rust
+use tokio::io::AsyncReadExt;
+
+let mut buf = bytes::BytesMut::new();
+loop {
+    // The read_buf call will append to buf rather than overwrite existing data.
+    let len = io_resource.read_buf(&mut buf).await?;
+
+    if len == 0 {
+        while let Some(frame) = decoder.decode_eof(&mut buf)? {
+            yield frame;
+        }
+        break;
+    }
+
+    while let Some(frame) = decoder.decode(&mut buf)? { // 解码出 frame
+        yield frame;
+    }
+}
+```
+
+FrameWriter 向 Sink 中写入使用 encoder 编码的数据的大概过程如下:
+
+```rust
+use tokio::io::AsyncWriteExt;
+use bytes::Buf; // for advance
+
+const MAX: usize = 8192;
+
+let mut buf = bytes::BytesMut::new();
+loop {
+    tokio::select! {
+        num_written = io_resource.write(&buf), if !buf.is_empty() => {
+            buf.advance(num_written?);
+        },
+        frame = next_frame(), if buf.len() < MAX => {
+            encoder.encode(frame, &mut buf)?;
+        },
+        _ = no_more_frames() => {
+            io_resource.write_all(&buf).await?;
+            io_resource.shutdown().await?;
+            return Ok(());
+        },
+    }
+}
+```
+
+也可以为自定义类型实现 Encoder 和 Decoder trait, 从而可以在 Frame 中使用:
+
+```rust
+// 实现 Decoder trait, 从输入的 src: &mut BytesMut 中解析出 Item 类型对象
+use tokio_util::codec::Decoder;
+use bytes::{BytesMut, Buf};
+
+struct MyStringDecoder {}
+
+const MAX: usize = 8 * 1024 * 1024;
+
+impl Decoder for MyStringDecoder {
+    type Item = String;
+    type Error = std::io::Error;
+
+    fn decode(
+        &mut self,
+        src: &mut BytesMut
+    ) -> Result<Option<Self::Item>, Self::Error> {
+        if src.len() < 4 {
+            // Not enough data to read length marker.
+            return Ok(None);
+        }
+
+        // Read length marker.
+        let mut length_bytes = [0u8; 4];
+        length_bytes.copy_from_slice(&src[..4]);
+        let length = u32::from_le_bytes(length_bytes) as usize;
+
+        // Check that the length is not too large to avoid a denial of service attack where the server runs
+        // out of memory.
+        if length > MAX {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Frame of length {} is too large.", length)
+            ));
+        }
+
+        if src.len() < 4 + length {
+            // The full string has not yet arrived.
+            //
+            // We reserve more space in the buffer. This is not strictly necessary, but is a good idea
+            // performance-wise.
+            src.reserve(4 + length - src.len());
+
+            // We inform the Framed that we need more bytes to form the next frame.
+            return Ok(None);
+        }
+
+        // Use advance to modify src such that it no longer contains this frame.
+        let data = src[4..4 + length].to_vec();
+        src.advance(4 + length);
+
+        // Convert the data to a string, or fail if it is not valid utf-8.
+        match String::from_utf8(data) {
+            Ok(string) => Ok(Some(string)),
+            Err(utf8_error) => {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    utf8_error.utf8_error(),
+                ))
+            },
+        }
+    }
+}
+
+// 实现 Encoder trait
+use tokio_util::codec::Encoder;
+use bytes::BytesMut;
+
+struct MyStringEncoder {}
+
+const MAX: usize = 8 * 1024 * 1024;
+
+impl Encoder<String> for MyStringEncoder {
+    type Error = std::io::Error;
+
+    fn encode(&mut self, item: String, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        // Don't send a string if it is longer than the other end will
+        // accept.
+        if item.len() > MAX {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Frame of length {} is too large.", item.len())
+            ));
+        }
+
+        // Convert the length into a byte array.
+        // The cast to u32 cannot overflow due to the length check above.
+        let len_slice = u32::to_le_bytes(item.len() as u32);
+
+        // Reserve space in the buffer.
+        dst.reserve(4 + item.len());
+
+        // Write the length and string to the buffer.
+        dst.extend_from_slice(&len_slice);
+        dst.extend_from_slice(item.as_bytes());
+        Ok(())
+    }
+}
+```
+
+Module tokio_util::time 提供了 DelayQueue 类型, 支持:
+
+1.  pub fn insert_at(&amp;mut self, value: T, when: Instant) -&gt; Key: 插入元素,并指定过期的绝对时间;
+2.  pub fn insert(&amp;mut self, value: T, timeout: Duration) -&gt; Key: 插入元素, 并指定超时时间;
+3.  pub fn poll_expired(&amp;mut self, cx: &amp;mut Context&lt;'_&gt;) -&gt; Poll&lt;Option&lt;Expired&lt;T&gt;&gt;&gt;: 返回过期的下一个元素
+4.  通过插入返回的 Key,可以查询,删除,重置对应的元素;
+
+<!--listend-->
+
+```rust
+use tokio_util::time::{DelayQueue, delay_queue};
+
+use futures::ready;
+use std::collections::HashMap;
+use std::task::{Context, Poll};
+use std::time::Duration;
+
+struct Cache {
+    entries: HashMap<CacheKey, (Value, delay_queue::Key)>,
+    expirations: DelayQueue<CacheKey>,
+}
+
+const TTL_SECS: u64 = 30;
+
+impl Cache {
+    fn insert(&mut self, key: CacheKey, value: Value) {
+        let delay = self.expirations
+            .insert(key.clone(), Duration::from_secs(TTL_SECS));
+
+        self.entries.insert(key, (value, delay));
+    }
+
+    fn get(&self, key: &CacheKey) -> Option<&Value> {
+        self.entries.get(key)
+            .map(|&(ref v, _)| v)
+    }
+
+    fn remove(&mut self, key: &CacheKey) {
+        if let Some((_, cache_key)) = self.entries.remove(key) {
+            self.expirations.remove(&cache_key);
+        }
+    }
+
+    fn poll_purge(&mut self, cx: &mut Context<'_>) -> Poll<()> {
+        // ready!() 宏返回 Poll::Ready 的值, 如果不 Ready 则一致阻塞
+        while let Some(entry) = ready!(self.expirations.poll_expired(cx)) {
+            self.entries.remove(entry.get_ref());
+        }
+
+        Poll::Ready(())
+    }
+}
+```
+
+Trait tokio_util::time::FutureExt 为所有实现了 Future 的对象,添加 timeout() 方法:
+
+```rust
+pub trait FutureExt: Future {
+    // Provided method
+    fn timeout(self, timeout: Duration) -> Timeout<Self>
+       where Self: Sized { ... }
+}
+
+// 示例
+use tokio::{sync::oneshot, time::Duration};
+use tokio_util::time::FutureExt;
+
+let (tx, rx) = oneshot::channel::<()>();
+
+let res = rx.timeout(Duration::from_millis(10)).await;
+assert!(res.is_err());
+```
+
+
+## <span class="section-num">16</span> async_stream {#async-stream}
+
+Rust 的 async/await 还不支持创建 Stream, 但是 `async-stream crate` 提供了 stream! 宏,可以用来创建 Stream:
 
 ```rust
 use async_stream::stream;
@@ -3136,8 +4210,36 @@ stream! {
 }
 ```
 
+<https://docs.rs/async-stream/latest/async_stream/>
 
-## <span class="section-num">13</span> 同步函数中执行异步代码 {#同步函数中执行异步代码}
+Asynchronous stream of elements. Provides two macros, `stream! and try_stream!`, allowing the caller to define
+asynchronous streams of elements. These are implemented using async &amp; await notation. This crate works without
+unstable features.
+
+```rust
+use async_stream::stream;
+
+use futures_util::pin_mut;
+use futures_util::stream::StreamExt;
+
+#[tokio::main]
+async fn main() {
+    let s = stream! {
+        for i in 0..3 {
+            yield i;
+        }
+    };
+
+    pin_mut!(s); // needed for iteration
+
+    while let Some(value) = s.next().await {
+        println!("got {}", value);
+    }
+}
+```
+
+
+## <span class="section-num">17</span> 同步函数中执行异步代码 {#同步函数中执行异步代码}
 
 \#[tokio::main] 在一个 multi thread executor 中指定 async main 函数代码:
 
@@ -3415,7 +4517,7 @@ impl TaskSpawner {
 ```
 
 
-## <span class="section-num">14</span> Actors with Tokio {#actors-with-tokio}
+## <span class="section-num">18</span> Actors with Tokio {#actors-with-tokio}
 
 <https://ryhl.io/blog/actors-with-tokio/>
 
@@ -3687,7 +4789,7 @@ Note that this means that a oneshot channel cannot be part of a deadlocked cycle
 Thanks to matklad for pointing out the issues with cycles and deadlocks.
 
 
-## <span class="section-num">15</span> Graceful Shutdown {#graceful-shutdown}
+## <span class="section-num">19</span> Graceful Shutdown {#graceful-shutdown}
 
 <https://tokio.rs/tokio/topics/shutdown>
 
@@ -3818,7 +4920,7 @@ async fn some_operation(i: u64) {
 ```
 
 
-## <span class="section-num">16</span> unit testing {#unit-testing}
+## <span class="section-num">20</span> unit testing {#unit-testing}
 
 <https://tokio.rs/tokio/topics/testing>
 
@@ -3919,42 +5021,480 @@ async fn client_handler_replies_politely() {
 ```
 
 
-## <span class="section-num">17</span> async_channel {#async-channel}
+## <span class="section-num">21</span> async_channel {#async-channel}
 
-std:sync::mpsc 和 crossbeam::channel 都是同步 channel, 不能在 async func 中使用, 否则可能 block 当前线程和 task.
+std:sync::mpsc 和 crossbeam::channel 都是同步 channel, 不能在 async func 中使用, 否则可能 block 当前线程和
+task.
 
-tokio::sync:mpsc 是 multi-producer signle-consumer channel, 可以在 async 异步函数中使用, 而
-async_channel crate 提供了multi-producer multi-consumer channel, 每个 message 只能被一个 consumer 消费.
+tokio::sync:mpsc 是 multi-producer signle-consumer channel, 可以在 async 异步函数中使用, 而 async_channel
+crate 提供了 multi-producer multi-consumer channel, 每个 message 只能被一个 consumer 消费.
 
 
-## <span class="section-num">18</span> async_stream {#async-stream}
+## <span class="section-num">22</span> tokio::net {#tokio-net}
 
-<https://docs.rs/async-stream/latest/async_stream/>
+TCP/UDP/Unix bindings for tokio.
 
-Asynchronous stream of elements.
+1.  `TcpListener` and `TcpStream` provide functionality for communication over TCP
+2.  `UdpSocket` provides functionality for communication over UDP
+3.  `UnixListener` and `UnixStream` provide functionality for communication over a `Unix Domain Stream Socket`
+    (available on Unix only)
+4.  `UnixDatagram` provides functionality for communication over `Unix Domain Datagram Socket` (available on Unix
+    only)
+5.  `tokio::net::unix::pipe` for FIFO pipes (available on Unix only)
+6.  tokio::net::windows::named_pipe for Named Pipes (available on Windows only)
 
-Provides two macros, stream! and try_stream!, allowing the caller to define asynchronous streams of
-elements. These are implemented using async &amp; await notation. This crate works without unstable
-features.
+提供了一个函数:
+
+-   `lookup_hostnet` Performs a DNS resolution.
+
+<!--listend-->
 
 ```rust
-use async_stream::stream;
+use tokio::net;
+use std::io;
 
-use futures_util::pin_mut;
-use futures_util::stream::StreamExt;
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    for addr in net::lookup_host("localhost:3000").await? {
+        println!("socket address is {}", addr);
+    }
+
+    Ok(())
+}
+```
+
+TcpListener 提供了 bind/accept 方法:
+
+-   bind() 关联函数返回 TcpListener 类型对象;
+-   accept() 方法返回 `TCPStream` 和对端 SocketAddr;
+-   from_std()/into_std() 方法可以在标准库的 TcpListener 间转换, 这样可以 `使用标准库创建和设置 TcpListener`, 然后创建 tokio TcpListener.
+    ```rust
+      use std::error::Error;
+      use tokio::net::TcpListener;
+
+      #[tokio::main]
+      async fn main() -> Result<(), Box<dyn Error>> {
+          let std_listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+          std_listener.set_nonblocking(true)?;
+          let listener = TcpListener::from_std(std_listener)?;
+          Ok(())
+      }
+    ```
+
+TcpStream 实现了 AsyncRead/AsyncWrite, 通过 split() 方法可以分别返回读端和写端.
+
+TcpSocket 是未转换为 TcpListener 和 TcpStream 的对象, 用于设置 TCP 相关参数.
+
+-   pub fn new_v4() -&gt; Result&lt;TcpSocket&gt;
+-   pub fn new_v6() -&gt; Result&lt;TcpSocket&gt;
+
+-   pub fn bind(&amp;self, addr: SocketAddr) -&gt; Result&lt;()&gt;
+-   pub fn bind_device(&amp;self, interface: Option&lt;&amp;[u8]&gt;) -&gt; Result&lt;()&gt;
+-   pub async fn connect(self, addr: SocketAddr) -&gt; Result&lt;TcpStream&gt;
+-   pub fn listen(self, backlog: u32) -&gt; Result&lt;TcpListener&gt;
+
+-   pub fn set_keepalive(&amp;self, keepalive: bool) -&gt; Result&lt;()&gt;
+-   pub fn set_reuseaddr(&amp;self, reuseaddr: bool) -&gt; Result&lt;()&gt;
+-   pub fn set_recv_buffer_size(&amp;self, size: u32) -&gt; Result&lt;()&gt;
+-   ...
+
+<!--listend-->
+
+```rust
+use tokio::net::TcpSocket;
+
+use std::io;
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let addr = "127.0.0.1:8080".parse().unwrap();
+
+    let socket = TcpSocket::new_v4()?;
+    // On platforms with Berkeley-derived sockets, this allows to quickly
+    // rebind a socket, without needing to wait for the OS to clean up the
+    // previous one.
+    //
+    // On Windows, this allows rebinding sockets which are actively in use,
+    // which allows “socket hijacking”, so we explicitly don't set it here.
+    // https://docs.microsoft.com/en-us/windows/win32/winsock/using-so-reuseaddr-and-so-exclusiveaddruse
+    socket.set_reuseaddr(true)?;
+    socket.bind(addr)?;
+
+    let listener = socket.listen(1024)?;
+    Ok(())
+
+
+    let addr = "127.0.0.1:8080".parse().unwrap();
+    let socket = TcpSocket::new_v4()?;
+    let stream = socket.connect(addr).await?;
+    Ok(())
+}
+```
+
+tokio 的 TcpStream::connect() 没有提供 timeout，但是可以使用 tokio::time::timeout 来实现：
+
+```rust
+const CONNECTION_TIME: u64 = 100;
+
+// ...
+
+let (socket, _response) = match tokio::time::timeout(
+     Duration::from_secs(CONNECTION_TIME),
+     tokio::net::TcpStream::connect("127.0.0.1:8080")
+ )
+ .await
+ {
+     Ok(ok) => ok,
+     Err(e) => panic!(format!("timeout while connecting to server : {}", e)),
+ }
+ .expect("Error while connecting to server")
+```
+
+同时，tokio 的 TcpStream 也没有提供其它 read/write timeout，但是可以标准库提供了，可以从标准库 TcpStream 创建
+tokio TcpStream：
+
+```rust
+let std_stream = std::net::TcpStream::connect("127.0.0.1:8080")
+    .expect("Couldn't connect to the server...");
+std_stream.set_write_timeout(None).expect("set_write_timeout call failed");
+std_stream.set_nonblocking(true)?;
+let stream = tokio::net::TcpStream::from_std(std_stream)?;
+```
+
+如果要使用其它标准库或 tokio::net 没有提供的 socket 设置，可以使用 socket2 crate， 例如为 socket 设置更详细的
+KeepAalive 参数，设置 tcp user timeout 等：
+
+```rust
+use std::time::Duration;
+
+use socket2::{Socket, TcpKeepalive, Domain, Type};
+
+let socket = Socket::new(Domain::IPV4, Type::STREAM, None)?;
+let keepalive = TcpKeepalive::new()
+    .with_time(Duration::from_secs(4));
+    // Depending on the target operating system, we may also be able to
+    // configure the keepalive probe interval and/or the number of
+    // retries here as well.
+
+socket.set_tcp_keepalive(&keepalive)?;
+```
+
+关于 TCP_USER_TIMEOUT 参考：
+
+1.  <https://codearcana.com/posts/2015/08/28/tcp-keepalive-is-a-lie.html>
+2.  <https://blog.cloudflare.com/when-tcp-sockets-refuse-to-die/>
+
+对于 UDP，只有 UdpSocket 一种类型，它提供 bind/connet/send/recv/send_to/recv_from 等方法。
+
+bind
+: 监听指定的地址和端口。由于 UDP 是无连接的，使用 recv_from 来接收任意 client 发送的数据，使用 send_to
+    可以向任意 target 发送数据。
+
+connect
+: UDP 虽然是无连接的，但是也支持使用 connect() 方法，效果是为返回的 UdpSocket 指定了 target ip 和
+    port，可以使用 send/recv 方法来只向该 target 发送和接收数据。
+
+<!--listend-->
+
+```rust
+use tokio::net::UdpSocket;
+use std::io;
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    let sock = UdpSocket::bind("0.0.0.0:8080").await?;
+    // use `sock`
+    Ok(())
+}
+```
+
+对于 Unix Socket，提供两种类型：
+
+1.  面向连接的： UnixListener，UnixStream；
+2.  面向无连接的：UnixDatagram
+
+Unix Socket 使用本地文件（一般是 .sock 结尾）寻址（named socket），也可以使用没有关联文件的 unnamed Unix
+Socket。
+
+关闭 named socket 时，对应的 socket 文件并不会被自动删除，如果没有 unix socket bind 到该文件上，则 client 连接会失败。
+
+1.  pub fn bind&lt;P&gt;(path: P) -&gt; Result&lt;UnixDatagram&gt; where P: AsRef&lt;Path&gt; : 使用指定 socket 文件创建一个 named
+    unix  Datagram socket；
+2.  pub fn pair() -&gt; Result&lt;(UnixDatagram, UnixDatagram)&gt;： 返回一对 unamed unix Datagram socket；
+3.  pub fn unbound() -&gt; Result&lt;UnixDatagram&gt;：创建一个没有绑定任何 addr 的 socket。
+4.  pub fn connect&lt;P: AsRef&lt;Path&gt;&gt;(&amp;self, path: P) -&gt; Result&lt;()&gt;：Datagram 是无连接的，但调用该方法后，可以使用
+    send/recv 从指定的 path 收发消息。
+
+<!--listend-->
+
+```rust
+use tokio::net::UnixDatagram;
+use tempfile::tempdir;
+
+// We use a temporary directory so that the socket files left by the bound sockets will get cleaned up.
+let tmp = tempdir()?;
+
+// Bind each socket to a filesystem path
+let tx_path = tmp.path().join("tx");
+let tx = UnixDatagram::bind(&tx_path)?;
+
+let rx_path = tmp.path().join("rx");
+let rx = UnixDatagram::bind(&rx_path)?;
+
+let bytes = b"hello world";
+tx.send_to(bytes, &rx_path).await?;
+
+let mut buf = vec![0u8; 24];
+let (size, addr) = rx.recv_from(&mut buf).await?;
+
+let dgram = &buf[..size];
+assert_eq!(dgram, bytes);
+assert_eq!(addr.as_pathname().unwrap(), &tx_path);
+
+
+
+// unnamed unix socket
+use tokio::net::UnixDatagram;
+
+// Create the pair of sockets
+let (sock1, sock2) = UnixDatagram::pair()?;
+
+// Since the sockets are paired, the paired send/recv
+// functions can be used
+let bytes = b"hello world";
+sock1.send(bytes).await?;
+
+let mut buff = vec![0u8; 24];
+let size = sock2.recv(&mut buff).await?;
+
+let dgram = &buff[..size];
+assert_eq!(dgram, bytes);
+```
+
+UnixListener 的 bind() 返回 UnixListener，然后它的 accept() 方法返回 UnixStream：
+
+```rust
+use tokio::net::UnixListener;
 
 #[tokio::main]
 async fn main() {
-    let s = stream! {
-        for i in 0..3 {
-            yield i;
+    let listener = UnixListener::bind("/path/to/the/socket").unwrap();
+    loop {
+        match listener.accept().await {
+            Ok((stream, _addr)) => {
+                println!("new client!");
+            }
+            Err(e) => { /* connection failed */ }
         }
-    };
-
-    pin_mut!(s); // needed for iteration
-
-    while let Some(value) = s.next().await {
-        println!("got {}", value);
     }
+}
+```
+
+UnixStream 实现了 AsyncRead/AsyncWrite，它的 connect() 方法也返回一个 UnixStream：
+
+```rust
+use tokio::io::Interest;
+use tokio::net::UnixStream;
+use std::error::Error;
+use std::io;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let dir = tempfile::tempdir().unwrap();
+    let bind_path = dir.path().join("bind_path");
+    let stream = UnixStream::connect(bind_path).await?;
+
+    loop {
+        let ready = stream.ready(Interest::READABLE | Interest::WRITABLE).await?;
+
+        if ready.is_readable() {
+            let mut data = vec![0; 1024];
+            // Try to read data, this may still fail with `WouldBlock`
+            // if the readiness event is a false positive.
+            match stream.try_read(&mut data) {
+                Ok(n) => {
+                    println!("read {} bytes", n);
+                }
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    continue;
+                }
+                Err(e) => {
+                    return Err(e.into());
+                }
+            }
+
+        }
+
+        if ready.is_writable() {
+            // Try to write data, this may still fail with `WouldBlock`
+            // if the readiness event is a false positive.
+            match stream.try_write(b"hello world") {
+                Ok(n) => {
+                    println!("write {} bytes", n);
+                }
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    continue;
+                }
+                Err(e) => {
+                    return Err(e.into());
+                }
+            }
+        }
+    }
+}
+```
+
+
+## <span class="section-num">23</span> tokio::signal {#tokio-signal}
+
+tokio::signal module 提供了信号捕获和处理的能力。
+
+pub async fn ctrl_c() -&gt; Result&lt;()&gt;： 当收到 C-c 发送的 SIGINT 信号时 .await 返回；
+
+```rust
+use tokio::signal;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    signal::ctrl_c().await?;
+    println!("ctrl-c received!");
+    Ok(())
+}
+```
+
+对于其它信号，可以使用 SignalKind 和 signal 函数创建一个 Signal，然后调用它的 recv() 方法：
+
+```rust
+
+// Wait for SIGHUP on Unix
+use tokio::signal::unix::{signal, SignalKind};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // An infinite stream of hangup signals.
+    let mut stream = signal(SignalKind::hangup())?;
+
+    // Print whenever a HUP signal is received
+    loop {
+        stream.recv().await;
+        println!("got signal HUP");
+    }
+}
+```
+
+
+## <span class="section-num">24</span> tokio::time {#tokio-time}
+
+1.  `Sleep` is a future that does no work and completes at a specific Instant in time.
+2.  `Interval` is `a stream yielding a value at a fixed period`. It is initialized with a Duration and repeatedly
+    yields each time the duration elapses.
+3.  `Timeout`: Wraps a future or stream, setting `an upper bound to the amount of time it is allowed to
+          execute`. If the future or stream does not complete in time, then it `is canceled` and an error is returned.
+
+These types must be used from within the context of the `Runtime`.
+
+```rust
+// Wait 100ms and print “100 ms have elapsed”
+use std::time::Duration;
+use tokio::time::sleep;
+
+#[tokio::main]
+async fn main() {
+    sleep(Duration::from_millis(100)).await;
+    println!("100 ms have elapsed");
+}
+
+
+// Require that an operation takes no more than 1s.
+use tokio::time::{timeout, Duration};
+async fn long_future() {
+    // do work here
+}
+let res = timeout(Duration::from_secs(1), long_future()).await;
+if res.is_err() {
+    println!("operation timed out");
+}
+
+// A simple example using interval to execute a task every two seconds.
+use tokio::time;
+async fn task_that_takes_a_second() {
+    println!("hello");
+    time::sleep(time::Duration::from_secs(1)).await
+}
+
+#[tokio::main]
+async fn main() {
+    let mut interval = time::interval(time::Duration::from_secs(2));
+    for _i in 0..5 {
+        interval.tick().await;
+        task_that_takes_a_second().await;
+    }
+}
+```
+
+tokio::time 同时提供了 pause()/resume()/advance() 方法：
+
+1.  tokio::time::pause(): 将当前 Instant::now() 保存，后续调用 Instant::now() 时将返回保存的值。保存的值可以使用 advance() 修改。该函数只适合 current_thread runtime，也就是 #[tokio::test] 默认使用的 runtime。
+2.  Auto-advance：If time is paused and the runtime has no work to do, the clock is `auto-advanced to the next
+          pending timer`. This means that Sleep or other timer-backed primitives can cause the runtime to advance the
+    current time when awaited.
+
+<!--listend-->
+
+```rust
+#[tokio::main(flavor = "current_thread", start_paused = true)]
+async fn main() {
+   println!("Hello world");
+}
+```
+
+
+## <span class="section-num">25</span> tokio::process {#tokio-process}
+
+```rust
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
+
+use std::process::Stdio;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::new("sort");
+
+    // Specifying that we want pipe both the output and the input.  Similarly to capturing the output, by
+    // configuring the pipe to stdin it can now be used as an asynchronous writer.
+    cmd.stdout(Stdio::piped());
+    cmd.stdin(Stdio::piped());
+
+    let mut child = cmd.spawn().expect("failed to spawn command");
+
+    // These are the animals we want to sort
+    let animals: &[&str] = &["dog", "bird", "frog", "cat", "fish"];
+
+    let mut stdin = child
+        .stdin
+        .take()
+        .expect("child did not have a handle to stdin");
+
+    // Write our animals to the child process Note that the behavior of `sort` is to buffer _all input_ before
+    // writing any output.  In the general sense, it is recommended to write to the child in a separate task
+    // as awaiting its exit (or output) to avoid deadlocks (for example, the child tries to write some output
+    // but gets stuck waiting on the parent to read from it, meanwhile the parent is stuck waiting to write
+    // its input completely before reading the output).
+    stdin
+        .write(animals.join("\n").as_bytes())
+        .await
+        .expect("could not write to stdin");
+
+    // We drop the handle here which signals EOF to the child process.  This tells the child process that it
+    // there is no more data on the pipe.
+    drop(stdin);
+
+    let op = child.wait_with_output().await?;
+
+    // Results should come back in sorted order
+    assert_eq!(op.stdout, "bird\ncat\ndog\nfish\nfrog\n".as_bytes());
+
+    Ok(())
 }
 ```

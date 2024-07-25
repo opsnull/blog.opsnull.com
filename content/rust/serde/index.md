@@ -1,7 +1,7 @@
 ---
 title: "serde"
 author: ["zhangjun"]
-lastmod: 2024-07-07T22:04:09+08:00
+lastmod: 2024-07-25T10:07:04+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -11,14 +11,13 @@ series_order: 2
 
 [serde crate](https://serde.rs/) 包含两层:
 
-1.  data structures: 实现了 serialize 和 deserialize trait 的内置或自定义类型, 可以调用 serde crate
-    来实现;
-2.  data format: data structures 保存的文件格式, 如 json/toml/yaml/csv/url 等。任意实现了 data
-    structures 的 serialize 和 deserialize trait 的类型都可以转换为 `任意` 支持的 data format;
-    -   data format 在各种单独的 serde_XX crate 中提供, 如 serde_json/serde_yaml 等;
+1.  `data structures` : 实现了 serialize 和 deserialize trait 的内置或自定义类型, 可以调用 serde crate 来实现;
+2.  `data format` : data structures 保存的文件格式, 如 json/toml/yaml/csv/url 等。任意实现了 data structures 的
+    serialize 和 deserialize trait 的类型都可以转换为 `任意` 支持的 data format;
 
-serde 为 Rust 内置 29 种类型[都提供了 data structure 实现](https://serde.rs/data-model.html#types), 所以一般只需要为自定义类型使用 #[derive]
-宏来自动生成 ser/deser 的代码即可:
+data format 在各种单独的 serde_XX crate 中提供, 如 serde_json/serde_yaml 等;
+
+serde 为 Rust 内置 29 种类型[都提供了 data structure 实现](https://serde.rs/data-model.html#types), 所以一般只需要为自定义类型使用 #[derive] 宏来自动生成 ser/deser 的代码即可:
 
 Cargo.toml:
 

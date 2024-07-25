@@ -1,7 +1,7 @@
 ---
 title: "tracing"
 author: ["zhangjun"]
-lastmod: 2024-07-07T22:04:14+08:00
+lastmod: 2024-07-25T10:07:05+08:00
 tags: ["rust", "tracing"]
 categories: ["rust"]
 draft: false
@@ -15,12 +15,11 @@ A scoped, structured logging and diagnostics system.
 
 核心概念：
 
-1.  Span：To record the flow of execution through a program, tracing introduces the concept of
-    spans. Unlike a log line that represents a moment in time, a span represents `a period of time`
-    with a beginning and an end. When a program begins executing in a context or performing a unit of
-    work, it `enters that context’s span`, and when it stops executing in that context, it `exits the
-          span`. The span in which a thread is currently executing is referred to as that thread’s `current
-          span`.
+1.  `Span` ：To record the flow of execution through a program, tracing introduces the concept of spans. Unlike a
+    log line that represents a moment in time, a span represents `a period of time` with a beginning and an
+    end. When a program begins executing in a context or performing a unit of work, it `enters that context’s
+          span`, and when it stops executing in that context, it `exits the span`. The span in which a thread is
+    currently executing is referred to as that thread’s `current span`.
     ```rust
        use tracing::{span, Level};
        let span = span!(Level::TRACE, "my_span"); // Level 和 Span id（name）
@@ -31,9 +30,9 @@ A scoped, structured logging and diagnostics system.
        // perform some work in the context of `my_span`...
     ```
 
-2.  Events：An Event represents a moment in time. It signifies something that happened while a trace
-    was being recorded. Events are comparable to `the log records` emitted by unstructured logging
-    code, but unlike a typical log line, `an Event may occur within the context of a span.`
+2.  `Events` ：An Event represents a moment in time. It signifies something that happened while a trace was being
+    recorded. Events are comparable to `the log records` emitted by unstructured logging code, but unlike a
+    typical log line, `an Event may occur within the context of a span.`
     ```rust
        use tracing::{event, span, Level};
 
@@ -46,25 +45,26 @@ A scoped, structured logging and diagnostics system.
        event!(Level::DEBUG, "something happened inside my_span");
     ```
 
-3.  Subscribers： As Spans and Events occur, they `are recorded or aggregated by implementations of
-          the Subscriber trait`. Subscribers `are notified` when an Event takes place and when a Span is
-    entered or exited. These notifications are represented by the following Subscriber trait methods:
+3.  `Subscribers` ：As Spans and Events occur, they `are recorded or aggregated by implementations of the
+          Subscriber trait`. Subscribers `are notified` when an Event takes place and when a Span is entered or
+    exited. These notifications are represented by the following Subscriber trait methods:
     -   event, called when an Event takes place,
     -   enter, called when execution enters a Span,
     -   exit, called when execution exits a Span
 
-In addition, subscribers may implement `the enabled function` to filter the notifications they receive
-based on `metadata` describing each Span or Event. If a call to `Subscriber::enabled` returns false for
-a given set of metadata, that Subscriber will `not be notified` about the corresponding Span or
-Event. For performance reasons, if no currently active subscribers express interest in a given set
-of metadata by returning true, then the corresponding Span or Event will `never be constructed`.
+In addition, subscribers may implement `the enabled function` to filter the notifications they receive based on
+`metadata` describing each Span or Event. If a call to `Subscriber::enabled` returns false for a given set of
+metadata, that Subscriber will `not be notified` about the corresponding Span or Event. For performance reasons,
+if no currently active subscribers express interest in a given set of metadata by returning true, then the
+corresponding Span or Event will `never be constructed`.
 
 -   Subscriber::enabeld() 可以基于传入的 Span 或 Event 的 metadata 来判断是否需要记录它们.
 
 
 ## <span class="section-num">1</span> span 和 event 宏 {#span-和-event-宏}
 
-使用 span!() 宏来创建特定 Level 和 id 的 span，然后调用它的 enter() 方法来创建一个 span context，后续在该 span 被 drop 前，所有 event 都属于该 span。
+使用 span!() 宏来创建特定 Level 和 id 的 span，然后调用它的 enter() 方法来创建一个 span context，后续在该 span
+被 drop 前，所有 event 都属于该 span。
 
 -   span 可以 enter() 实现 span 嵌套, 这样后续子 span 下打印 event 后会自动关联父 span 关系;
 -   Event 和 Span 都具有 Level 信息；
@@ -85,7 +85,7 @@ let _enter = span.enter();
 // Dropping the guard will exit the span.
 ```
 
-event 可以使用 target: "span_name" 或 parent: &amp;span 来指定父 span.
+event 可以使用 target: "span_name" 或 parent: &amp;span 来指定父 span:
 
 ```rust
 // 对于 span, 必须在 name/id 后添加 k=v
@@ -133,7 +133,7 @@ impl Handler {
 ```rust
 use tracing::info_span;
 
-let json = info_span!("json.parse").in_scope(|| serde_json::from_slice(&buf))?; // wrap synchonous code in a span
+let json = info_span!("json.parse").in_scope(|| serde_json::from_slice(&buf))?;
 ```
 
 使用 event!() 宏来记录 event：
@@ -256,12 +256,10 @@ event!(Level::TRACE, %my_struct.field);
 ```rust
 use tracing::{trace_span, field};
 
-// 创建一个 span, Create a span with two fields: `greeting`, with the value "hello world", and
-// `parting`, without a value.
+// 创建一个 span, Create a span with two fields: `greeting`, with the value "hello world", and `parting`,
+// without a value.
 let span = trace_span!("my_span", greeting = "hello world", parting = field::Empty);
-// ...
-// 在 span context 中创建一个 record，为 Empty field 指定具体的值.  Now, record a value for parting
-// as well.
+// 在 span context 中创建一个 record，为 Empty field 指定具体的值. Now, record a value for parting as well.
 span.record("parting", &"goodbye world!");
 ```
 
@@ -289,8 +287,8 @@ event!(
 : trace!, debug!, info!, warn!, and error! behave similarly to the event!
 
 `span!`
-: trace_span!, debug_span!, info_span!, warn_span!, and error_span! macros are the same,
-    but for the span! macro.
+: trace_span!, debug_span!, info_span!, warn_span!, and error_span! macros are the same, but for the
+    span! macro.
 
 
 ## <span class="section-num">2</span> event/span metadata {#event-span-metadata}
@@ -298,17 +296,15 @@ event!(
 All spans and events have the following metadata:
 
 -   A `name`, represented as a static string.
--   A `target`, a string that categorizes part of the system where the span or event occurred. The
-    tracing macros default to using `the module path` where the span or event originated as the target,
-    but it may be overridden.
--   A verbosity `level`. This determines how verbose a given span or event is, and allows enabling or
-    disabling more verbose diagnostics situationally. See the documentation for the Level type for
-    details.
+-   A `target`, a string that categorizes part of the system where the span or event occurred. The tracing macros
+    default to using `the module path` where the span or event originated as the target, but it may be overridden.
+-   A verbosity `level`. This determines how verbose a given span or event is, and allows enabling or disabling
+    more verbose diagnostics situationally. See the documentation for the Level type for details.
 -   The `names of the fields` defined by the span or event. 自定义 field=value
 -   Whether the metadata corresponds to a span or event.
 
-In addition, the following optional metadata describing the source code location where the span or
-event originated may be provided:
+In addition, the following optional metadata describing the source code location where the span or event
+originated may be provided:
 
 -   The file name
 -   The line number
@@ -322,6 +318,7 @@ Metadata::new() 创建 Metadata 对象：
 
 ```rust
 impl<'a> Metadata<'a>
+
 pub const fn new(
     name: &'static str,
     target: &'a str,
@@ -334,33 +331,31 @@ pub const fn new(
 ) -> Metadata<'a>
 ```
 
-subscribe 可以使用这些 metadata 来对 span/event 进行过滤（enable() 方法）。
+subscriber 可以使用这些 Metadata 来对 span/event 进行过滤（enable() 方法）。
 
 
 ## <span class="section-num">3</span> log 互操作性 {#log-互操作性}
 
-创建 Event 的 trace!, debug!, info! 等宏名称和 log crate 提供的记录日志的宏名称相同, 可以直接替换使用, tracing 的 Event 包含了更丰富的结构化信息。
+创建 Event 的 trace!, debug!, info! 等宏名称和 log crate 提供的记录日志的宏名称相同, 可以直接替换使用, tracing
+的 Event 包含了更丰富的结构化信息。
 
-另外 tracing 也提供了 log crate 的互操作性：
+tracing 支持与 log crate 的互操作性：
 
-1.  tracing crate 可以 emit log crate 消费的 log records；
-2.  Subscribers 也可以将 log crate 的 log records 当作 tracing Event 来消费(需要使用 tracing-log
-    crate)；
+1.  tracing 可以 emit log crate 消费的 log records；
+2.  Subscribers 也可以将 log crate 的 log records 当作 tracing Event 来消费(需要使用 tracing-log crate)；
 
-Emitting log Records: This crate provides two feature flags, `“log” and “log-always”`, which will
-cause `spans` and `events` to `emit log records`.
+Emitting log Records: This crate provides two feature flags, `“log” and “log-always”`, which will cause `spans`
+and `events` to `emit log records`.
 
 -   `log` feature: 在没有激活 tracing Subscriber 的情况下将 tracing event/span 转换为 log record;
 -   `log-always` feature: 即使激活了 tracing Subscriber, 也将 tracing event/span 转换为 log record;
 
-生成的 log record 包含 span/event 的 fileds 和 metadata（如 target，level，module path，file，line
-number 等）。而且 span 的 entered/exited/close 也会创建 log record，他们的 log target 为
-tracing::span， 遮掩gkeyi使用 log 的开启或关闭机制来操作他们。
+生成的 log record 包含 span/event 的 fileds 和 metadata（如 target，level，module path，file，line number 等）。而且 span 的 entered/exited/close 也会创建 log record，他们的 log target 为tracing::span， 遮掩使用 log 的开启或关闭机制来操作他们。
 
-Consuming log Records： The `tracing-log crate` provides a compatibility layer which allows `a tracing
-Subscriber to consume log records` as though they were `tracing events`. This allows applications using
-tracing to record the logs emitted by dependencies `using log as events within the context` of the
-application’s trace tree. See that crate’s documentation for details.
+Consuming log Records： The `tracing-log crate` provides a compatibility layer which allows `a tracing Subscriber
+to consume log records` as though they were `tracing events`. This allows applications using tracing to record
+the logs emitted by dependencies `using log as events within the context` of the application’s trace tree. See
+that crate’s documentation for details.
 
 ```rust
 use std::{error::Error, io};
@@ -423,8 +418,9 @@ pub fn shave_all(yaks: usize) -> usize {
 
 ## <span class="section-num">4</span> subscriber {#subscriber}
 
-tracing crate 定义的 `Subscriber trait` 代表需要收集 trace/event 数据的函数接口，tracing crate 并没有提供该 trait 的实现，但其他 crate，如 `tracing-subscriber` crate 的 `Registry/fmt::Subscriber` struct 类型都实现了 tracing::Subscriber trait, 故可以用于
-tracing::subscriber::set_default()/set_global_default()/with_default() 的参数。
+tracing crate 定义的 `Subscriber trait` 代表需要收集 trace/event 数据的函数接口，tracing crate 并没有提供该
+trait 的实现，但其他 crate，如 `tracing-subscriber` crate 的 `Registry/fmt::Subscriber` struct 类型实现了
+tracing::Subscriber trait, 可以用于 tracing::subscriber::set_default()/set_global_default()/with_default() 的参数：
 
 -   set_default()：为当前线程设置缺省的 Subscribe 实现；
 -   set_global_default()：为程序所有线程设置缺省的 Subscribe 实现；
@@ -434,8 +430,9 @@ tracing::subscriber::set_default()/set_global_default()/with_default() 的参数
 
 ```rust
 // 全局 Subsriber
-extern crate tracing;
-// FooSubscriber 是其他 crate 提供的 Subscriber 实现
+use tracing;
+
+// FooSubscriber 是其它 crate 提供的 Subscriber 实现
 let my_subscriber = FooSubscriber::new();
 tracing::subscriber::set_global_default(my_subscriber).expect("setting tracing default failed");
 
@@ -447,12 +444,11 @@ tracing::subscriber::with_default(my_subscriber, || {
 })
 ```
 
-set_global_default() 的底层是用指定的 Subscribe trait 实现来创建一个 tracing::dispatcher::Dispatch
-对象，然后设置它为全局 dispatcher：
+set_global_default() 的底层是用指定的 Subscribe trait 实现来创建一个 tracing::dispatcher::Dispatch 对象，然后设置它为全局 dispatcher：
 
 ```rust
 pub fn set_global_default<S>(subscriber: S) -> Result<(), SetGlobalDefaultError>
-where S: Subscriber + Send + Sync + 'static,
+    where S: Subscriber + Send + Sync + 'static,
 {
     crate::dispatcher::set_global_default(crate::Dispatch::new(subscriber))
 }
@@ -469,6 +465,7 @@ tracing::dispatcher::Dispatch 类型和设置方法， `Dispatch 对象负责发
 
 ```rust
 pub struct Dispatch { /* private fields */ }
+
 // 从 Subscriber 实现来创建 Dispatch
 pub fn new<S>(subscriber: S) -> Dispatch where S: Subscriber + Send + Sync + 'static,
 
@@ -476,19 +473,18 @@ pub fn new<S>(subscriber: S) -> Dispatch where S: Subscriber + Send + Sync + 'st
 use dispatcher::Dispatch;
 let my_subscriber = FooSubscriber::new();
 let my_dispatch = Dispatch::new(my_subscriber);
-// 使用方式1: 为闭包函数设置缺省 Subscribe
+// 使用方式 1: 为闭包函数设置缺省 Subscribe
 dispatcher::with_default(&my_dispatch, || {
     // my_subscriber is the default
 });
 
-// 使用方式2: 为全局所有线程设置缺省 Subscribe
+// 使用方式 2: 为全局所有线程设置缺省 Subscribe
 dispatcher::set_global_default(my_dispatch)
-    // `set_global_default` will return an error if the global default
-    // subscriber has already been set.
+    // `set_global_default` will return an error if the global default subscriber has already been set.
     .expect("global default was already set!");
 // `my_subscriber` is now the default
 
-// 使用方式3: 为当前线程设置缺省 Subscribe
+// 使用方式 3: 为当前线程设置缺省 Subscribe
 dispatcher::set_default(my_dispatch)
     .expect("default was already set!");
 ```
@@ -529,15 +525,15 @@ pub trait Subscriber: 'static {
 
 ## <span class="section-num">5</span> tracing-subscriber crate {#tracing-subscriber-crate}
 
-tracing crate 定义的 Subscriber trait 代表需要收集 trace/event 数据的函数接口。
+tracing crate 定义的 Subscriber trait 代表需要收集 trace/event 数据的函数接口。tracing-subscriber crate 的
+Registry/fmt::Subscriber struct 类型实现了 tracing::Subscriber trait, 可以用于
+tracing::subscriber::set_default()/set_global_default()/with_default() 的参数。
 
-tracing-subscriber crate 的 Registry/fmt::Subscriber struct 类型都实现了 tracing::Subscriber trait,
-故可以用于 tracing::subscriber::set_default()/set_global_default()/with_default() 的参数。
-
--   `tracing-subscriber::fmt::Subscriber` struct 实现了 tracing::Subscriber trait，可以用作 tracing 的全局 Subscribe；
-    -   tracing-subscriber::fmt() 返回的 tracing_subscriber::fmt::SubscriberBuilder 的 .with_writer()方法可以指定一个实现 std::io::Writer 的参数，从而实现自定义的终端、文件写入。（可以使用
-        tracing-appender crate 来生成这两种 writer）。
--   Registry 可以通过 .with(Layer) 方式来自定义 trace 数据的过滤、格式化和写入，非常适合于复杂自定义场景，如和 opentelemetry 集成；
+-   `tracing-subscriber::fmt::Subscriber` struct 实现了 tracing::Subscriber trait，可以用作 tracing 的全局
+    Subscribe；
+-   tracing-subscriber::fmt() 返回的 tracing_subscriber::fmt::SubscriberBuilder 的 .with_writer() 方法可以指定一个实现 std::io::Writer 的参数，从而实现自定义的终端、文件写入。（可以使用 tracing-appender crate 来生成这两种 writer）。
+-   Registry 可以通过 .with(Layer) 方式来自定义 trace 数据的过滤、格式化和写入，适合于复杂自定义场景，如
+    opentelemetry 集成；
 
 <!--listend-->
 
@@ -576,7 +572,6 @@ tracing::subscriber::set_global_default(subscriber).unwrap();
 
 `tracing_subscriber::fmt::Subscriber` struct 实现了 tracing::Subscriber trait：
 
--   支持通过 `环境变量` 来配置 EnvFilter，如 `RUST_LOG=debug,my_crate=trace`;
 -   fmt() 返回一个 SubscriberBuilder 对象，然后进行详细配置，最后的 .finish() 返回一个
     tracing_subscriber::fmt::Subscriber 对象;
 
@@ -597,7 +592,58 @@ let subscriber = tracing_subscriber::fmt()
     .init() // 内部调用 builder.finish() 然后设置为 tracing crate 的 global Subscriber
 ```
 
+fmt() 创建的 fmt::Subscriber 的 init() 支持使用 `环境变量` 来配置 EnvFilter，语法和 env_logger crate 一致，如
+`RUST_LOG=debug,my_crate=trace`
+
+-   RUST_ENV 中逗号风格的字符串称为 directive："crate1::mod1=error,crate1::mod2=warn,crate1::mod2::mod3=info,
+
+crate2=debug,crate3=trace,crate3::mod2::mod1=off"
+
+-   Setting RUST_LOG=debug enables all Spans and Events set to the log level DEBUG or higher
+-   Setting RUST_LOG=my_crate=trace enables Spans and Events in my_crate at all log levels
+-   LevelFilter 的语义是当 event/span 的 level 的 `值小于` LevelFilter 时不会被过滤，所以 LevelFilter 的值是逆序赋值的。
+-   但是 tracing crate 定义的 Level 是从 TRACE 0 到 ERRO 4 递增的，而且 RUST_LOG 的级别使用的是 Level 含义，表示当 event/span 的 level 大于等于它时输出记录。
+
+<!--listend-->
+
+```rust
+use tracing_core::Level; // Level 越精细，值越大。
+assert!(Level::TRACE > Level::DEBUG);
+assert!(Level::ERROR < Level::WARN);
+assert!(Level::INFO <= Level::DEBUG);
+assert_eq!(Level::TRACE, Level::TRACE);
+
+use tracing_core::{Level, LevelFilter}; //  LevelFilter 越精细，值
+assert!(LevelFilter::OFF < Level::TRACE);
+assert!(LevelFilter::ERROR < Level::WARN);
+assert!(LevelFilter::INFO <= Level::DEBUG);
+
+assert!(LevelFilter::INFO >= Level::INFO);
+assert!(LevelFilter::TRACE > Level::DEBUG);
+
+// LevelFilter
+0 => Some(LevelFilter::OFF),
+1 => Some(LevelFilter::ERROR),
+2 => Some(LevelFilter::WARN),
+3 => Some(LevelFilter::INFO),
+4 => Some(LevelFilter::DEBUG),
+5 => Some(LevelFilter::TRACE),
+
+// LevelFilter
+pub struct LevelFilter(/* private fields */);
+
+// 从 Level 创建 LevelFilter，后续当 metadata 的 Level 比传入的 Level 大时，才会显示。
+pub const fn from_level(level: Level) -> LevelFilter ⓘ
+// Returns a LevelFilter that enables spans and events with verbosity up to and including level.
+```
+
 tracing_subscriber::fmt::format()：用于定义 event formatter, 可以通过 .with_XX() 方法来设置是否输出对应内容:
+
+-   json()：JSON 格式化输出；
+-   pretty(): 用户友好输出格式；
+-   compact(): 精简输出格式；
+
+<!--listend-->
 
 ```rust
 pub fn format() -> Format
@@ -616,10 +662,9 @@ tracing_subscriber::fmt()
     .init();
 ```
 
-tracing_subscriber::fmt::layer(): 返回一个 tracing_subscriber::fmt::Layer 对象, 用来组合生成
-Subscriber:
+tracing_subscriber::fmt::layer(): 返回一个 tracing_subscriber::fmt::Layer 对象, 用来组合生成 Subscriber:
 
--   tracing_subscriber::fmt::Layer 的方法和 tracing_subscriber::fmt::format::Format 类似, 可以通过.with_XX() 方法来设置是否输出对应内容:
+-   tracing_subscriber::fmt::Layer 的方法和 tracing_subscriber::fmt::format::Format 类似, 可以通过 .with_XX() 方法来设置是否输出对应内容:
 -   tracing_subscriber::fmt::Layer 类型实现了 tracing_subscriber::layer::Layer trait, 该 trait 是
     tracing_subscriber::registry::Registry.with(layer) 的输入类型;
 -   tracing_subscriber::fmt::Layer 的 .with_writer() 方法, 可以用于自定义 event writer;
@@ -653,12 +698,8 @@ let layer = fmt::layer()
     .with_writer(io::stderr);
 ```
 
-tracing_subscriber::layer::Layer trait 用于处理 traicing event, 用于
+tracing_subscriber::layer::Layer trait 用于处理 tracing event, 用于
 tracing_subscriber::registry::Registry.with(layer) 的输入, 用于构建 tracing::Subscriber:
-
--   tracing_subscriber::fmt::Layer 类型实现了 tracing_subscriber::layer::Layer trait;
-
-<!--listend-->
 
 ```rust
 pub trait Layer<S>
@@ -683,22 +724,15 @@ where
     fn on_exit(&self, _id: &Id, _ctx: Context<'_, S>) { ... }
     fn on_close(&self, _id: Id, _ctx: Context<'_, S>) { ... }
     fn on_id_change(&self, _old: &Id, _new: &Id, _ctx: Context<'_, S>) { ... }
-    fn and_then<L>(self, layer: L) -> Layered<L, Self, S> ⓘ
-       where L: Layer<S>,
-             Self: Sized { ... }
-    fn with_subscriber(self, inner: S) -> Layered<Self, S> ⓘ
-       where Self: Sized { ... }
-    fn with_filter<F>(self, filter: F) -> Filtered<Self, F, S> ⓘ
-       where Self: Sized,
-             F: Filter<S> { ... }
+    fn and_then<L>(self, layer: L) -> Layered<L, Self, S> where L: Layer<S>, Self: Sized { ... }
+    fn with_subscriber(self, inner: S) -> Layered<Self, S> where Self: Sized { ... }
+    fn with_filter<F>(self, filter: F) -> Filtered<Self, F, S> where Self: Sized, F: Filter<S> { ... }
     fn boxed(self) -> Box<dyn Layer<S> + Send + Sync + 'static>
-       where Self: Sized + Layer<S> + Send + Sync + 'static,
-             S: Subscriber { ... }
+       where Self: Sized + Layer<S> + Send + Sync + 'static, S: Subscriber { ... }
 }
 ```
 
-`tracing_subscriber::registry::Registry` struct 类型实现了 tracing::subscriber::Subscriber, 可以和多个
-Layer 结合起来, 实现自定义 Subscriber:
+`tracing_subscriber::registry::Registry` struct 类型实现了 tracing::subscriber::Subscriber, 可以和多个 Layer 结合起来, 实现自定义 Subscriber:
 
 -   tracing_subscriber::registry() 返回 Registry 对象;
 -   Registry 的核心功能是生成 span ID;
@@ -728,6 +762,31 @@ use tracing_subscriber::{fmt, Registry};
 use tracing_subscriber::fmt::{self, format, time};
 use tracing_subscriber::prelude::*;
 Registry::default().with(fmt::Layer::default()).init()
+```
+
+例如，使用 EnvFilter layer（需要 tracing-subscriber 开启 env-filter feature）：
+
+```rust
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+
+tracing_subscriber::registry()
+    .with(fmt::layer())
+    .with(EnvFilter::from_default_env()) // 从缺省的 RUST_LOG env 中读取 LOG 配置
+    .init();
+
+tracing_subscriber::registry()
+    .with(fmt::layer())
+    .with(EnvFilter::from_env("MYAPP_LOG")) // 从指定的 MYAPP_LOG env 中读取 LOG 配置
+    .init();
+
+// 这里的 directives 是字符串，是 RUST_LOG env 中的逗号风格的片段，例如
+use tracing_subscriber::filter::{EnvFilter, Directive};
+
+let mut filter = EnvFilter::try_from_default_env()?
+    .add_directive("my_crate::module=trace".parse()?)
+    .add_directive("my_crate::my_other_module::something=info".parse()?)
+    .add_directive(LevelFilter::INFO.into()) // 指定缺省的最低日志级别
+    .add_directive(Level::INFO.into()); // 使用 Level 指定最低日志级别
 ```
 
 
@@ -2092,12 +2151,11 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
 
 ## <span class="section-num">8</span> tracing-appender {#tracing-appender}
 
-该 crate 提供了终端和文件输出的 writer，同时文件支持轮转，需要和
-tracing_subscriber::fmt().with_writer(xxx) 来配合使用。
+该 crate 提供了终端和文件输出的 writer，同时文件支持轮转，需要和tracing_subscriber::fmt().with_writer(xxx) 来配合使用。
 
 -   按时间周期，按文件大小轮转；
--   tracing_appender::non_blocking() 非阻塞模式，会创建一个特定的 worker thread 来接受 log line 并写入
-    writer。log line 先被 enqueue，然后在被写入。
+-   tracing_appender::non_blocking() 非阻塞模式，会创建一个特定的 worker thread 来接受 log line 并写入writer。
+    log line 先被 enqueue，然后在被写入。
 
 <!--listend-->
 
@@ -2146,9 +2204,7 @@ tracing_subscriber::fmt()
 
 ## <span class="section-num">9</span> tracing-flame {#tracing-flame}
 
-tracing 数据也可以生成火焰图。
-
-先在项目中添加 tracing-frame crate：cargo add tracing-flame
+tracing 数据也可以生成火焰图。先在项目中添加 tracing-frame crate：cargo add tracing-flame
 
 tracing_flame::FlameLayer() 提供了一个 Layer 实现，可用于配置 Registry 来作为全局 Subscribe：
 
@@ -2159,9 +2215,7 @@ use tracing_subscriber::{registry::Registry, prelude::*, fmt};
 
 fn main()  {
     let fmt_layer = fmt::Layer::default();
-
     let (flame_layer, _guard) = FlameLayer::with_file("./tracing.folded").unwrap();
-
     tracing_subscriber::registry()
     .with(fmt::layer())
     .with(flame_layer)

@@ -1,13 +1,13 @@
 ---
 title: "serde_json"
 author: ["zhangjun"]
-lastmod: 2024-07-07T22:04:10+08:00
+lastmod: 2024-07-25T10:07:04+08:00
 draft: false
 series: ["rust crate"]
 series_order: 17
 ---
 
-serde_json crate 解析.
+serde_json crate 解析。
 
 <!--more-->
 
@@ -19,7 +19,8 @@ serde_json crate 解析.
 </div>
 </details>
 
-serde_json 提供了 `serde_josn::Value` 类型, 可以用于反序列化无类型的 JSON 字符串, 后续可以对 Value 使用 map index 操作来获得成员(类型是 &amp;Value):
+serde_json 提供了 `serde_josn::Value` 类型, 可以用于反序列化无类型的 JSON 字符串, 后续可以对 Value 使用 map
+index 操作来获得成员(类型是 &amp;Value):
 
 -   可以使用 string 来获得 map 类型值, 可以使用整型 index 来获得数组成员;
 -   如果 index 的 map key 或 array index 不存在, 则返回 `Value::Null`;
@@ -50,18 +51,15 @@ fn untyped_example() -> Result<()> {
                 "+44 2345678"
             ]
         }"#;
-
     // Parse the string of data into serde_json::Value.
     let v: Value = serde_json::from_str(data)?;
-
     // Access parts of the data by indexing with square brackets.
     println!("Please call {} at the number {}", v["name"], v["phones"][0]); // 返回值类型是 &Value
-
     Ok(())
 }
 ```
 
-对于有定义的类型, 在实现了 Serialize 和 Deserialize trait 后, 就可以序列化和反序列化对应类型的值:
+对于实现了 Serialize 和 Deserialize trait 的自定义类型, 可以序列化和反序列化对应类型的值:
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -86,8 +84,8 @@ fn typed_example() -> Result<()> {
             ]
         }"#;
 
-    // Parse the string of data into a Person object. This is exactly the same function as the one
-    // that produced serde_json::Value above, but now we are asking it for a Person as output.
+    // Parse the string of data into a Person object. This is exactly the same function as the one that
+    // produced serde_json::Value above, but now we are asking it for a Person as output.
     let p: Person = serde_json::from_str(data)?;
 
     // Do things just like with any other Rust data structure.
@@ -126,11 +124,7 @@ fn print_an_address() -> Result<()> {
 }
 ```
 
-可以使用 json!() macro 来快速从字符串创建 serde_json::Value 对象:
-
--   json!() macro 支持变量和表达式插值, 也可以调用其它宏 如 format!();
-
-<!--listend-->
+json!() macro 从字符串创建 serde_json::Value 对象，它支持变量和表达式插值, 也可以调用其它宏 如 format!();
 
 ```rust
 use serde_json::json;

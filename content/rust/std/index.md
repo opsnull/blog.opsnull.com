@@ -1,7 +1,7 @@
 ---
 title: "Rust 标准库 std 解析"
 author: ["zhangjun"]
-lastmod: 2024-07-07T22:04:08+08:00
+lastmod: 2024-07-25T10:07:03+08:00
 tags: ["rust", "std"]
 categories: ["rust"]
 draft: false
@@ -2119,11 +2119,11 @@ pub fn slice_as_bytes_mut(this: &mut [MaybeUninit<T>]) -> &mut [MaybeUninit<u8>]
 
 <https://doc.rust-lang.org/std/ptr/index.html>
 
-本 module 提供了一些操作 raw pointer 的函数。
+本 module 提供了一些操作 raw pointer 的 module 级别函数。
 
--   raw pointer 类型本身 \*const T 或 \*mut T 也提供一些方法，可以用来操作 raw pointer；
+-   raw pointer 类型 \*const T 或 \*mut T 本身也提供一些方法，可以用来操作 raw pointer；
 
-这个 module 中通过 raw pointer 如 \*mut T 或 \*const T 来存取一个值，这个值的大小如果没有特殊说明，大小是 std::mem::size_of::&lt;T&gt;() bytes。
+这个 module 中通过 raw pointer 如 \*mut T 或 \*const T 来存取一个值，这个值的大小如果没有特殊说明，对应的是 std::mem::size_of::&lt;T&gt;() bytes。
 
 使用 std::ptr::addr_of!() 和 std::ptr::addr_of_mut!() 来返回参数 express 的 raw pointer：
 
@@ -2334,8 +2334,8 @@ assert_eq!(bar, "foo");
 std::cell module 提供了多种的可共享的内部可变性类型。
 
 -   Cell&lt;T&gt;: T 必须实现 Copy；
--   RefCell&lt;T&gt;: T 不需要实现 Copy
--   OnceCell&lt;T&gt;: 对 T 只进行一次初始化。
+-   RefCell&lt;T&gt;: T 不需要实现 Copy;
+-   OnceCell&lt;T&gt;: 对 T 只进行一次初始化(不支持多线程，多线程版本是 OnceLock)。
 
 各种 Cell 都没有实现 Sync，只能在单线程环境中使用。
 
@@ -2349,12 +2349,12 @@ std::cell module 提供了多种的可共享的内部可变性类型。
 两个函数:
 
 1.  type_name::&lt;T&gt;(): 返回 T 的类型名称字符串;
-2.  type_name_of_value(&amp;T): 返回指向的 T 的值的类型名称字符串;
+2.  type_name_of_value(&amp;T): 返回指向的 T 的值（必须传入 T 的借用）的类型名称字符串;
 
 <!--listend-->
 
 ```rust
-assert_eq!( std::any::type_name::<Option<String>>(), "core::option::Option<alloc::string::String>",);
+assert_eq!(std::any::type_name::<Option<String>>(), "core::option::Option<alloc::string::String>",);
 
 use std::any::type_name_of_val;
 let s = "foo";
@@ -2369,10 +2369,11 @@ assert!(type_name_of_val(&y).contains("f32"));
 println!("type name: {}", std::any::type_name_of_val(&val)); // type name: &dyn core::any::Any
 ```
 
-一个 trait：std::any::Any, 一般将借用转换为 &amp;dyn Any 或对象转换为 Box&lt;dyn Any&gt;， 然后就可以使用
+std::any::Any trait：一般将借用转换为 &amp;dyn Any 或对象转换为 Box&lt;dyn Any&gt;，然后可以使用
 downcast&lt;T&gt;() 方法来进行类型判断和处理。
 
-Rust 为绝大部分类型实现 Any，所以对象借用可以转换为 &amp;dyn Any， 对象自身可以转换为 Box&lt;dyn Any&gt;.
+Rust 为绝大部分类型实现 Any，所以对象借用可以转换为 &amp;dyn Any，对象自身可以转换为 Box&lt;dyn
+Any&gt;.
 
 -   但是对于引用类型，如果不是 `'static` 类型则没有实现 Any trait。
 
@@ -2380,7 +2381,6 @@ Rust 为绝大部分类型实现 Any，所以对象借用可以转换为 &amp;dy
 
 ```rust
 pub trait Any: 'static {
-    // Required method
     fn type_id(&self) -> TypeId;
 }
 
@@ -2393,7 +2393,7 @@ assert_eq!(is_string(&0), false);
 assert_eq!(is_string(&"cookie monster".to_string()), true);
 ```
 
-&amp;dyn Any 实现了 is&lt;T&gt;/downcast_ref&lt;T&gt;/downcast_mut&lt;T&gt;() 方法：
+&amp;dyn Any 实现了 is&lt;T&gt;()/downcast_ref&lt;T&gt;()/downcast_mut&lt;T&gt;() 方法：
 
 ```rust
 use std::any::Any;
@@ -2474,24 +2474,18 @@ std::process::Command::new() 创建一个 Command, 默认的行为如下:
 3.  Inherit the current process’s `working directory`
 4.  Inherit stdin/stdout/stderr for `spawn() or status()`, but create pipes for `output()`
     -   对于 spawn()/status() 默认是继承父进程的 stdin/stdout/stderr；
-    -   对于 output() 则会创建 pipe，这样后续可以获得结果 Output 对象的 stdout 和 stderr。
+    -   对于 output() 则会创建 pipe，这样后续可以获得 Output 对象的 stdout 和 stderr。
 
-后续, 在执行 Command 前,可以进一步设置子进程的参数,工作目录,环境变量等：
+在执行 Command 前, 可以进一步设置子进程的参数,工作目录,环境变量等：
 
 ```rust
 // 创建要执行的 program
 pub fn new<S: AsRef<OsStr>>(program: S) -> Command
 // 设置 program 参数
 pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Command // 一次只能设置一个参数
-pub fn args<I, S>(&mut self, args: I) -> &mut Command
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
+pub fn args<I, S>(&mut self, args: I) -> &mut Command where I: IntoIterator<Item = S>, S: AsRef<OsStr>,
 // 设置和清理环境变量
-pub fn env<K, V>(&mut self, key: K, val: V) -> &mut Command
-where
-    K: AsRef<OsStr>,
-    V: AsRef<OsStr>,
+pub fn env<K, V>(&mut self, key: K, val: V) -> &mut Command where K: AsRef<OsStr>, V: AsRef<OsStr>,
 pub fn envs<I, K, V>(&mut self, vars: I) -> &mut Command
 where
     I: IntoIterator<Item = (K, V)>,
@@ -2502,10 +2496,15 @@ pub fn env_clear(&mut self) -> &mut Command
 // 设置工作目录
 pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Command
 // 设置子进程的 stdin/stdout/stderr
-// cfg 是可以转换为 Stdio 的类型, 例如 Stdio::null(), Stdio::inherit(), Stdio::piped()
-pub fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Command // cfg
+// cfg 是可以转换为 Stdio 的类型, 例如 Stdio::null(), Stdio::inherit(), Stdio::piped(), Stdio::from()
+//
+// 对于 spwan()/status() 默认是 Stdio::inherit(), 对于 output() 默认是 Stdio::piped(), 所以对于 output() 后续可以
+// 读取它的 stdout/stderr field 来获得 Command 的输出。
+//
+pub fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Command
 pub fn stdout<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Command
 pub fn stderr<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Command
+
 // 获取进程信息
 pub fn get_program(&self) -> &OsStr
 pub fn get_args(&self) -> CommandArgs<'_> ⓘ
@@ -2516,7 +2515,7 @@ pub fn get_current_dir(&self) -> Option<&Path>
 
 // 执行 Command 并获得输出或退出状态：
 // 1. spawn() 立即返回一个 Child，调用 kill/wait/wait_with_output() 结束；
-// 2. 或者, 直接运行指导结束: output/status();
+// 2. 或者, 直接运行直到结束: output/status();
 pub fn spawn(&mut self) -> Result<Child>
 pub fn output(&mut self) -> Result<Output> // Output 中包含 status/stdout/stderr 内容
 pub fn status(&mut self) -> Result<ExitStatus>
@@ -2532,7 +2531,6 @@ fn arg0<S>(&mut self, arg: S) -> &mut Command
 unsafe fn pre_exec<F>(&mut self, f: F) -> &mut Command where F: FnMut() -> Result<()> + Send + Sync + 'static,
 fn before_exec<F>(&mut self, f: F) -> &mut Command where F: FnMut() -> Result<()> + Send + Sync + 'static,
 
-
 // 举例
 use std::process::Command;
 
@@ -2546,13 +2544,13 @@ let output = if cfg!(target_os = "windows") {
         .arg("-c")
         .arg("echo hello")
         .args(["-l", "-a"])
-	    .current_dir("/bin")
+	.current_dir("/bin")
         .env_remove("PATH")
-	    .env_clear()
+	.env_clear()
         .env("PATH", "/bin")
- .stdin(Stdio::null())
- .stdout(Stdio::inherit())
- .stderr(Stdio::null())
+        .stdin(Stdio::null())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::null())
         .output()
         .expect("failed to execute process")
 };
@@ -2560,85 +2558,107 @@ let output = if cfg!(target_os = "windows") {
 let hello = output.stdout;
 ```
 
-spawn 产生的 Child 子进程并不等待子进程执行结束, 后续需要使用 status/wait/output() 等方法来等待执行结束, 或者 kill() 来终止子进程.
+spawn 产生的 Child 子进程并不等待子进程执行结束, 后续需要使用 status/wait/output() 等方法来等待执行结束, 或者
+kill() 来终止子进程。
+
+-   Child 类型没有实现 Drop trait，所以需要自己确保 Child 进程运行结束。
+
+<!--listend-->
 
 ```rust
 pub struct Child {
-    pub stdin: Option<ChildStdin>,
-    pub stdout: Option<ChildStdout>,
-    pub stderr: Option<ChildStderr>,
+    pub stdin: Option<ChildStdin>, // 实现了 Write
+    pub stdout: Option<ChildStdout>, // 实现了 Read
+    pub stderr: Option<ChildStderr>, // 实现了 Read
     /* private fields */
 }
 pub fn id(&self) -> u32
-// 等待 Child 执行结束
+
+// 等待 Child 执行结束（try_wait() 只是检查，不 block）
 pub fn kill(&mut self) -> Result<()>
-pub fn status(&mut self) -> Result<ExitStatus>   // 获得执行结果状态
-pub fn wait(&mut self) -> Result<ExitStatus>
-pub fn try_wait(&mut self) -> Result<Option<ExitStatus>>
+pub fn status(&mut self) -> Result<ExitStatus>   // 获得执行结果状态（block）
+pub fn wait(&mut self) -> Result<ExitStatus> // 同上，block 直到程序退出
+pub fn try_wait(&mut self) -> Result<Option<ExitStatus>> // 不 block 调用线程，而是检查程序是否退出
 pub fn output(&mut self) -> Result<Output> // 包含 stdout/stderr 的输出以及 ExitStatus
 pub fn wait_with_output(self) -> Result<Output>
-
 
 // 例子
 use std::process::{Command, Stdio};
 use std::io::Write;
-
 let mut child = Command::new("/bin/cat")
-    .stdin(Stdio::piped()) // 设置产生的 Child 的 stdin
+    .stdin(Stdio::piped()) // 设置 Child 的 stdin
     .stdout(Stdio::piped())
     .spawn()
     .expect("failed to execute child");
-
-// If the child process fills its stdout buffer, it may end up waiting until the parent reads the
-// stdout, and not be able to read stdin in the meantime, causing a deadlock.  Writing from another
-// thread ensures that stdout is being read at the same time, avoiding the problem.
 let mut stdin = child.stdin.take().expect("failed to get stdin");
 std::thread::spawn(move || {
     stdin.write_all(b"test").expect("failed to write to stdin");
 });
-
 let output = child
     .wait_with_output()
     .expect("failed to wait on child");
-
 assert_eq!(b"test", output.stdout.as_slice());
 ```
 
-Child 子进程的输入\\输出可以通过 Child struct 的 stdin/stdout/stderr field 来获取到, 通过读写他们来获得子进程的输入/输出;
+Child 子进程的输入/输出可以通过 Child struct 的 stdin/stdout/stderr field 来获取, 通过读写它们来获得子进程的输入/输出;
 
 -   Child 的 stdin/stdout/stderr 是通过 Command 的 stdin/stdout/stderr() 方法来设置的.
--   在使用 child.stdin/stdout/stderr 时，一般使用 `let mut stdin = child.stdin.take().except("xxx")` ,
-    take() 方法可以避免将 stdin field 从 Child 对象 move out, 而是将它设置为 None.
--   当返回的对象被 drop 时，相应的文件描述符被关闭。
+-   在使用 child.stdin/stdout/stderr 时，一般使用 `let mut stdin = child.stdin.take().except("xxx")` , take() 方法将获取 stdin/stdout/stderr 的所有权，这样当返回的对象被 Drop 时， `相应的文件描述符被关闭` 。
 
 <!--listend-->
 
 ```rust
 use std::process::{Command, Stdio};
 
-// stdout must be configured with `Stdio::piped` in order to use
-// `echo_child.stdout`
 let echo_child = Command::new("echo")
     .arg("Oh no, a tpyo!")
     .stdout(Stdio::piped())
     .spawn()
     .expect("Failed to start echo process");
-
-// Note that `echo_child` is moved here, but we won't be needing `echo_child` anymore
 let echo_out = echo_child.stdout.expect("Failed to open echo stdout");
 
 let mut sed_child = Command::new("sed")
     .arg("s/tpyo/typo/")
-    .stdin(Stdio::from(echo_out)) // 从 echo_child 获得输入
+    .stdin(Stdio::from(echo_out)) // 从 echo_child 获得输入；
     .stdout(Stdio::piped())
     .spawn()
     .expect("Failed to start sed process");
-
 let output = sed_child.wait_with_output().expect("Failed to wait on sed");
 assert_eq!(b"Oh no, a typo!\n", output.stdout.as_slice());
 ```
 
-对于 Unix 系统，ExitStatus 还实现了 ExitStatusExt trait，可以返回进程因为 signal 而终止的情况
+std::process::Stdio 可以作为 Command 的 stdin()/stdout()/stderr() 的输入:
+
+```rust
+impl Stdio
+
+// 将 child 进程的 stdin/stdout/stderr Pipeline 输出到 Child 对象的 stdin/stdout/stderr
+// filed 中，这样父进程（如创建 Command 的主进程）就可以对它们进行读写。
+pub fn piped() -> Stdio
+
+// child 从 parent 继承
+pub fn inherit() -> Stdio
+
+// 关闭
+pub fn null() -> Stdio
+
+// 判断 Stdio 是否是 piped() 生成的.
+pub fn makes_pipe(&self) -> bool
+
+// 还可以从其他 Child 的 stdin/stdout/stderr 来创建 Stdio, 从而实现 Child 之间的串联
+impl From<ChildStderr> for Stdio
+impl From<ChildStdin> for Stdio
+impl From<ChildStdout> for Stdio
+
+// 从文件中读写
+impl From<File> for Stdio
+
+// 从终端读写
+impl From<Stderr> for Stdio // std::io::Stderr
+impl From<Stdout> for Stdio // std::io::Stdout
+```
+
+对于 Unix 系统，ExitStatus 还实现了 ExitStatusExt trait，可以返回进程因为 signal 而终止的情况：
 
 ```rust
 pub trait ExitStatusExt: Sealed {
@@ -2652,35 +2672,10 @@ pub trait ExitStatusExt: Sealed {
 }
 ```
 
-std::process::Stdio 可以作为 Command 的 stdin()/stdout()/stderr() 的输入:
-
-```rust
-impl Stdio
-// A new pipe should be arranged to connect the parent and child processes
-// 这里的 parent 是指创建和执行 Command 的进程, child 进程是执行 Command 的进程
-// 将 Command 进程的输出 pipeline 到 Child 对象的 stdin/stdout/stderr field, 这样 parent 进程可以读写
-pub fn piped() -> Stdio
-// The child inherits from the corresponding parent descriptor.
-pub fn inherit() -> Stdio
-// 关闭
-pub fn null() -> Stdio
-// 判断 Stdio 是否是 piped() 生成的.
-pub fn makes_pipe(&self) -> bool
-
-// 还可以从其他 Child 的 stdin/stdout/stderr 来创建 Stdio, 从而实现 Child 之间的串联
-impl From<ChildStderr> for Stdio
-impl From<ChildStdin> for Stdio
-impl From<ChildStdout> for Stdio
-impl From<File> for Stdio
-impl From<Stderr> for Stdio // std::io::Stderr
-impl From<Stdout> for Stdio // std::io::Stdout
-```
-
 示例：
 
 ```rust
 use std::process::{Command, Stdio};
-
 let output = Command::new("echo")
     .arg("Hello, world!")
     .stdout(Stdio::piped())  // Command 子进程的 stdout 被 pipe 到 output.stdout
@@ -2690,81 +2685,41 @@ let output = Command::new("echo")
 assert_eq!(String::from_utf8_lossy(&output.stdout), "Hello, world!\n");
 // Nothing echoed to console
 
-
-// 对于 stdin
-use std::io::Write;
 use std::process::{Command, Stdio};
-
-let mut child = Command::new("rev")
-    .stdin(Stdio::piped()) // 创建一个输入 pipe, Command 从它读取内容
-    .stdout(Stdio::piped())
-    .spawn()
-    .expect("Failed to spawn child process");
-
-// 父进程向 stdin 发送数据, 被 child 接收
-// child.stdin 是 Option<ChildStdin> 类型
-// child.stdin.take() 是 Takes the value out of the option, leaving a None in its place.
-let mut stdin = child.stdin.take().expect("Failed to open stdin");
-std::thread::spawn(move || {
-    stdin.write_all("Hello, world!".as_bytes()).expect("Failed to write to stdin");
-});
-
-let output = child.wait_with_output().expect("Failed to read stdout");
-assert_eq!(String::from_utf8_lossy(&output.stdout), "!dlrow ,olleH");
-```
-
-stdin inherit 举例：
-
-```rust
-use std::process::{Command, Stdio};
-
 let output = Command::new("echo")
     .arg("Hello, world!")
     .stdout(Stdio::inherit())
     .output()
     .expect("Failed to execute command");
-
-assert_eq!(String::from_utf8_lossy(&output.stdout), ""); // stdout 被打印到 console, 所以 Child.stdout 为空
+// stdout 被打印到 console, 所以 Child.stdout 为空
+assert_eq!(String::from_utf8_lossy(&output.stdout), "");
 // "Hello, world!" echoed to console
 
-// https://play.rust-lang.org/?version=stable&mode=debug&edition=2021
-#![allow(unused)]
-fn main() {
-use std::process::{Command, Stdio};
-use std::io::{self, Write};
-let output = Command::new("echo")
-    .stdin(Stdio::inherit())  // 从 parent 进程的 stdout 读取内容作为 stdin
-    .stdout(Stdio::piped()) // Command 的输出被 pipe 出来
+use std::fs::File;
+use std::process::Command;
+let file = File::open("foo.txt").unwrap();
+let reverse = Command::new("rev")
+    .stdin(file)  // 从文件中读取输入
     .output()
-    .expect("Failed to execute command");
-print!("You piped in the reverse of1:\n"); // 主进程输出到 stdout 的内容被 Command stdin 捕获
-eprint!("You piped in the reverse of2:\n"); // 主进程输出到 stderr 不会被 Command stdin 捕获
+    .expect("failed reverse command");
+assert_eq!(reverse.stdout, b"!dlrow ,olleH");
 
-let mut v = Vec::from("===");
-v.extend(&output.stdout);
-io::stdout().write_all(&v).unwrap(); // 打印 output 的 stdout
-}
 
-// 输出
-// You piped in the reverse of1:
-// ===
-```
-
-stdout 例子：
-
-```rust
-#![allow(unused)]
-fn main() {
+use std::io::Write;
 use std::process::{Command, Stdio};
-
-let output = Command::new("echo")
-    .arg("Hello, world!")
-    .stdout(Stdio::inherit()) // 继承主进程的 stdout，默认输出到 console
-    .output()
-    .expect("Failed to execute command");
-
-assert_eq!(String::from_utf8_lossy(&output.stdout), ""); // 由于已经输出到 console，所以 &output.stdout 内容为空。
-}
+let mut child = Command::new("rev")
+    .stdin(Stdio::piped()) // 创建一个输入 pipe, Command 从它读取内容
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("Failed to spawn child process");
+// 父进程向 stdin 发送数据, 被 child 接收child.stdin 是 Option<ChildStdin> 类型，其中 ChildStdin 实现了 Write
+// trait，child.stdin.take() 获得 ChildStdin 的所有权，当它被 Drop 时关闭 stdin。
+let mut stdin = child.stdin.take().expect("Failed to open stdin");
+std::thread::spawn(move || {
+    stdin.write_all("Hello, world!".as_bytes()).expect("Failed to write to stdin");
+});
+let output = child.wait_with_output().expect("Failed to read stdout");
+assert_eq!(String::from_utf8_lossy(&output.stdout), "!dlrow ,olleH");
 ```
 
 Stdio 可以从 std::io 的 File/Stderr/Stdout 和 std::process::ChildStderr/ChildStdin/ChildStdout 来创建:
@@ -2774,15 +2729,15 @@ impl From<ChildStderr> for Stdio
 impl From<ChildStdin> for Stdio
 impl From<ChildStdout> for Stdio
 impl From<File> for Stdio
-impl From<Stderr> for Stdio
-impl From<Stdout> for Stdio
+impl From<Stderr> for Stdio // std::io::Stderr
+impl From<Stdout> for Stdio // std::io::Stdout
 
 
 // 将一个 Child Command 的 stdin/stdout/stderr 连接到其他 Child Command
 use std::process::{Command, Stdio};
 let hello = Command::new("echo")
     .arg("Hello, world!")
-    .stdout(Stdio::piped()) // 必须 piped，后续才能获取到
+    .stdout(Stdio::piped()) // 必须 piped，后续才能从 Child 的 stdout field 获取到
     .spawn()
     .expect("failed echo command");
 let reverse = Command::new("rev")
@@ -2806,12 +2761,10 @@ assert_eq!(reverse.stdout, b"!dlrow ,olleH");
 
 // 将 Command 的 stdout/stderr 连接到 std::io::Stdout/Stderr
 #![feature(exit_status_error)]
-use std::io;
 use std::process::Command;
-
 let output = Command::new("whoami")
-    .stdout(io::stdout())
-    .stderr(io::stderr())
+    .stdout(std::io::stdout())
+    .stderr(std::io::stderr())
     .output()?;
 output.status.exit_ok()?;
 assert!(output.stdout.is_empty());
@@ -2820,38 +2773,77 @@ assert!(output.stdout.is_empty());
 
 ## <span class="section-num">15</span> std::io {#std-io}
 
-std::io module 的读写返回通用错误 std::io::Result&lt;T&gt; 它是 std::io::Result&lt;T, std::io::Error&gt; 的别名.
+std::io module 的读写返回通用错误 std::io::Result&lt;T&gt; 它是 std::io::Result&lt;T,
+std::io::Error&gt; 的别名.
+
+std::io::prelude 包含了 std::io module 中常用的 trait 和类型，一般需要提前 use 导入。
 
 Structs
 
--   BufReader	The BufReader&lt;R&gt; struct adds buffering to any reader.
--   BufWriter	Wraps a writer and buffers its output.
--   Bytes	An iterator over u8 values of a reader.
--   Chain	Adapter to chain together two readers.
--   Cursor A Cursor wraps an in-memory buffer and provides it with a Seek implementation.
--   Empty Empty ignores any data written via Write, and will always be empty (returning zero bytes)
-    when read via Read.
--   Error The error type for I/O operations of the Read, Write, Seek, and associated traits.
--   IntoInnerError An error returned by BufWriter::into_inner which combines an error that happened
-    while writing out the buffer, and the buffered writer object which may be used to recover from the
-    condition.
--   IoSlice	A buffer type used with Write::write_vectored.
--   IoSliceMut	A buffer type used with Read::read_vectored.
--   LineWriter	Wraps a writer and buffers output to it, flushing whenever a newline (0x0a, '\\n') is detected.
--   Lines	An iterator over the lines of an instance of BufRead.
--   Repeat	A reader which yields one byte over and over and over and over and over and…
--   Sink	A writer which will move data into the void.
--   Split	An iterator over the contents of an instance of BufRead split on a particular byte.
--   Stderr	A handle to the standard error stream of a process.
--   StderrLock	A locked reference to the Stderr handle.
--   Stdin	A handle to the standard input stream of a process.
--   StdinLock	A locked reference to the Stdin handle.
--   Stdout	A handle to the global standard output stream of the current process.
--   StdoutLock	A locked reference to the Stdout handle.
--   Take	Reader adapter which limits the bytes read from an underlying reader.
--   WriterPanicked	Error returned for the buffered data from BufWriter::into_parts, when the underlying writer has previously panicked. Contains the (possibly partly written) buffered data.
--   BorrowedBufExperimental	A borrowed byte buffer which is incrementally filled and initialized.
--   BorrowedCursorExperimental	A writeable view of the unfilled portion of a BorrowedBuf.
+BufReader
+: The BufReader&lt;R&gt; struct adds buffering to any reader.
+
+BufWriter
+: Wraps a writer and buffers its output.
+
+Bytes
+: An iterator over u8 values of a reader.
+
+Chain
+: Adapter to chain together two readers.
+
+Cursor
+: A Cursor wraps an in-memory buffer and provides it with a Seek implementation.
+
+Empty
+: Empty ignores any data written via `Write`, and will always be empty (returning
+    zero bytes) when read via `Read` .
+
+Error
+: The error type for I/O operations of the Read, Write, Seek, and associated
+    traits.
+
+IntoInnerError
+: An error returned by BufWriter::into_inner which combines an error
+    that happened while writing out the buffer, and the buffered writer object which may be
+    used to recover from the condition.
+
+IoSlice
+: A buffer type used with Write::write_vectored.
+
+IoSliceMut
+: A buffer type used with Read::read_vectored.
+
+LineWriter
+: Wraps a writer and buffers output to it, flushing whenever a newline (0x0a, '\\n') is detected.
+
+Lines	An iterator over the lines of an instance of BufRead.
+
+Repeat	A reader which yields one byte over and over and over and over and over and…
+
+Sink	A writer which will move data into the void.
+
+Split	An iterator over the contents of an instance of BufRead split on a particular byte.
+
+Stderr	A handle to the standard error stream of a process.
+
+StderrLock	A locked reference to the Stderr handle.
+
+Stdin	A handle to the standard input stream of a process.
+
+StdinLock	A locked reference to the Stdin handle.
+
+Stdout	A handle to the global standard output stream of the current process.
+
+StdoutLock	A locked reference to the Stdout handle.
+
+Take	Reader adapter which limits the bytes read from an underlying reader.
+
+WriterPanicked	Error returned for the buffered data from BufWriter::into_parts, when the underlying writer has previously panicked. Contains the (possibly partly written) buffered data.
+
+BorrowedBufExperimental	A borrowed byte buffer which is incrementally filled and initialized.
+
+BorrowedCursorExperimental	A writeable view of the unfilled portion of a BorrowedBuf.
 
 Traits:
 
@@ -2863,11 +2855,18 @@ Traits:
 
 Functions
 
--   copy	Copies the entire contents of a reader into a writer.
--   empty	Creates a value that is always at EOF for reads, and ignores all data written.
--   read_to_string Read all bytes from a reader into a new String.
--   repeat	Creates an instance of a reader that infinitely repeats one byte.
--   sink	Creates an instance of a writer which will successfully consume all data.
+copy
+: Copies the entire contents of `a reader into a writer`.
+
+empty
+: Creates a value that is always at EOF for reads, and ignores all data written.
+
+read_to_string
+: Read all bytes from a reader into a new String.
+
+repeat	Creates an instance of a reader that infinitely repeats one byte.
+
+sink	Creates an instance of a writer which will successfully consume all data.
 
 如下三个函数返回系统标准的 stderr/stdin/stdout
 
@@ -2883,11 +2882,13 @@ Type Aliases
 
 ### <span class="section-num">15.1</span> Read {#read}
 
-必须实现的方法：最多读取 buf.len() 的数据，所以传入的 buf 类型是 slice，而非动态大小的 Vec/String
+必须实现的方法：最多读取 buf.len() 的数据，所以传入的 buf 类型是 slice，而非动态大小的
+Vec/String
 
 -   fn read(&amp;mut self, buf: &amp;mut [u8]) -&gt; Result&lt;usize&gt;;
 
-自动实现的常用的方法：read_to_end/read_to_string() 都是读取全部内容，大小未知，所以传入 Vec/String
+自动实现的常用的方法：read_to_end/read_to_string() 都是读取全部内容，大小未知，所以传入
+Vec/String
 
 -   fn read_to_end(&amp;mut self, buf: &amp;mut Vec&lt;u8&gt;) -&gt; Result&lt;usize&gt; { ... }
 -   fn read_to_string(&amp;mut self, buf: &amp;mut String) -&gt; Result&lt;usize&gt; { ... }
@@ -2920,7 +2921,7 @@ pub trait Read {
 ```rust
 impl Read for &File
 impl Read for &TcpStream
-impl Read for &[u8]  // &Vec<T> 和 &[T;N] 都实现了 Read， &str.as_bytes 也返回 &[u8]
+impl Read for &[u8]  // &Vec<T> 和 &[T; N] 都实现了 Read，&str.as_bytes 也返回 &[u8]
 impl Read for File
 impl Read for TcpStream
 impl Read for UnixStream
@@ -2976,9 +2977,9 @@ fn main() -> io::Result<()> {
 
 BufRead  是内部包含一个 buffer 的 Reader，它是 Read 的子类型，它提供了几个好用的方法：
 
-1.  read_line()，读取一行（包含行尾的换行）存入传入的 String buf；
-2.  split(self)： 返回一个迭代器，每次迭代 split 后的内容；
-3.  lines(self) : 返回一个迭代器，迭代返回 `io::Result<String>` ，字符串末尾不包含换行；
+1.  read_line(): 读取一行（包含行尾的换行）存入传入的 String buf；
+2.  split(self): 返回一个迭代器，每次迭代 split 后的内容；
+3.  lines(self): 返回一个迭代器，迭代返回 `io::Result<String>` ，字符串末尾不包含换行；
 
 <!--listend-->
 
@@ -2998,11 +2999,7 @@ pub trait BufRead: Read {
 }
 ```
 
-实现了 BufRead 的类型：
-
--   &amp;[u8]/StdinLock/BufReader/Cursor
-
-<!--listend-->
+实现了 BufRead 的类型：&amp;[u8]/StdinLock/BufReader/Cursor
 
 ```rust
 impl BufRead for &[u8]
@@ -3022,13 +3019,10 @@ impl<T: BufRead, U: BufRead> BufRead for Chain<T, U>
 
 Write 是面向 byte 的输出：
 
--   write() 将 buf 内容写入到 object，返回写出的字节数（所以一次 write 不一定写出了所有数据）；
--   flush() 确保 object 中 buff（如果有） 的数据写入到 true sink 中；
-
-其他方法：
-
--   fn write_all(&amp;mut self, buf: &amp;[u8]) -&gt; Result&lt;()&gt; { ... }
--   fn write_fmt(&amp;mut self, fmt: Arguments&lt;'_&gt;) -&gt; Result&lt;()&gt; { ... }
+-   write(): 将 buf 内容写入到 object，返回写出的字节数（所以一次 write 不一定写出了所有数据）；
+-   write_all()：将 buf 内容写入到 object，确保全部都写入，否则返回 Err；
+-   write_fmt(): 将传入的 Arguments（由 fmt!() 宏来生成）写入 object；
+-   flush() : 确保 object 中 buff（如果有） 的数据写入到 true sink 中；
 
 <!--listend-->
 
@@ -3128,10 +3122,9 @@ fn main() -> std::io::Result<()> {
 pub struct Cursor<T> { /* private fields */ }
 ```
 
-A Cursor wraps an `in-memory buffer` and provides it with a Seek implementation.
-
-Cursors are used with in-memory buffers, `anything implementing AsRef<[u8]>`, to allow them to
-implement Read and/or Write, allowing these buffers to be used anywhere you might use a reader or
+A Cursor wraps an `in-memory buffer` and provides it with a Seek implementation. Cursors are
+used with in-memory buffers, `anything implementing AsRef<[u8]>`, to allow them to implement
+Read and/or Write, allowing these buffers to be used anywhere you might use a reader or
 writer that does actual I/O.
 
 The standard library implements some I/O traits on various types which are commonly used as a
@@ -3143,6 +3136,7 @@ Cursor 实现了 BufRead/Read/Seek/Write trait。
 impl<T> BufRead for Cursor<T> where T: AsRef<[u8]>
 impl<T> Read for Cursor<T> where T: AsRef<[u8]>,
 impl<T> Seek for Cursor<T> where T: AsRef<[u8]>,
+
 impl Write for Cursor<&mut [u8]>
 impl<A> Write for Cursor<&mut Vec<u8, A>> where A: Allocator,
 impl<const N: usize> Write for Cursor<[u8; N]>
@@ -3366,35 +3360,61 @@ fn main() -> Result<(), env::JoinPathsError> {
         let new_path = env::join_paths(paths)?;
         env::set_var("PATH", &new_path);
     }
-
     Ok(())
 }
 ```
 
 Functions
 
--   args	Returns the arguments that this program was started with (normally passed via the command line).
--   args_os Returns the arguments that this program was started with (normally passed via the command line).
--   current_dir Returns the current working directory as a PathBuf.
--   current_exe Returns the full filesystem path of the current running executable.
--   home_dirDeprecated Returns the path of the current user’s home directory if known.
--   join_paths Joins a collection of Paths appropriately for the PATH environment variable.
--   remove_var Removes an environment variable from the environment of the currently running process.
--   set_current_dir Changes the current working directory to the specified path.
--   set_var Sets the environment variable key to the value value for the currently running process.
--   split_paths Parses input according to platform conventions for the PATH environment variable.
--   temp_dir Returns the path of a temporary directory.
--   var	Fetches the environment variable key from the current process.
--   var_os Fetches the environment variable key from the current process, returning None if the variable isn’t set or if there is another error.
--   vars	Returns an iterator of (variable, value) pairs of strings, for all the environment variables of the current process.
--   vars_os Returns an iterator of (variable, value) pairs of OS strings, for all the environment variables of the current process.
+args
+: Returns the arguments that this program was started with (normally passed via the command line).
+
+args_os
+: Returns the arguments that this program was started with (normally passed via the command line).
+
+current_dir
+: Returns the current working directory as a PathBuf.
+
+current_exe
+: Returns the full filesystem path of the current running executable.
+
+home_dir
+: Returns the path of the current user’s home directory if known.
+
+join_paths
+: Joins a collection of Paths appropriately for the PATH environment variable.
+
+remove_var
+: Removes an environment variable from the environment of the currently running process.
+
+set_current_dir
+: Changes the current working directory to the specified path.
+
+set_var
+: Sets the environment variable key to the value value for the currently running process.
+
+split_paths
+: Parses input according to platform conventions for the PATH environment variable.
+
+temp_dir
+: Returns the path of a temporary directory.
+
+var
+: Fetches the environment variable key from the current process.
+
+var_os
+: Fetches the environment variable key from the current process, returning None if the variable isn’t set or if there is another error.
+
+vars
+: Returns an iterator of (variable, value) pairs of strings, for all the environment variables of the current process.
+
+vars_os
+: Returns an iterator of (variable, value) pairs of OS strings, for all the environment variables of the current process.
 
 pub fn args() -&gt; Args, Args 是可迭代对象, 返回 String:
 
 ```rust
 use std::env;
-
-// Prints each argument on a separate line
 for argument in env::args() {
     println!("{argument}");
 }
@@ -3423,57 +3443,49 @@ match env::var(key) {
 
 `Cross-platform path manipulation.`
 
-This module provides two types, `PathBuf and Path` (akin to String and str), for working with paths
-abstractly. These types are thin wrappers around `OsString and OsStr` respectively, meaning that they
-work directly on strings according to `the local platform’s path syntax`.
+This module provides two types, `PathBuf and Path` (akin to String and str), for working
+with paths abstractly. These types are thin wrappers around `OsString and OsStr`
+respectively, meaning that they work directly on strings according to `the local platform’s
+path syntax`.
 
-Paths can be parsed into `Components` by `iterating over` the structure returned by the components
-method on Path. Components roughly correspond to the substrings between path separators (/ or
-\\). You can reconstruct an equivalent path from components with the push method on PathBuf; note
-that the paths may differ syntactically by the normalization described in the documentation for the
-components method.
+Paths can be parsed into `Components` by `iterating over` the structure returned by the
+components method on Path. Components roughly correspond to the substrings between path
+separators (/ or \\). You can reconstruct an equivalent path from components with the push
+method on PathBuf; note that the paths may differ syntactically by the normalization
+described in the documentation for the components method.
 
 Structs
 
 -   Ancestors	An iterator over Path and its ancestors.
 -   Components	An iterator over the Components of a Path.
 -   Iter	An iterator over the Components of a Path, as OsStr slices.
-
 -   Display	Helper struct for safely printing paths with format! and {}.
 -   Path	A slice of a path (akin to str).
--   PathBuf	An owned, mutable path (akin to String).
--   PrefixComponent	A structure wrapping a Windows path prefix as well as its unparsed string representation.
+-   PathBuf An owned, mutable path (akin to String).
+-   PrefixComponent A structure wrapping a Windows path prefix as well as its unparsed
+    string representation.
 -   StripPrefixError	An error returned from Path::strip_prefix if the prefix was not found.
 
 Path/PathBuf 用于实现 OS 无关的路径字符串。
 
-Path 是 unsized type，所以一般需要和 &amp; 或 Box 使用。不可以改变，类似于 str
-
-PathBuf 也是 OS 无关的路径字符串，是 owned 版本，可以改变，类似于 String。
+Path 是 unsized type，所以一般需要和 &amp; 或 Box 使用。不可以改变，类似于 str。PathBuf 也是
+OS 无关的路径字符串，是 owned 版本，可以改变，类似于 String。
 
 Struct std::path::Path
 
 ```rust
 pub struct Path { /* private fields */ }
-```
 
-A slice of a path (akin to `str`).
-
-This type supports a number of operations for inspecting a path, including breaking the path into
-its components (separated by / on Unix and by either / or \\ on Windows), extracting the file name,
-determining whether the path is absolute, and so on.
-
-This is `an unsized type`, meaning that it must always be used behind a pointer like `& or Box`. For an
-owned version of this type, see PathBuf.
-
-More details about the overall approach can be found in the module documentation.
-
-```rust
+// 示例
 use std::path::Path;
 use std::ffi::OsStr;
 
 // Note: this example does work on Windows
 let path = Path::new("./foo/bar.txt"); // 传入的类型需要实现 AsRef<OsStr>
+let string = String::from("foo.txt"); // &str，&String，&Path 都实现了 AsRef<OsStr>
+let from_string = Path::new(&string);
+let from_path = Path::new(&from_string);
+assert_eq!(from_string, from_path);
 
 let parent = path.parent();
 assert_eq!(parent, Some(Path::new("./foo")));
@@ -3483,13 +3495,6 @@ assert_eq!(file_stem, Some(OsStr::new("bar")));
 
 let extension = path.extension();
 assert_eq!(extension, Some(OsStr::new("txt")));
-
-
-use std::path::Path;
-let string = String::from("foo.txt"); // &str，&String，&Path 都实现了 AsRef<OsStr>
-let from_string = Path::new(&string);
-let from_path = Path::new(&from_string);
-assert_eq!(from_string, from_path);
 ```
 
 Path 的方法：
@@ -3503,14 +3508,22 @@ Path 的方法：
 -   pub fn file_name(&amp;self) -&gt; Option&lt;&amp;OsStr&gt;
 -   pub fn strip_prefix&lt;P&gt;(&amp;self, base: P) -&gt; Result&lt;&amp;Path, StripPrefixError&gt;
 -   pub fn extension(&amp;self) -&gt; Option&lt;&amp;OsStr&gt;
--   pub fn join&lt;P: AsRef&lt;Path&gt;&gt;(&amp;self, path: P) -&gt; PathBuf // Path 不可变，方法返回可变的 PathBuf
+-   pub fn join&lt;P: AsRef&lt;Path&gt;&gt;(&amp;self, path: P) -&gt; PathBuf // Path 不可变，返回可变的 PathBuf
 -   pub fn with_extension&lt;S: AsRef&lt;OsStr&gt;&gt;(&amp;self, extension: S) -&gt; PathBuf
 
-&amp;str/&amp;String/&amp;Path/&amp;PathBuf/&amp;OsStr/&amp;OsString 均实现了 AsRef&lt;OsStr&gt;，都可以作为 Path::new() 的参数：
+Path 和文件系统相关方法:
 
--   这些类型也都实现了 AsRef&lt;Path&gt;，所以可以直接转换为 Path；
+-   pub fn read_link(&amp;self) -&gt; Result&lt;PathBuf&gt;
+-   pub fn read_dir(&amp;self) -&gt; Result&lt;ReadDir&gt; // ReadDir 是一迭代器, 返回 io::Result&lt;fs::DirEntry&gt;
+-   pub fn exists(&amp;self) -&gt; bool
+-   pub fn is_file(&amp;self) -&gt; bool
+-   pub fn is_dir(&amp;self) -&gt; bool
+-   pub fn is_symlink(&amp;self) -&gt; bool
+-   pub fn metadata(&amp;self) -&gt; Result&lt;Metadata&gt; // 返回的 Metadata 是 fs::metadata 的别名类型
+-   pub fn symlink_metadata(&amp;self) -&gt; Result&lt;Metadata&gt;
 
-<!--listend-->
+&amp;str/&amp;String/&amp;Path/&amp;PathBuf/&amp;OsStr/&amp;OsString 均实现了 AsRef&lt;OsStr&gt;，都可以作为 Path::new()
+的参数：
 
 ```rust
 impl AsRef<OsStr> for Component<'_>
@@ -3537,13 +3550,10 @@ impl AsRef<Path> for String
 
 Struct std::path::PathBuf
 
-```text
-pub struct PathBuf { /* private fields */ }
-```
-
-`An owned, mutable path (akin to String).`
-
 ```rust
+// An owned, mutable path (akin to String).
+pub struct PathBuf { /* private fields */ }
+
 use std::path::PathBuf;
 let mut path = PathBuf::new();
 path.push(r"C:\");
@@ -3551,17 +3561,6 @@ path.push("windows");
 path.push("system32");
 path.set_extension("dll");
 ```
-
-Path 其他和文件系统相关方法:
-
--   pub fn read_link(&amp;self) -&gt; Result&lt;PathBuf&gt;
--   pub fn read_dir(&amp;self) -&gt; Result&lt;ReadDir&gt;, ReadDir 是一迭代器,返回 io::Result&lt;fs::DirEntry&gt;
--   pub fn exists(&amp;self) -&gt; bool
--   pub fn is_file(&amp;self) -&gt; bool
--   pub fn is_dir(&amp;self) -&gt; bool
--   pub fn is_symlink(&amp;self) -&gt; bool
--   pub fn metadata(&amp;self) -&gt; Result&lt;Metadata&gt;, 返回的 Metadata 是 fs::metadata 的别名类型
--   pub fn symlink_metadata(&amp;self) -&gt; Result&lt;Metadata&gt;
 
 PathBuf 的方法：
 
@@ -3572,18 +3571,18 @@ PathBuf 的方法：
 -   pub fn set_file_name&lt;S: AsRef&lt;OsStr&gt;&gt;(&amp;mut self, file_name: S)
 -   pub fn set_extension&lt;S: AsRef&lt;OsStr&gt;&gt;(&amp;mut self, extension: S) -&gt; bool
 
-PathBuf 实现了 Deref&lt;Target=Path&gt;，所以 PathBuf 可以使用 Path 的所有方法，并且 &amp;PathBuf 可以当作
-&amp;Path 使用；
+PathBuf 实现了 Deref&lt;Target=Path&gt;，所以 PathBuf 可以使用 Path 的所有方法，并且 &amp;PathBuf 可以当作 &amp;Path 使用。
 
 
 ## <span class="section-num">18</span> std::fs {#std-fs}
 
-Path 是 unsized 对象，一般需要 &amp;Path 使用。PathBuf 是 &amp;Path 的 ownerd 对象，类似于 String 是 &amp;str 的
-owner 对象。类似的情况还有，OsString -》&amp;OsStr，CString -》CStr。
+Path 是 unsized 对象，一般需要使用 &amp;Path。PathBuf 是 &amp;Path 的 ownerd 对象，类似于 String
+是 &amp;str 的 owner 对象。类似的情况还有：OsString -》&amp;OsStr，CString -》CStr。
 
 Box::new(v) 是 v 的拥有型智能指针，可以避免 &amp;v 作为成员时的生命周期问题。
 
-文件和目录操作，std::fs 下的泛型函数如果输入是 path, 则是 AsRef&lt;Path&gt;, 所以实现了该 trait 的对象均可.
+文件和目录操作，std::fs 下的泛型函数如果输入是 Path, 则是 AsRef&lt;Path&gt;, 所以实现了该 trait
+的对象均可.
 
 ```rust
 impl AsRef<Path> for Cow<'_, OsStr>
@@ -3600,38 +3599,77 @@ impl AsRef<Path> for String
 
 Structs
 
--   DirBuilder	A builder used to create directories in various manners.
--   DirEntry	Entries returned by the ReadDir iterator.
--   File	An object providing access to an open file on the filesystem.
--   FileTimes	Representation of the various timestamps on a file.
--   FileType	A structure representing a type of file with accessors for each file type. It is returned by Metadata::file_type method.
--   Metadata	Metadata information about a file.
--   OpenOptions	Options and flags which can be used to configure how a file is opened.
--   Permissions	Representation of the various permissions on a file.
--   ReadDir	Iterator over the entries in a directory.
+DirBuilder
+: A builder used to create directories in various manners.
+
+DirEntry
+: Entries returned by the ReadDir iterator.
+
+File
+: An object providing access to an open file on the filesystem.
+
+FileTimes	Representation of the various timestamps on a file.
+
+FileType A structure representing a type of file with accessors for each file type. It
+    is returned by Metadata::file_type method.
+
+Metadata	Metadata information about a file.
+
+OpenOptions Options and flags which can be used to configure how a file is opened.
+
+Permissions	Representation of the various permissions on a file.
+
+ReadDir	Iterator over the entries in a directory.
 
 Functions
 
--   canonicalize Returns the canonical, absolute form of a path with all intermediate components
-    normalized and symbolic links resolved.
--   copy Copies the contents of one file to another. This function will also copy the permission bits
-    of the original file to the destination file.
--   create_dir Creates a new, empty directory at the provided path
--   create_dir_all Recursively create a directory and all of its parent components if they are missing.
--   hard_link Creates a new hard link on the filesystem.
--   metadata	Given a path, query the file system to get information about a file, directory, etc.
--   `read` Read the entire contents of a file into `a bytes vector`.
--   read_dir Returns an iterator over the entries within a directory.
--   read_link Reads a symbolic link, returning the file that the link points to.
--   `read_to_string` Read the entire contents of a file `into a string`.
--   remove_dir Removes an empty directory.
--   remove_dir_all Removes a directory at this path, after removing all its contents. Use carefully!
--   remove_file Removes a file from the filesystem.
--   rename	Rename a file or directory to a new name, replacing the original file if to already exists.
--   set_permissions Changes the permissions found on a file or a directory.
--   soft_linkDeprecated Creates a new symbolic link on the filesystem.
--   symlink_metadata Query the metadata about a file without following symlinks.
--   `write` Write a slice as the entire contents of a file.
+canonicalize
+: Returns the canonical, absolute form of a path with all intermediate
+    components normalized and symbolic links resolved.
+
+copy
+: Copies the contents of one file to another. This function will also copy the
+    `permission bits` of the original file to the destination file.
+
+create_dir
+: Creates a new, empty directory at the provided path
+
+create_dir_all
+: Recursively create a directory and all of its parent components if they are missing.
+
+hard_link
+: Creates a new hard link on the filesystem.
+
+metadata
+: Given a path, query the file system to get information about a file, directory, etc.
+
+`read`
+: Read the entire contents of a file into `a bytes vector`.
+
+read_dir
+: Returns an iterator over the entries within a directory.
+
+read_link
+: Reads a symbolic link, returning the file that the link points to.
+
+`read_to_string`
+: Read the entire contents of a file `into a string`.
+
+remove_dir Removes an empty directory.
+
+remove_dir_all Removes a directory at this path, after removing all its contents. Use carefully!
+
+remove_file Removes a file from the filesystem.
+
+rename	Rename a file or directory to a new name, replacing the original file if to already exists.
+
+set_permissions Changes the permissions found on a file or a directory.
+
+soft_linkDeprecated Creates a new symbolic link on the filesystem.
+
+symlink_metadata Query the metadata about a file without following symlinks.
+
+`write` Write a slice as the entire contents of a file.
 
 重点：
 
@@ -5229,4 +5267,16 @@ assert_eq!(
     CELL.get(),
     Some(&12345),
 );
+```
+
+
+## <span class="section-num">21</span> std::net {#std-net}
+
+Rust 的 std::net::ToSocketAddrs trait 用于实现域名解析，可以使用 to_socket_addrs() 方法返回解析后的 IP：
+
+```rust
+use std::net::{SocketAddr, ToSocketAddrs};
+// assuming 'localhost' resolves to 127.0.0.1
+let mut addrs_iter = "localhost:443".to_socket_addrs().unwrap();
+assert_eq!(addrs_iter.next(), Some(SocketAddr::from(([127, 0, 0, 1], 443))));
 ```

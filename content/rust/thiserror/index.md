@@ -1,7 +1,7 @@
 ---
 title: "thiserror"
 author: ["zhangjun"]
-lastmod: 2024-07-07T22:04:13+08:00
+lastmod: 2024-07-25T10:07:05+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false

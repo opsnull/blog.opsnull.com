@@ -1,7 +1,7 @@
 ---
 title: "anyhow"
 author: ["zhangjun"]
-lastmod: 2024-07-07T22:04:14+08:00
+lastmod: 2024-07-25T10:07:05+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
@@ -9,7 +9,7 @@ series: ["rust crate"]
 series_order: 6
 ---
 
-anyhow crate 包解析.
+anyhow crate 包解析。
 
 <!--more-->
 
@@ -17,9 +17,9 @@ anyhow crate 包解析.
 <summary>变更历史</summary>
 <div class="details">
 
-2024-06-10 Mon 重新 review 和更新内容.
+2024-06-10 Mon 重新 review 和更新内容。
 
-2024-06-08 Fri 首次创建
+2024-06-08 Fri 首次创建。
 </div>
 </details>
 
@@ -210,7 +210,7 @@ fn main() -> Result<()> {
 }
 ```
 
-`Trait anyhow::Context` 为 Result/Option 提供了 context 方法:
+`Trait anyhow::Context` 为 Result/Option 提供了 context 方法，转移对象所有权，返回 anyhow::Result:
 
 -   Result/Option 都实现了 anyhow::Context trait;
 -   任何实现了 std::error::Error 的 error 类型都添加 Context() 方法, 所以 thiserror 宏定义的自定义
@@ -257,7 +257,8 @@ pub fn do_it(mut it: ImportantThing) -> Result<Vec<u8>> {
 //     No such file or directory (os error 2) // fs::read() 的报错信息
 ```
 
-struct anyhow::Error 实现了 std::error::Error trait, 所以 std::result::Result&lt;T, anyhow::Error&gt; 也可以和 thiserror 的 context 结合使用:
+`struct anyhow::Error` 实现了 std::error::Error trait, 所以 std::result::Result&lt;T,
+anyhow::Error&gt; 也可以和 thiserror 的 context 结合使用:
 
 ```rust
 use anyhow::{bail, Context, Result};
@@ -293,7 +294,7 @@ fn main() {
 
 `anyhow::anyhow!()` 和老版本 `anyhow::bail!()` 宏提供了快速创建 anyhow::Error 类型的对象:
 
--   bail!() 创建和 return anyhow::Error;
+-   bail!() 创建和返回 anyhow::Error;
 
 <!--listend-->
 
