@@ -1,7 +1,7 @@
 ---
 title: "Rust 标准库 std 解析"
 author: ["zhangjun"]
-lastmod: 2024-07-25T10:07:03+08:00
+lastmod: 2024-07-29T10:56:06+08:00
 tags: ["rust", "std"]
 categories: ["rust"]
 draft: false
@@ -192,7 +192,7 @@ set_alloc_error_hook(custom_alloc_error_hook);
 
 ## <span class="section-num">2</span> std::collector {#std-collector}
 
-数组 [N; T] 和各种容器类型都没有实现 Display trait, 但是实现了 Debug trait;
+数组 [N; T] 和各种容器类型都没有实现 Display trait, 但是实现了 Debug trait.
 
 Option/Result 都是 enum 类型，但是也支持迭代（实现了 IntoIterator），效果就如一个或 0 个元素。
 
@@ -204,23 +204,25 @@ Vec 是相同类型元素，动态大小, 在 heap 上分配的连续内存块. 
 可以使用 push 向 Vec 添加元素, Rust 自动扩充 Vec 的内存块大小, 这种扩容将老的 Vec 内容 move 到新的连续内存块, 所以:
 
 1.  有性能开销, 涉及到内存数据的复制移动;
-2.  会导致已有的 Vec Item 的引用失效, 所以在有共享引用的情况下, 不能修改 Vec;
+2.  会导致已有的 Vec Item 的引用失效, 所以在有共享引用的情况下不能修改 Vec;
 
-为了避免在 push 过程中容量增长带来的开销, 可以使用 Vec::with_capacity(n) 来一次性创建容量为 n 的Vec.
+为了避免在 push 过程中容量增长带来的开销, 可以使用 Vec::with_capacity(n) 来一次性创建容量为 n 的
+Vec.
 
-Vec 只能高效的在尾部进行 push/pop 操作, 如果在中间 insert/remove 元素, 则涉及后续元素的移动, 所以Vec
-越长, 中间插入和删除元素性能越差.
+Vec 只能高效的在尾部进行 push/pop 操作, 如果在中间 insert/remove 元素, 则涉及后续元素的移动, 所以
+Vec 越长, 中间插入和删除元素性能越差.
 
 Vec 创建和操作:
 
 -   vec[a..b] 的 a 和 b 类似是 usize, 必须小于 vec.len() 否则会 panic;
--   vec.get(index) 返回一个 Option, 当 index 不存在时, 返回 None;
+-   vec.get(index) 返回一个 Option, 当 index 不存在时返回 None;
 
 <!--listend-->
 
 ```rust
-// 创建一个空的vector, len/capacity 均为 0
+// 创建一个空的 vector, len/capacity 均为 0
 let mut numbers: Vec<i32> = vec![];
+
 // 用给定的内容创建一个vector, len/capacity 等于元素数目
 let words = vec!["step", "on", "no", "pets"];
 let mut buffer = vec![0u8; 1024]; // 1024个0字节
@@ -231,36 +233,36 @@ let my_vec = my_set.into_iter().collect::<Vec<String>>();
 // 获取一个元素的引用
 let first_line = &lines[0];
 // 获取一个元素的拷贝
-let fifth_number = numbers[4]; // Copy
+let fifth_number = numbers[4];
 let second_number = lines[1].clone();
 // 获取一个切片的引用
 let my_ref = &buffer[4..12];
-// 获取一个切片的拷贝
-let my_copy = buffer[4..12].to_vec(); // clone 生成 Vec
 
+// 获取一个切片的拷贝
+let my_copy = buffer[4..12].to_vec(); // Vec<T>
 // slice.to_vec(), Clone 切片生成 Vec
 let v = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 assert_eq!(v.to_vec(), vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
 assert_eq!(v[0..6].to_vec(), vec![1, 2, 3, 4, 5, 6]);
 
-// 将iterable的所有item按顺序添加到vec的末尾。它类似于多值版本的.push()。 iterable 参数可以是任何实
-// 现了 IntoIterator<Item=T>。
-vec.extend(iterable)
+// 将iterable的所有item按顺序添加到vec的末尾。它类似于多值版本的.push()。 iterable 参数可以是任何
+// 实现了 IntoIterator<Item=T>。
+vec.extend(iterable);
 
-    // 类似于 vec.truncate(index)，除了它返回一个 Vec<T> 包含 vec 尾部被移除的元素。它类似于.pop() 的多
-    // 值版本。
-    vec.split_off(index) // 返回一个 Vec 包含 index 及以后的元素, 原来的 vec 只包含 index 前的元素
+// 类似于 vec.truncate(index)，除了它返回一个 Vec<T> 包含 vec 尾部被移除的元素。它类似于.pop() 的
+// 多值版本。
+vec.split_off(index); // 返回一个 Vec 包含 index 及以后的元素, 原来的 vec 只包含 index 前的元素
 
-    // 将 vec2 的内容添加到 vec, 然后 vec2 被清空. 这类似于 vec.extend(vec2)，除了调用之后 vec2 仍然存在，
-    // 并且容量不变。
-    vec.append(&mut vec2)
+// 将 vec2 的内容添加到 vec, 然后 vec2 被清空. 这类似于 vec.extend(vec2)，除了调用之后 vec2 仍然存
+// 在，并且容量不变。
+vec.append(&mut vec2);
 
-    // 这会从vec中移除范围vec[range]，并返回一个迭代被移除元素的迭代器，其中 range 是一个范围值，例如..
-    // 或 0..4。
-    vec.drain(range)
+// 这会从vec中移除范围vec[range]，并返回一个被移除元素的迭代器，其中 range 是一个范围值，例如.. 或
+// 0..4。
+vec.drain(range);
 
-    // 移除所有没有通过给定测试的方法。类似于 vec = vec.into_iter().filter(test).collect();
-    vec.retain(test)
+// 移除所有没有通过给定测试的方法。类似于 vec = vec.into_iter().filter(test).collect();
+vec.retain(test);
 ```
 
 不能在借用 Vec 元素的情况下，修改 Vec 本身（这是由于修改 Vec 时可能会重新分配内存，从而导致借用的指针失效）：tuple/struct 是支持部分 field 修改的。
@@ -306,7 +308,7 @@ pub fn into_raw_parts(self) -> (*mut T, usize, usize)
 pub fn into_raw_parts_with_alloc(self) -> (*mut T, usize, usize, A)
 
 pub fn capacity(&self) -> usize
-pub fn reserve(&mut self, additional: usize)
+pub fn reserve(&mut self, additional: usize) // 确保 capacity() >= len() + additional
 let mut vec = vec![1];
 vec.reserve(10);
 assert!(vec.capacity() >= 11);
@@ -397,7 +399,7 @@ pub fn push(&mut self, value: T)
 pub fn push_within_capacity(&mut self, value: T) -> Result<(), T>
 pub fn pop(&mut self) -> Option<T>
 
-// 将 other 的元素移动到 self，other 为空（还是可以访问的）：
+// 将 other 的元素移动到 self，other 被清空（还是可以访问的）：
 pub fn append(&mut self, other: &mut Vec<T, A>)
 let mut vec = vec![1, 2, 3];
 let mut vec2 = vec![4, 5, 6];
@@ -436,7 +438,9 @@ let mut p = 1;
 vec.resize_with(4, || { p *= 2; p });
 assert_eq!(vec, [2, 4, 8, 16]);
 
+// 返回一个具有指定 lifetime 的 slice
 pub fn leak<'a>(self) -> &'a mut [T] where A: 'a
+
 pub fn spare_capacity_mut(&mut self) -> &mut [MaybeUninit<T>]
 pub fn split_at_spare_mut(&mut self) -> (&mut [T], &mut [MaybeUninit<T>])
 impl<T, A> Vec<T, A> where T: Clone, A: Allocator, pub fn resize(&mut self, new_len: usize, value: T)
@@ -474,33 +478,29 @@ assert_eq!(odds, vec![1, 3, 5, 9, 11, 13, 15]);
 ```
 
 
-### <span class="section-num">2.2</span> VecDeque&lt;T&gt; {#vecdeque-t}
+### <span class="section-num">2.2</span> VecDeque {#vecdeque}
 
-VecDeque 是动态大小, 在 heap 上分配内存块的环形缓冲区, 有 start 和 end 指针, 所以和 Vec 不同的是, 数据并不是从内存区域的开始存储, 也可以在尾部回环(自动管理), 所以内存块不一定是连续的。
+VecDeque 是动态大小, 在 heap 上分配内存块的环形缓冲区, 有 start 和 end 指针。
 
-VecDeque 支持 index 操作, 如 deque[index], 但是在内存不一定是连续存储元素, 所以不能创建切片和继承切片的方法. 主要是能快速的开头和尾部 push/pop 元素.
+和 Vec 不同的是, 数据并不是从内存区域的开始存储, 也可以在尾部回环(自动管理), 所以内存块不一定是连续的，故它没有实现 Deref&lt;Target=[T]&gt;, 即不能调用 slice 的方法。
+
+VecDeque 支持 index 操作, 如 deque[index], 但是在内存不一定是连续存储元素, 所以不能创建 slice 和继承 slice 的方法. 主要是能快速的开头和尾部 push/pop 元素.
 
 {{< figure src="/images/vec/2024-03-06_10-10-27_screenshot.png" width="400" >}}
 
 
-### <span class="section-num">2.3</span> BinaryHeap&lt;T&gt; {#binaryheap-t}
+### <span class="section-num">2.3</span> BinaryHeap {#binaryheap}
 
-BinaryHeap&lt;T&gt; 集合始终以某种形式组织元素，其中最大的元素总是会被移动到队列的首部。
-
--   BinaryHeap 并不仅限于数字。它可以包含任何实现了内建的 Ord trait 的类型。
-
-<!--listend-->
+BinaryHeap&lt;T&gt; 集合始终以某种形式组织元素，其中最大的元素总是会被移动到队列的首部。BinaryHeap 并不仅限于数字，它可以包含任何实现了内建的 Ord trait 的类型。
 
 ```rust
-heap.push(value) // 向堆中添加一个元素
-heap.pop() // 移除并返回堆中最大的值。它返回 Option<T>，如果堆为空时返回 None。
-heap.peek() //返回堆中最大的值的引用。返回类型是 Option<&T>。
-
-use std::collections::binary_heap::PeekMut;
+heap.push(value); // 向堆中添加一个元素
+heap.pop(); // 移除并返回堆中最大的值。它返回 Option<T>，如果堆为空时返回 None。
+heap.peek(); //返回堆中最大的值的引用。返回类型是 Option<&T>。
 if let Some(top) = heap.peek_mut() {
-        if *top > 10 {
-            PeekMut::pop(top);
-        }
+    if *top > 10 {
+        PeekMut::pop(top);
+    }
 }
 
 use std::collections::BinaryHeap;
@@ -514,9 +514,9 @@ assert_eq!(heap.pop(), Some(6));
 assert_eq!(heap.pop(), Some(5));
 ```
 
-BinaryHeap 可以用作一个工作队列。你可以定义一个任务结构体，然后根据任务的优先级实现 Ord，让高优先级的任务大于低优先级的任务。然后，创建一个 BinaryHeap 来保 存所有待办的任务。它的.pop() 方法将总是返回最重要的任务。
+BinaryHeap 可以用作一个工作队列。定义一个任务结构体，然后根据任务的优先级实现 Ord，让高优先级的任务大于低优先级的任务。然后创建一个 BinaryHeap 来保 存所有待办的任务。它的 .pop() 方法将总是返回最重要的任务。
 
-注意:BinaryHeap 是可迭代的对象，并且它有.iter() 方法，但这个迭代器以任意顺序产生堆中的元素，而不是按照从大到小的顺序。为了按照大小顺序消耗 BinaryHeap 中的值，可以使用 while 循环:
+BinaryHeap 是可迭代的对象，并且它有.iter() 方法，但这个迭代器 `以任意顺序` 产生堆中的元素，而不是按照从大到小的顺序。为了按照大小顺序消耗 BinaryHeap 中的值，可以使用 while 循环:
 
 ```rust
 while let Some(task) = heap.pop() {
@@ -527,11 +527,11 @@ while let Some(task) = heap.pop() {
 
 ### <span class="section-num">2.4</span> HashMap {#hashmap}
 
-HashMap 是键值对(称为条目 entry)的集合。任何两个条目的键都不同，所有的条目按照一定结构组织，如果有一个键就可以高效地在 map 中查找到相应的值。简而言之，map 是一个查找表。
+HashMap 是键值对(称为条目 entry)的集合。任何两个条目的键都不同，所有的条目按照一定结构组织，如果有一个键就可以高效地在 map 中查找到相应的值。
 
-Rust 提供两者两种 map 类型: HashMap&lt;K, V&gt; 和 BTreeMap&lt;K, V&gt;。这两种类型共享了很多相同的方法;不同之处在于它们组织条目的方式。
+Rust 提供两者两种 map 类型: HashMap&lt;K, V&gt; 和 BTreeMap&lt;K, V&gt;。这两种类型共享了很多相同的方法, 不同之处在于它们组织条目的方式。
 
-1.  HashMap 把键和值都存储在哈希表中，因此它要求键的类型 K 实现了 Hash 和 Eq，这两个 trait 分别用于哈希和相等性比较。
+1.  HashMap: 把键和值都存储在哈希表中，因此它要求键的类型 K 实现了 `Hash 和 Eq` ，这两个 trait 分别用于哈希和相等性比较。
 
     -   bool、int、uint、String、&amp;str 等；
     -   float 没有实现这两个 trait，不能用于 key；
@@ -539,15 +539,14 @@ Rust 提供两者两种 map 类型: HashMap&lt;K, V&gt; 和 BTreeMap&lt;K, V&gt;
 
     {{< figure src="/images/vec/2024-03-06_10-13-53_screenshot.png" width="400" >}}
 
-2.  BTreeMap 按照键的顺序在树形结构中存储条目，因此它要求键的类型 K 实现了 Ord。图 16-5展示了一个
-    BTreeMap。同样，深色区域表示没有被使用的空间。
+2.  BTreeMap: 按照键的顺序在 `树形结构中` 存储条目，因此它要求键的类型 K 实现了 Ord。同样，深色区域表示没有被使用的空间。
 
     {{< figure src="/images/vec/2024-03-06_10-14-24_screenshot.png" width="400" >}}
 
 可见:
 
-1.  HashMap 是使用一块连续的 heap 来保存 map 元素的, 如果 map 容量要增加, 则需要分配一块新的连续内存区域, 并将老的 map 元素移动过去, 所以有一定性能开销;
-2.  BTreeMap 是使用 Node 来保存元素的, 所以不是连续内存区域, 便于随机插入和读取;
+1.  HashMap 是使用 `一块连续的` heap 来保存 map 元素的, 如果 map 容量要增加, 则需要分配一块新的连续内存区域, 并将老的 map 元素移动过去，所以有一定性能开销;
+2.  BTreeMap 是使用 Node 来保存元素的, 所以不是连续内存区域, `便于随机插入和读取` ;
 
 <!--listend-->
 
@@ -558,23 +557,25 @@ iter.collect();
 // 如果 map 里有给定 key 的条目则返回 true。
 map.contains_key(&key);
 
-// 在 map 中查找给定 key 的条目。如果找到了匹配的条目，就返回 Some(r)，其中 r 是相 应的值的引用。否则返回 None。
+// 在 map 中查找给定 key 的条目。如果找到了匹配的条目，就返回 Some(r)，其中 r 是相 应的值的引用。
+// 否则返回 None。
 map.get(&key);
 ```
 
 在查询 map 时，传入的 key 类型 B 和 map 定义的 key 类型 K 可以不一致，需要满足 B = Borrow&lt;K&gt;;
 
-map 可以使用方括号 map[&amp;key] 进行查询。这是因为 map 实现了 Index trait。然而，如果没有给定的 key 的条目存在，这会 panic，就类似越界访问数组一样。因此只有当你确定 要查找的条目在 map 中时再使用这个语法。
+map 可以使用方括号 map[&amp;key] 进行查询。这是因为 map 实现了 Index trait。然而，如果没有给定的 key
+的条目存在，这会 panic，就类似越界访问数组一样。因此只有当你确定要查找的条目在 map 中时再使用这个语法。否则使用 get() 方法。
 
--   不支持 map[&amp;key] = value 赋值.
+`不支持 map[&key] = value 赋值` ，但可以使用 map.insert(key, value) 来插入和返回值（旧值）。
 
-因为一个BTreeMap&lt;K, V&gt;按照键的顺序保存条目，所以它支持一个附加的操作:
+因为 BTreeMap&lt;K, V&gt; 按照键的顺序保存条目，所以它支持一个附加的操作:
 
 ```text
 btree_map.split_off(&key)
 ```
 
-把 btree_map 分割成两个。键小于 key 的条目被留在 btree_map 中，返回一个包含其余 条目的新BTreeMap&lt;K,
+把 btree_map 分割成两个。键小于 key 的条目被留在 btree_map 中，返回一个包含其余条目的新BTreeMap&lt;K,
 V&gt;。
 
 map 支持 Entry 操作:
@@ -583,17 +584,22 @@ map 支持 Entry 操作:
 let record = student_map.entry(name.to_string()).or_insert_with(Student::new);
 ```
 
-student_map.entry(name.to_string()) 返回的 Entry 值就像一个可变引用，它指向 map 中 一个已经被键值对占据 (occupied) 的位置，或者是空的 (vacant)，意思是还没有条目占据这个 位置。如果为空，条目的
-.or_insert_with() 方法会插入一个新的 Student。
+student_map.entry(name.to_string()) 返回的 Entry 值就像一个可变引用，它指向 map 中 一个已经被键值对占据 (occupied) 的位置或者是空的 (vacant)，意思是还没有条目占据这个位置。如果为空，条目的.or_insert_with() 方法会插入一个新的 Student。
+
+-   Entry 以 &amp;mut 获得 map 的可变引用；
+-   entry(key) 的参数 key 类型必须和 map 的 key 类型一致。（不支持 k = Borrowed&lt;Q&gt;）
+
+<!--listend-->
 
 ```rust
-// 对给定的 key 返回一个 Entry。如果 map 中没有这个 key，它会返回一个空的 Entry。 这个方法以 mut 引
-// 用获取 self 参数，并返回一个生命周期相同的 Entry:
+// 对给定的 key 返回一个 Entry。如果 map 中没有这个 key，它会返回一个空的 Entry。 这个方法以 &mut
+// 引用获取 self 参数，并返回一个生命周期相同的 Entry:
 pub fn entry<'a>(&'a mut self, key: K) -> Entry<'a, K, V>
-// Entry 类型有一个生命周期参数'a，因为它是 map 的一种 mut 借用。只要 Entry 存在， 它就有 map 的独占
-// 访问权限。不幸的是，如果 map 的键的类型为 String，那么不能向这个方法传递 &str 类型的参 数。这种情
-// 况下的.entry() 方法需要一个真实的 String。因为 entry 的输入参数 key 是 K 类型, 而非 Borrow<Q> 类
-// 型;
+// Entry 类型有一个生命周期参数'a，因为它是 map 的一种 mut 借用。只要 Entry 存在，它就有 map 的独
+// 占访问权限。
+//
+// 不幸的是，如果 map 的键的类型为 String，那么不能向这个方法传递 &str 类型的参 数。这种情况下
+// 的.entry() 方法需要一个真实的 String。因为 entry 的输入参数 key 是 K 类型, 而非 Borrow<Q> 类型;
 map.entry(key);
 
 // 确保 map 包含给定的 key 的条目，如果需要的话用给定的 value 插入一个新的条目。它 返回新插入的或者
@@ -622,12 +628,11 @@ let mut word_occurrence: HashMap<String, HashSet<String>> = HashMap::new(); for 
     } }
 
 
-// 如果给定的 key 的条目存在就调用 closure，把值的可变引用传进闭包。它返回一 个 Entry，因此它可以和
-// 其它方法链式调用。
+// 如果给定的 key 的条目存在就调用 closure，把值的可变引用传进闭包。它返回一 个 Entry，因此它可以
+// 和其它方法链式调用。
 map.entry(key).and_modify(closure);
 
-// 这个map包含给定字符串中的所有单词，
-// 以及它们出现的次数。
+// 这个map包含给定字符串中的所有单词，以及它们出现的次数。
 let mut word_frequency: HashMap<&str, u32> = HashMap::new(); for c in text.split_whitespace() {
     word_frequency.entry(c)
         .and_modify(|count| *count += 1)
@@ -637,13 +642,13 @@ let mut word_frequency: HashMap<&str, u32> = HashMap::new(); for c in text.split
 
 迭代 map 的方法:
 
-1.  以值迭代(for (k, v) in map)，产生(K, V)对。这会消耗掉map。
-2.  迭代共享引用(for (k, v) in &amp;map)，产生(&amp;K, &amp;V)对。
-3.  迭代可变引用(for (k, v) in &amp;mut map)，产生(&amp;K, &amp;mut V)对。(再提醒一次，没有获取 map 中键的 mut 访问的方法，因为条目是按照键来组织的。
+1.  以值迭代：for (k, v) in map，产生(K, V)对。这会消耗掉 map。
+2.  迭代共享引用：for (k, v) in &amp;map，产生(&amp;K, &amp;V)对。
+3.  迭代可变引用：for (k, v) in &amp;mut map，产生(&amp;K, &amp;mut V)对。
 
-类似于 vector，map 有.iter() 和.iter_mut() 方法返回以引用迭代的迭代器，类似于迭代 &amp;map 或者 &amp;mut map。
+没有获取 map 中 key 的 mut 访问的方法，因为条目是按照键来组织的。
 
-另外:
+另外：
 
 1.  map.keys()    返回一个只迭代键的迭代器，以引用的形式返回。
 2.  map.values()    返回一个只迭代值的迭代器，以引用的形式返回。
@@ -652,21 +657,37 @@ let mut word_frequency: HashMap<&str, u32> = HashMap::new(); for c in text.split
 所有的 HashMap 迭代器都会以 `任意顺序` 访问 map 的条目。BTreeMap 的迭代器会按照 `键的顺序` 访问它们。
 
 
-### <span class="section-num">2.5</span> HashSet&lt;T&gt; 和 BTreeSet&lt;T&gt; {#hashset-t-和-btreeset-t}
+### <span class="section-num">2.5</span> HashSet/BTreeSet {#hashset-btreeset}
 
-map 和 set 有不同的方法，但其实一个 set 就是一个只有键而不是键值对的 map。事实上， Rust 的HashSet&lt;T&gt;
-和 BTreeSet&lt;T&gt; 被实现为 HashMap&lt;T, ()&gt; 和 BTreeMap&lt;T, ()&gt; 的包装。
+map 和 set 有不同的方法，但其实一个 set 就是一个只有键而不是键值对的 map。事实上 Rust 的
+HashSet&lt;T&gt;和 BTreeSet&lt;T&gt; 被实现为 HashMap&lt;T, ()&gt; 和 BTreeMap&lt;T, ()&gt; 的浅包装。
 
-有两种迭代 set 的方法:
+HashMap 和 HashSet 的 key 必须要实现 Hash 和 Eq。
 
-1.  以值迭代(for v in set)产生set的成员(并消耗这个set)。
+两种迭代 set 的方法:
+
+1.  以值迭代(for v in set)产生set的成员(并消耗这个 set)。
 2.  以共享引用迭代(for v in &amp;set)产生set中成员的共享引用。
 
-不支持以 mut 引用迭代 set。没有方法获取 set 中值的 mut 引用。
+不支持以 mut 引用迭代 set。也没有方法获取 set 中值的 mut 引用。
 
 set.iter() 返回一个以共享引用方式迭代 set 的迭代器。
 
-HashSet 迭代器类似于 HashMap 的迭代器，也会以任意顺序产生值。BTreeSet 迭代器按照顺序产生值，类似于一个排序过的 vector。
+HashSet 迭代器类似于 HashMap 的迭代器，也会以任意顺序产生值。BTreeSet 迭代器按照顺序产生值，类似于一个排序过的 Vec。
+
+set 的一些方法：
+
+1.  set.get(&amp;value): 返回 value 的共享引用，类型是 Option&lt;&amp;T&gt;;
+2.  set.take(&amp;value): 与 set.remove(&amp;value) 类似，但是会返回移除的值，类型是 Option&lt;&amp;T&gt;;
+3.  set.replace(value);
+
+针对 set 间的方法：
+
+1.  set1.intersection(&amp;set2) : 返回同时出现在 set1 和 set2 中的值的迭代器；
+2.  &amp;set1 &amp; &amp;set2: 返回一个新 set，是 set1 和 set2 的交集；
+3.  set1.union(&amp;set2): 返回并集迭代器；等效于&amp;set1 | &amp;set2
+4.  set1.difference(&amp;set2): 返回差集迭代器； 等效于 &amp;set1 - &amp;set2
+5.  set1.symmetric_difference(&amp;set2): 返回对称差（异或）迭代器，等效于: &amp;set1 ^ &amp;set2;
 
 
 ### <span class="section-num">2.6</span> Hash {#hash}
@@ -1582,16 +1603,17 @@ std::mem module 提供了各类型的 size/aligment/take/replace 等操作函数
 use std::mem;
 
 pub const fn align_of<T>() -> usize
-          assert_eq!(4, mem::align_of::<i32>());
+pub fn align_of_val<T>(val: &T) -> usize where T: ?Sized // 返回 val 执行的 T 类型值的内存对齐要求
+assert_eq!(4, mem::align_of::<i32>());
+assert_eq!(4, mem::align_of_val(&5i32));
 
-pub fn align_of_val<T>(val: &T) -> usize where T: ?Sized, // 返回 val 执行的 T 类型值的内存对齐要求
-          assert_eq!(4, mem::align_of_val(&5i32));
-
-pub fn drop<T>(_x: T) // 回收 T 值， 其实是获得 T 的所有权后丢弃
+// 回收 T 值， 其实是获得 T 的所有权后丢弃
+pub fn drop<T>(_x: T)
 let v = vec![1, 2, 3];
 drop(v); // explicitly drop the vector
 
-pub const fn forget<T>(t: T) // Takes ownership and “forgets” about the value without running its destructor.
+// Takes ownership and “forgets” about the value without running its destructor.
+pub const fn forget<T>(t: T)
 let file = File::open("foo.txt").unwrap();
 mem::forget(file);
 
@@ -1599,14 +1621,16 @@ mem::forget(file);
 pub fn replace<T>(dest: &mut T, src: T) -> T
 use std::mem;
 let mut v: Vec<i32> = vec![1, 2];
-let old_v = mem::replace(&mut v, vec![3, 4, 5]); // 新的值替换传入的 &mut 值，返回 v 对象。
+// 新的值替换传入的 &mut 值 v，返回 v 对象。
+let old_v = mem::replace(&mut v, vec![3, 4, 5]);
 assert_eq!(vec![1, 2], old_v);
 assert_eq!(vec![3, 4, 5], v);
+
 // replace 的场景场景是替换容器中的元素
 use std::mem;
 impl<T> Buffer<T> {
     fn replace_index(&mut self, i: usize, v: T) -> T {
-        mem::replace(&mut self.buf[i], v)
+        mem::replace(&mut self.buf[i], v) // 可以避免从 &mut self 中转移所有权报错
     }
 }
 let mut buffer = Buffer { buf: vec![0, 1] };
@@ -1614,8 +1638,8 @@ assert_eq!(buffer.buf[0], 0);
 assert_eq!(buffer.replace_index(0, 2), 0);
 assert_eq!(buffer.buf[0], 2);
 
-
-pub const fn size_of<T>() -> usize // 返回指定类型 T 的大小
+// 返回指定类型 T 的大小
+pub const fn size_of<T>() -> usize
 use std::mem;
 // Some primitives
 assert_eq!(4, mem::size_of::<i32>());
@@ -1631,7 +1655,7 @@ assert_eq!(mem::size_of::<&i32>(), mem::size_of::<Box<i32>>());
 assert_eq!(mem::size_of::<&i32>(), mem::size_of::<Option<&i32>>());
 assert_eq!(mem::size_of::<Box<i32>>(), mem::size_of::<Option<Box<i32>>>());
 
-//  返回指向的 T 的大小，于 size_of::<T>() 的区别是该方法也适用于 Thas no statically-known size,
+//  返回指向的 T 的大小，和 size_of::<T>() 的区别是该方法也适用于 Thas no statically-known size,
 //  e.g., a slice [T] or a trait object, then size_of_val can be used to get the dynamically-known
 //  size.
 pub fn size_of_val<T>(val: &T) -> usize where T: ?Sized,
@@ -1641,7 +1665,8 @@ let x: [u8; 13] = [0; 13];
 let y: &[u8] = &x;
 assert_eq!(13, mem::size_of_val(y));
 
-pub fn swap<T>(x: &mut T, y: &mut T) // Swaps the values at two mutable locations, without deinitializing either one.
+// Swaps the values at two mutable locations, without deinitializing either one.
+pub fn swap<T>(x: &mut T, y: &mut T)
 use std::mem;
 let mut x = 5;
 let mut y = 42;
@@ -1658,8 +1683,8 @@ assert_eq!(vec![1, 2], old_v);
 assert!(v.is_empty());
 ```
 
-align_of/align_of_val 以及 size_of/size_of_val 都提供了 \_val 版本，主要的使用场景是获得动态类型对应的实际类型的对齐方式或大小： Thas no statically-known size, _/ e.g., a slice [T] or a trait object,
-then size_of_val can be used to get the dynamically-known /_ size.
+align_of/align_of_val 以及 size_of/size_of_val 都提供了 \_val 版本，主要的使用场景是获得动态类型对应的实际类型的对齐方式或大小： Thas no statically-known size, _/ e.g., a slice [T] or a trait object, then size_of_val can
+be used to get the dynamically-known /_ size.
 
 std::mem::offset_of!() 返回 struct filed 或 enum variant field 的偏移：
 
@@ -1722,31 +1747,42 @@ assert_eq!(2, Enum::Baz as isize);
 
 类型大小：
 
-1.  () = 1； bool = 1； char = 4；The types \*const T, &amp;T, Box&lt;T&gt;, Option&lt;&amp;T&gt;, and Option&lt;Box&lt;T&gt;&gt; all
-    have the same size. If T is Sized, all of those types have the same size as `usize`.
+1.  () = 1； bool = 1； char = 4；The types \*const T, &amp;T, Box&lt;T&gt;, Option&lt;&amp;T&gt;, and Option&lt;Box&lt;T&gt;&gt; all have the
+    same size. If T is Sized, all of those types have the same size as `usize`.
 2.  for any type T and length n, [T; n] has a size of `n * size_of::<T>()`.
 3.  对象类型的大小还受 #[repr(C)], repr(align(N)) 和 #[repr(u16)] 等属性的影响。
-4.  Size of Enums: Enums that carry `no data` other than the discriminant have the same size as C enums
-    on the platform they are compiled for.
+4.  Size of Enums: Enums that carry `no data` other than the discriminant have the same size as C enums on the
+    platform they are compiled for.
 5.  Size of Unions: The size of a union is the size of its largest field.
 
 `std::mem::transmute()` 函数：
 
--   transmute 将以各种 Src 类型的 value 解释为 Dst 类型的 value，这里的解释是 bits 级别的： 将 Src
-    value bits 级别的 copy 为 Dst 的 value，然后 forget Src value（drop 但不调用他的 Drop trait）。
--   Src 和 Dst 类型必须具有相同长度，否则编译出错；
+-   transmute 将以各种 Src 类型的 value 解释为 Dst 类型的 value，这里的解释是 `bit 级别` ：将 Src value bits 级别的 copy 为 Dst 的 value，然后 forget Src value（drop 但不调用它的 Drop trait）；
+-   Src 和 Dst 类型必须具有相同长度，否则编译错误；
 
 <!--listend-->
 
 ```rust
-pub const unsafe extern "rust-intrinsic" fn transmute<Src, Dst>( src: Src ) -> Dst
+let a: i64 = 42;
+let a_ptr: *const i64 = &a as *const i64;
+let a_addr: usize = unsafe {std::mem::transmute(a_ptr)}; // 将 a_ptr 解释为 usize 后，可以对指针值执行算术运算
+println!("a: {} ({:p}...0x{:x})", a, a_ptr, a_addr + 7);
+```
+
+transmute 的两个常用场景：
+
+1.  在 \*const 指针和函数指针间转换；
+2.  扩充或缩短 lifetime；
+
+<!--listend-->
+
+```rust
+pub const unsafe extern "rust-intrinsic" fn transmute<Src, Dst>(src: Src ) -> Dst
 
 // transmute 的两个常用场景：
-
-// 例子 1，在 *const 指针和函数指针间转换
-fn foo() -> i32 {
-    0
-}
+//
+// 1. 在 *const 指针和函数指针间转换
+fn foo() -> i32 { 0 }
 // Crucially, we `as`-cast to a raw pointer before `transmute`ing to a function pointer.
 // This avoids an integer-to-pointer `transmute`, which can be problematic.
 // Transmuting between raw pointers and function pointers (i.e., two pointer types) is fine.
@@ -1756,7 +1792,7 @@ let function = unsafe {
 };
 assert_eq!(function(), 0);
 
-// 例子 2，扩充或缩短 lifetime
+// 2. 扩充或缩短 lifetime
 struct R<'a>(&'a i32);
 unsafe fn extend_lifetime<'b>(r: R<'b>) -> R<'static> {
     std::mem::transmute::<R<'b>, R<'static>>(r)
@@ -1766,7 +1802,7 @@ unsafe fn shorten_invariant_lifetime<'b, 'c>(r: &'b mut R<'static>) -> &'b mut R
 }
 ```
 
-其他可以 transmute 场景可以更安全地使用其他 APIs 的例子：
+其它使用 transmute 场景，可以更安全地使用其它 APIs 的例子：
 
 ```rust
 let raw_bytes = [0x78, 0x56, 0x34, 0x12];
@@ -1826,14 +1862,14 @@ pub const unsafe fn transmute_copy<Src, Dst>(src: &Src) -> Dst
 
 `Interprets src as having type &Dst, and then reads src without moving the contained value.`
 
-This function will unsafely assume the pointer src is valid for size_of::&lt;Dst&gt; bytes by transmuting
-&amp;Src to &amp;Dst and then reading the &amp;Dst (except that this is done in a way that is correct even when
-&amp;Dst has stricter alignment requirements than &amp;Src). It will also unsafely create a copy of the
-contained value instead of moving out of src.
+This function will unsafely assume the pointer src is valid for size_of::&lt;Dst&gt; bytes by transmuting &amp;Src to
+&amp;Dst and then reading the &amp;Dst (except that this is done in a way that is correct even when &amp;Dst has stricter
+alignment requirements than &amp;Src). It will also unsafely create a copy of the contained value instead of
+moving out of src.
 
-It is not a compile-time error if Src and Dst have different sizes, but it is highly encouraged to
-only invoke this function where Src and Dst have the same size. This function triggers undefined
-behavior if Dst is larger than Src.
+It is not a compile-time error if Src and Dst have different sizes, but it is highly encouraged to only invoke
+this function where Src and Dst have the same size. This function triggers undefined behavior if Dst is larger
+than Src.
 
 ```rust
 use std::mem;
@@ -1893,16 +1929,16 @@ pub union MaybeUninit<T> {
 }
 ```
 
-C 很常见的情况是, 传递一个指针, 然后让函数内的逻辑来修改指针指向的内容. Rust 提供了
-`std::mem::MaybeUninit<T>` 类型, 他告诉编译器为 T 分配足够的内存, 但是不做任何处理, 直到后续明确告诉他可以安全地操作这一块内存区域. MaybeUninit&lt;T&gt; 拥有这一块内存区域, 这样编译器就不会做一些优化和操作,从而避免非预期的行为.
+C 很常见的情况是, 传递一个指针, 然后让函数内的逻辑来修改指针指向的内容. Rust 提供了 `std::mem::MaybeUninit<T>`
+类型, 他告诉编译器为 T 分配足够的内存, 但是不做任何处理, 直到后续明确告诉他可以安全地操作这一块内存区域.
+MaybeUninit&lt;T&gt; 拥有这一块内存区域, 这样编译器就不会做一些优化和操作,从而避免非预期的行为.
 
 -   MaybeUninit.as_mut_ptr() 返回这个内存区域的 \*mut T 指针, 可以将他传递给 FFI 函数使用;
 -   然后调用 MaybeUninit.assume_init() 来将内存区域标记为已初始化;
 
 MaybeUninit&lt;T&gt; 可以在 unsafe code 中使用 uninitialized data，他用于告诉编译器这一部分数据没有初始化：
 
--   编译器根据 T 来分配合适大小的未初始化内存区域，后续一般是先使用 as_ptr()/as_mut_ptr() 转换为 raw
-    pointer，然后使用他的 read/write() 来对未初始化内存区域进行读写。
+-   编译器根据 T 来分配合适大小的未初始化内存区域，后续一般是先使用 as_ptr()/as_mut_ptr() 转换为 raw pointer，然后使用他的 read/write() 来对未初始化内存区域进行读写。
 -   编译器不会对 MaybeUninit&lt;T&gt; 进行 runtime tracking 和 safety check；
 
 <!--listend-->
@@ -1965,8 +2001,8 @@ let data = {
 assert_eq!(&data[0], &[42]);
 ```
 
-Initializing a struct field-by-field： You can use MaybeUninit&lt;T&gt;, and the std::ptr::addr_of_mut
-macro, to initialize structs field by field:
+Initializing a struct field-by-field： You can use MaybeUninit&lt;T&gt;, and the std::ptr::addr_of_mut macro, to
+initialize structs field by field:
 
 ```rust
 use std::mem::MaybeUninit;
@@ -2123,13 +2159,15 @@ pub fn slice_as_bytes_mut(this: &mut [MaybeUninit<T>]) -> &mut [MaybeUninit<u8>]
 
 -   raw pointer 类型 \*const T 或 \*mut T 本身也提供一些方法，可以用来操作 raw pointer；
 
-这个 module 中通过 raw pointer 如 \*mut T 或 \*const T 来存取一个值，这个值的大小如果没有特殊说明，对应的是 std::mem::size_of::&lt;T&gt;() bytes。
+这个 module 中通过 raw pointer 如 \*mut T 或 \*const T 来存取一个值，这个值的大小如果没有特殊说明，对应的是
+std::mem::size_of::&lt;T&gt;() bytes。
 
 使用 std::ptr::addr_of!() 和 std::ptr::addr_of_mut!() 来返回参数 express 的 raw pointer：
 
--   packed struct：默认情况下，struct 对象的 field 会通过 pading 来对齐。通过添加 packed attr，可以关闭 struct field padding 对齐机制，这样 struct 的某个 field 可能是未对齐的。
--   对于未对齐的 filed，是不能创建引用的，但是通过 addr_of!() 和 addr_of_mut!() 宏是可以创建 `未对齐的
-        raw pointer 的` 。
+-   packed struct：默认情况下，struct 对象的 field 会通过 pading 来对齐。通过添加 packed attr，可以关闭 struct
+    field padding 对齐机制，这样 struct 的某个 field 可能是未对齐的。
+-   对于未对齐的 filed，是不能创建引用的，但是通过 addr_of!() 和 addr_of_mut!() 宏是可以创建 `未对齐的 raw
+        pointer` 。
 
 <!--listend-->
 
@@ -2149,20 +2187,59 @@ Rust 的 raw pointer 和引用都是指针，包括两部分：
 1.  data pointer：指向 value 内存地址的指针；
 2.  可选的 metadata 指针；
 
-对于编译时可知的固定大小类型（实现了 Sized trait）或 extern 类型的指针，是 `thin 指针` ，它的 metadata
-是 zero-sized 的 () 类型，所以 thin 指针只占用一个机器字 usize 的变量。
+对于编译时可知的固定大小类型（实现了 Sized trait）或 extern 类型的指针，是 `thin 指针` ，它的 metadata 是
+zero-sized 的 () 类型，所以 thin 指针是只占用一个机器字 usize 的变量。
 
-对于动态大小类型，它的指针是 `fat 指针` ，它的 metadata 是非空的。fat 指针占用两个 usize 大小（data
-pointer + metadata pointer），如\*const [u8] 或 \*mut dyn std::io::Write：
+对于动态大小类型（DST），它的指针是 `fat 指针` ，它的 metadata 是非空的。fat 指针占用两个 usize 大小（data
+pointer + metadata pointer），如 \*const [u8] 或 \*mut dyn std::io::Write：
 
 -   For structs whose last field is a DST, metadata is `the metadata for the last field`
 -   For the str type, metadata is `the length in bytes` as usize
 -   For slice types like [T], metadata is `the length in items` as usize
--   For trait objects like dyn SomeTrait, metadata is `DynMetadata<Self>` (e.g. DynMetadata&lt;dyn
-    SomeTrait&gt;)
+-   For trait objects like dyn SomeTrait, metadata is `DynMetadata<Self>` (e.g. DynMetadata&lt;dyn SomeTrait&gt;)
 
-Rust 的 type coercion 为引用和 raw pointer 提供了隐式自动转换(也可以使用 as 运算符来对 type coercion
-显式转换): <https://doc.rust-lang.org/stable/reference/type-coercions.html>
+`std::ptr::Pointee` trait 来为任意指针（thin 或 fat pointer）提供 metadata 的 type 信息:
+
+-   Metadata 关联类型可能是 () or usize or DynMetadata&lt;_&gt; 类型；
+    -   (): 对应没有 Metadata 的 thin 指针；
+    -   usize：对应 lenght in bytes（如 &amp;str）或 length in items（如 [T])；
+    -   DynMetadata: 对应 trait object；
+-   Rust `为所有类型实现了该 trait` ，所以可以直接使用；
+-   raw pointer 的 .to_raw_parts() 方法返回对象的 data pointer 和包裹 Metadata 类型的 Pointee 对象；
+-   std::ptr::metadata() 方法返回对象的 Metadata 类型对象；
+-   std::ptr::fromm_raw_parts()/from_raw_parts_mut() 函数来使用 data pointer 和 Metadata 类型对象创建 raw
+    pointer
+
+<!--listend-->
+
+```rust
+// raw pointer 的 to_raw_parts() 方法返回他的 Metadata 信息
+pub trait Pointee {
+    // Metadata 的实例化类型：() 或 usize 或 DynMetadata<Dyn>
+    type Metadata: Copy + Send + Sync + Ord + Hash + Unpin;
+}
+
+pub struct DynMetadata<Dyn> where Dyn: ?Sized,
+{ /* private fields */ }
+
+// Decompose a (possibly wide) pointer into its data pointer and metadata components.
+pub fn to_raw_parts(self) -> (*const (), <T as Pointee>::Metadata)
+
+// Forms a (possibly-wide) raw pointer from a data pointer and metadata.
+pub fn from_raw_parts<T>(data_pointer: *const (), metadata: <T as Pointee>::Metadata) -> *const T where T: ?Sized,
+```
+
+Struct std::ptr::DynMetadata 是 trait object 的 metadata，It is a pointer to a `vtable (virtual call table)`
+that represents all the necessary information to `manipulate the concrete type` stored inside a trait
+object. The vtable notably it contains:
+
+-   type size
+-   type alignment
+-   a pointer to the `type’s drop_in_place impl` (may be a no-op for plain-old-data)
+-   pointers to `all the methods` for the type’s implementation of the trait
+
+Rust 的 type coercion 为引用和 raw pointer 提供了隐式自动转换(也可以使用 as 运算符来对 type coercion 显式转换):
+<https://doc.rust-lang.org/stable/reference/type-coercions.html>
 
 1.  &amp;mut T to &amp;T  &lt;- 可变引用可以转换为不可变引用
 2.  \*mut T to \*const T &lt;-- 可变 raw pointer 可以转换为不可变 raw pointer
@@ -2187,73 +2264,29 @@ let r: *mut i32 = &mut 1i32;
 let rp: *const i32 = &mut 1i32 as *mut i32 as *const i32;
 ```
 
-`std::ptr::Pointee` trait 来为任意指针（thin 或 fat pointer）提供 metadata 的 type 信息:
-
--   Metadata 关联类型可能是 () or usize or DynMetadata&lt;_&gt; 类型；
-    -   (): 对应没有 Metadata 的 thin 指针；
-    -   usize：对应 lenght in bytes（如 &amp;str）或 length in items（如 [T])；
-    -   DynMetadata: 对应 trait object；
--   Rust `为所有类型实现了该 trait` ， 所以可以直接使用；
-
-可以使用 raw pointer 或 std::ptr module 提供的方法或函数来管理 data pointer 和 Metadata 对象：
-
--   raw pointer 的 .to_raw_parts() 方法返回对象的 data pointer 和包裹 Metadata 类型的 Pointee 对象；
--   std::ptr::metadata() 方法返回对象的 Metadata 类型对象；
--   std::ptr::fromm_raw_parts()/from_raw_parts_mut() 函数来使用 data pointer 和 Metadata 类型对象闯进
-    raw pointer
-
-<!--listend-->
-
-```rust
-// raw pointer 的 to_raw_parts() 方法返回他的 Metadata 信息
-pub trait Pointee {
-    // Metadata 的实例化类型：() 或 usize 或 DynMetadata<Dyn>
-    type Metadata: Copy + Send + Sync + Ord + Hash + Unpin;
-}
-
-pub struct DynMetadata<Dyn>
-where
-    Dyn: ?Sized,
-{ /* private fields */ }
-
-// Decompose a (possibly wide) pointer into its data pointer and metadata components.
-pub fn to_raw_parts(self) -> (*const (), <T as Pointee>::Metadata)
-
-// Forms a (possibly-wide) raw pointer from a data pointer and metadata.
-pub fn from_raw_parts<T>(data_pointer: *const (), metadata: <T as Pointee>::Metadata) -> *const T where T: ?Sized,
-```
-
-Struct std::ptr::DynMetadata 是 trait object 的 metadata，It is a pointer to a `vtable (virtual call
-table)` that represents all the necessary information to `manipulate the concrete type` stored inside a
-trait object. The vtable notably it contains:
-
--   type size
--   type alignment
--   a pointer to the `type’s drop_in_place impl` (may be a no-op for plain-old-data)
--   pointers to `all the methods` for the type’s implementation of the trait
-
 std::ptr module 提供的函数列表（大部分函数也是 \*const T 或 \*mut T 类型的方法）：
 
 -   addr_eq    Compares the addresses of the two pointers for equality, ignoring any metadata in fat pointers.
--   copy⚠    Copies count \* size_of::&lt;T&gt;() bytes from src to dst. The source and destination may
+-   copy Copies count \* size_of::&lt;T&gt;() bytes from src to dst. The source and destination may overlap.
+-   copy_nonoverlapping Copies count \* size_of::&lt;T&gt;() bytes from src to dst. The source and destination must not
     overlap.
--   copy_nonoverlapping⚠    Copies count \* size_of::&lt;T&gt;() bytes from src to dst. The source and destination must not overlap.
--   drop_in_place⚠    Executes the destructor (if any) of the pointed-to value.
+-   drop_in_place Executes the destructor (if any) of the pointed-to value.
 -   eq    Compares raw pointers for equality.
 -   from_mut    Convert a mutable reference to a raw pointer.
 -   from_ref    Convert a reference to a raw pointer.
 -   hash    Hash a raw pointer.
--   null    Creates a null raw pointer.
--   null_mut    Creates a null mutable raw pointer.
--   read⚠    `Reads the value from src without moving it`. This leaves the memory in src unchanged.
--   read_unaligned⚠    Reads the value from src without moving it. This leaves the memory in src unchanged.
--   read_volatile⚠    Performs a volatile read of the value from src without moving it. This leaves the memory in src unchanged.
--   replace⚠    Moves src into the pointed dst, returning the previous dst value.
+-   `null`    Creates a null raw pointer.
+-   `null_mut`    Creates a null mutable raw pointer.
+-   `read`    `Reads the value from src without moving it`. This leaves the memory in src unchanged.
+-   read_unaligned    Reads the value from src without moving it. This leaves the memory in src unchanged.
+-   read_volatile Performs a volatile read of the value from src without moving it. This leaves the memory in
+    src unchanged.
+-   replace    Moves src into the pointed dst, returning the previous dst value.
 -   slice_from_raw_parts    Forms a raw slice from a pointer and a length.
 -   slice_from_raw_parts_mut    Performs the same functionality as slice_from_raw_parts, except that a raw mutable slice is returned, as opposed to a raw immutable slice.
 -   swap⚠    Swaps the values at two mutable locations of the same type, without deinitializing either.
 -   swap_nonoverlapping⚠    Swaps count \* size_of::&lt;T&gt;() bytes between the two regions of memory beginning at x and y. The two regions must not overlap.
--   write⚠    `Overwrites a memory location with the given value without reading or dropping the old value.`
+-   `write`    `Overwrites a memory location with the given value without reading or dropping the old value.`
 -   write_bytes⚠    Sets count \* size_of::&lt;T&gt;() bytes of memory starting at dst to val.
 -   write_unaligned⚠    Overwrites a memory location with the given value without reading or dropping the old value.
 -   write_volatile⚠    Performs a volatile write of a memory location with the given value without reading or dropping the old value.
@@ -2271,15 +2304,11 @@ std::ptr::write
 pub unsafe fn write<T>(dst: *mut T, src: T)
 ```
 
-Overwrites a memory location with the given value `without reading or dropping the old value.`
-
-write `does not drop the contents of dst`. This is safe, but it could leak allocations or resources,
-so care should be taken not to overwrite an object that should be dropped.
-
-Additionally, `it does not drop src`. Semantically, src is moved into the location pointed to by dst.
-
-This is appropriate for initializing uninitialized memory, or overwriting memory that has previously
-been read from.
+Overwrites a memory location with the given value `without reading or dropping the old value.` write `does not
+drop the contents of dst`. This is safe, but it could leak allocations or resources, so care should be taken
+not to overwrite an object that should be dropped. Additionally, `it does not drop src`. Semantically, src is
+`moved into` the location pointed to by dst. This is appropriate for initializing uninitialized memory, or
+overwriting memory that has previously been read from.
 
 ```rust
 let mut x = 0;
@@ -2290,40 +2319,37 @@ unsafe {
     assert_eq!(std::ptr::read(y), 12);
 }
 
-// Manually implement mem::swap:
-
+// Manually implement mem::swap
 use std::ptr;
-
 fn swap<T>(a: &mut T, b: &mut T) {
     unsafe {
+        // let tmp = *a; // 如果 a T 没有实现 Copy trait，则会报错，不能从借用中 move 对象！
+
         // Create a bitwise copy of the value at `a` in `tmp`.
-        let tmp = ptr::read(a);
+        let tmp = ptr::read(a); // 从 a 浅复制生成一个 tmp 对象，a 并没有被 move！
 
-        // Exiting at this point (either by explicitly returning or by
-        // calling a function which panics) would cause the value in `tmp` to
-        // be dropped while the same value is still referenced by `a`. This
-        // could trigger undefined behavior if `T` is not `Copy`.
+        // Exiting at this point (either by explicitly returning or by calling a function which panics) would
+        // cause the value in `tmp` to be dropped while the same value is still referenced by `a`. This could
+        // trigger undefined behavior if `T` is not `Copy`.
 
-        // Create a bitwise copy of the value at `b` in `a`.
-        // This is safe because mutable references cannot alias.
+        // Create a bitwise copy of the value at `b` in `a`.  This is safe because mutable references cannot
+        // alias.
         ptr::copy_nonoverlapping(b, a, 1);
 
-        // As above, exiting here could trigger undefined behavior because
-        // the same value is referenced by `a` and `b`.
+        // As above, exiting here could trigger undefined behavior because the same value is referenced by `a`
+        // and `b`.
 
         // Move `tmp` into `b`.
         ptr::write(b, tmp);
 
-        // `tmp` has been moved (`write` takes ownership of its second argument),
-        // so nothing is dropped implicitly here.
+        // `tmp` has been moved (`write` takes ownership of its second argument), so nothing is dropped
+        // implicitly here.
     }
 }
 
 let mut foo = "foo".to_owned();
 let mut bar = "bar".to_owned();
-
 swap(&mut foo, &mut bar);
-
 assert_eq!(foo, "bar");
 assert_eq!(bar, "foo");
 ```
@@ -2463,9 +2489,14 @@ unsafe {
 
 std::process module 提供的函数:
 
-1.  abort :: Terminates the process in an abnormal fashion.
-2.  exit :: Terminates the current process with the specified exit code.
-3.  id :: Returns the OS-assigned process identifier associated with this process.
+abort
+: Terminates the process in an abnormal fashion.
+
+exit
+: Terminates the current process with the specified exit code.
+
+id
+: Returns the OS-assigned process identifier associated with this process.
 
 std::process::Command::new() 创建一个 Command, 默认的行为如下:
 
@@ -2481,9 +2512,11 @@ std::process::Command::new() 创建一个 Command, 默认的行为如下:
 ```rust
 // 创建要执行的 program
 pub fn new<S: AsRef<OsStr>>(program: S) -> Command
+
 // 设置 program 参数
 pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Command // 一次只能设置一个参数
 pub fn args<I, S>(&mut self, args: I) -> &mut Command where I: IntoIterator<Item = S>, S: AsRef<OsStr>,
+
 // 设置和清理环境变量
 pub fn env<K, V>(&mut self, key: K, val: V) -> &mut Command where K: AsRef<OsStr>, V: AsRef<OsStr>,
 pub fn envs<I, K, V>(&mut self, vars: I) -> &mut Command
@@ -2493,8 +2526,10 @@ where
     V: AsRef<OsStr>,
 pub fn env_remove<K: AsRef<OsStr>>(&mut self, key: K) -> &mut Command
 pub fn env_clear(&mut self) -> &mut Command
+
 // 设置工作目录
 pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Command
+
 // 设置子进程的 stdin/stdout/stderr
 // cfg 是可以转换为 Stdio 的类型, 例如 Stdio::null(), Stdio::inherit(), Stdio::piped(), Stdio::from()
 //
@@ -2511,7 +2546,7 @@ pub fn get_args(&self) -> CommandArgs<'_> ⓘ
 pub fn get_envs(&self) -> CommandEnvs<'_> ⓘ
 pub fn get_current_dir(&self) -> Option<&Path>
 
-// 上面创建的 Command 可以被重复执行, 来进行复用.
+// 上面创建的 Command 可以被重复执行来进行复用.
 
 // 执行 Command 并获得输出或退出状态：
 // 1. spawn() 立即返回一个 Child，调用 kill/wait/wait_with_output() 结束；
@@ -2526,7 +2561,7 @@ fn uid(&mut self, id: u32) -> &mut Command
 fn gid(&mut self, id: u32) -> &mut Command
 fn groups(&mut self, groups: &[u32]) -> &mut Command
 fn process_group(&mut self, pgroup: i32) -> &mut Command
-fn exec(&mut self) -> Error // 准备好所有工作,执行 execvp 系统调用
+fn exec(&mut self) -> Error // 准备好所有工作, 执行 execvp 系统调用
 fn arg0<S>(&mut self, arg: S) -> &mut Command
 unsafe fn pre_exec<F>(&mut self, f: F) -> &mut Command where F: FnMut() -> Result<()> + Send + Sync + 'static,
 fn before_exec<F>(&mut self, f: F) -> &mut Command where F: FnMut() -> Result<()> + Send + Sync + 'static,
@@ -2559,11 +2594,7 @@ let hello = output.stdout;
 ```
 
 spawn 产生的 Child 子进程并不等待子进程执行结束, 后续需要使用 status/wait/output() 等方法来等待执行结束, 或者
-kill() 来终止子进程。
-
--   Child 类型没有实现 Drop trait，所以需要自己确保 Child 进程运行结束。
-
-<!--listend-->
+kill() 来终止子进程。Child 类型没有实现 Drop trait，所以需要自己确保 Child 进程运行结束。
 
 ```rust
 pub struct Child {
@@ -2602,7 +2633,7 @@ assert_eq!(b"test", output.stdout.as_slice());
 
 Child 子进程的输入/输出可以通过 Child struct 的 stdin/stdout/stderr field 来获取, 通过读写它们来获得子进程的输入/输出;
 
--   Child 的 stdin/stdout/stderr 是通过 Command 的 stdin/stdout/stderr() 方法来设置的.
+-   Child 的 stdin/stdout/stderr 是通过 Command 的 stdin/stdout/stderr() 方法来设置的；
 -   在使用 child.stdin/stdout/stderr 时，一般使用 `let mut stdin = child.stdin.take().except("xxx")` , take() 方法将获取 stdin/stdout/stderr 的所有权，这样当返回的对象被 Drop 时， `相应的文件描述符被关闭` 。
 
 <!--listend-->
@@ -2627,7 +2658,7 @@ let output = sed_child.wait_with_output().expect("Failed to wait on sed");
 assert_eq!(b"Oh no, a typo!\n", output.stdout.as_slice());
 ```
 
-std::process::Stdio 可以作为 Command 的 stdin()/stdout()/stderr() 的输入:
+std::process::Stdio 可以作为 Command 的 stdin()/stdout()/stderr() 的输入，来源多样：
 
 ```rust
 impl Stdio
@@ -2645,7 +2676,7 @@ pub fn null() -> Stdio
 // 判断 Stdio 是否是 piped() 生成的.
 pub fn makes_pipe(&self) -> bool
 
-// 还可以从其他 Child 的 stdin/stdout/stderr 来创建 Stdio, 从而实现 Child 之间的串联
+// 从其他 Child 的 stdin/stdout/stderr 来创建 Stdio, 从而实现 Child 之间的串联
 impl From<ChildStderr> for Stdio
 impl From<ChildStdin> for Stdio
 impl From<ChildStdout> for Stdio
@@ -2712,6 +2743,7 @@ let mut child = Command::new("rev")
     .stdout(Stdio::piped())
     .spawn()
     .expect("Failed to spawn child process");
+
 // 父进程向 stdin 发送数据, 被 child 接收child.stdin 是 Option<ChildStdin> 类型，其中 ChildStdin 实现了 Write
 // trait，child.stdin.take() 获得 ChildStdin 的所有权，当它被 Drop 时关闭 stdin。
 let mut stdin = child.stdin.take().expect("Failed to open stdin");
@@ -2722,7 +2754,7 @@ let output = child.wait_with_output().expect("Failed to read stdout");
 assert_eq!(String::from_utf8_lossy(&output.stdout), "!dlrow ,olleH");
 ```
 
-Stdio 可以从 std::io 的 File/Stderr/Stdout 和 std::process::ChildStderr/ChildStdin/ChildStdout 来创建:
+Stdio 可以从 std::io 的 File/Stderr/Stdout 和其它 Child 的 std::process::ChildStderr/ChildStdin/ChildStdout 来创建:
 
 ```rust
 impl From<ChildStderr> for Stdio
@@ -2740,8 +2772,9 @@ let hello = Command::new("echo")
     .stdout(Stdio::piped()) // 必须 piped，后续才能从 Child 的 stdout field 获取到
     .spawn()
     .expect("failed echo command");
+
 let reverse = Command::new("rev")
-    .stdin(hello.stdout.unwrap())  // Converted into a Stdio here
+    .stdin(hello.stdout.unwrap())  // Converted into a Stdio here。注：Option 的 unwrap() 方法返回 T
     .output()
     .expect("failed reverse command");
 assert_eq!(reverse.stdout, b"!dlrow ,olleH\n");
