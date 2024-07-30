@@ -1,7 +1,7 @@
 ---
 title: "Rust 标准库 std 解析"
 author: ["zhangjun"]
-lastmod: 2024-07-29T10:56:06+08:00
+lastmod: 2024-07-30T19:58:49+08:00
 tags: ["rust", "std"]
 categories: ["rust"]
 draft: false
@@ -14,7 +14,7 @@ series_order: 2
 标准库使用一个 global 内存分配器来为 Box&lt;T&gt;/Vec&lt;T&gt; 等分配堆内存。
 
 1.  默认情况下，使用 `std::alloc::System` 作为 global 内存分配器，System `同时实现` 了 Allocator 和
-    GlobalAlloc trait. 对于 unix/linux 系统，使用 malloc 实现。对于windows 系统，使用 HeapAlloc 实现；
+    GlobalAlloc trait. unix/linux 系统，使用 malloc 实现。windows 系统，使用 HeapAlloc 实现；
 2.  用户程序也可以使用 `#[global_allocator]` 来为程序指定一个实现 `std::alloc::GlobalAlloc` trait 的自定义的 global 内存分配器；
 
 <!--listend-->
@@ -22,7 +22,6 @@ series_order: 2
 ```rust
 // 使用 OS 缺省的 System 内存分配器实现自定义内存分配器
 use std::alloc::{GlobalAlloc, System, Layout};
-
 struct MyAllocator;
 unsafe impl GlobalAlloc for MyAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
@@ -33,10 +32,8 @@ unsafe impl GlobalAlloc for MyAllocator {
         System.dealloc(ptr, layout)
     }
 }
-
 #[global_allocator]
 static GLOBAL: MyAllocator = MyAllocator;
-
 fn main() {
     // This `Vec` will allocate memory through `GLOBAL` above
     let mut v = Vec::new();
@@ -45,7 +42,6 @@ fn main() {
 
 // 使用 jemalloc 内存分配器
 use jemallocator::Jemalloc;
-
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc; // Jemalloc 是一个无 field 的 struct 类型。
 fn main() {}
@@ -53,19 +49,17 @@ fn main() {}
 
 // 默认的 System 内存分配器
 use std::alloc::System;
-
 #[global_allocator]
 static A: System = System;
-
 fn main() {
     let a = Box::new(4); // Allocates from the system allocator.
     println!("{a}");
 }
 ```
 
-std::alloc::Allocator trait 定义了内存分配的接口：
+std::alloc::Allocator trait 定义了内存分配的接口，它根据传入的 std::alloc::Layout 类型来分配内存,
+包含要分配内存的 align 要求和 size;
 
--   根据传入的 std::alloc::Layout 类型来分配内存, 包含要分配内存的 align 要求和 size;
 -   std::alloc::new::&lt;T&gt;() 为 T 类型创建 Layout；
 
 <!--listend-->
@@ -75,18 +69,16 @@ pub unsafe trait Allocator {
     // Required methods
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError>;
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout);
-
     //...
 }
 
 pub struct Layout { /* private fields */ }
 
 impl Layout
-
 // 创建 Layout
 pub const fn new<T>() -> Layout // 从 T 类型创建 Layout
-pub fn for_value<T>(t: &T) -> Layout where T: ?Sized, // 从 T 的 value 创建 Layout
-pub unsafe fn for_value_raw<T>(t: *const T) -> Layout where T: ?Sized,
+pub fn for_value<T>(t: &T) -> Layout where T: ?Sized // 从 T 的 value 创建 Layout
+pub unsafe fn for_value_raw<T>(t: *const T) -> Layout where T: ?Sized
 
 pub const fn from_size_align(size: usize, align: usize ) -> Result<Layout, LayoutError>
 pub const unsafe fn from_size_align_unchecked( size: usize, align: usize ) -> Layout
@@ -130,9 +122,9 @@ set_alloc_error_hook
 take_alloc_error_hook
 : Unregisters the current allocation error hook, returning it.
 
-这些函数都使用默认的 Global 分配器：
+这些函数都使用默认的 Global 分配器，这些函数都没有返回错误，需要根据返回的 raw pointer 是否为 null
+来判断是否分配成功。
 
--   这些函数都没有返回错误，需要根据返回的 raw pointer 是否为 null 来判断是否分配成功。
 -   handle_alloc_error(layout) 可以用来处理分配错误情况，默认的行为是在 stderr 打印消息， `abort进程` 。
 -   set_alloc_error_hook 和 take_alloc_error_hook() 可以设置调用 handle_alloc_error() 时的行为，可以选择 panic 或 abort；
 
@@ -723,24 +715,17 @@ Backtrace::capture() 的行为受两个环境变量控制：
 
 1.  `RUST_LIB_BACKTRACE` - if this is set to 0 then Backtrace::capture will never capture a
     backtrace. Any other value set will enable Backtrace::capture.
-2.  `RUST_BACKTRACE` - if RUST_LIB_BACKTRACE is not set, then this variable is consulted with the same
-    rules of RUST_LIB_BACKTRACE.
+2.  `RUST_BACKTRACE` - if RUST_LIB_BACKTRACE is not set, then this variable is consulted with the
+    same rules of RUST_LIB_BACKTRACE.
 3.  If neither of the above env vars are set, then Backtrace::capture `will be disabled`.
 
 所以，为了 Backtrace::capture() 能返回结果，需要至少设置上面的一个环境变量值为非 0.
 
-Backtrace::force_capture() 函数不参考上面两个环境变量的值，而是强制返回 Backtrace。
-
-```rust
-use std::backtrace::Backtrace
-
-fn main() {
-    let bt  = Backtrace::force_capture();
-    println!("{}", bt); // Backtrace 实现了 Debug 和 Display
-}
-```
-
 Backtrace 方法：
+
+-   Backtrace 实现了 Debug 和 Display trait，可以直接打印字符串显示；
+
+<!--listend-->
 
 ```rust
 impl Backtrace
@@ -752,6 +737,16 @@ pub fn status(&self) -> BacktraceStatus // 返回是否支持 Backtrace，如受
 
 impl<'a> Backtrace
 pub fn frames(&'a self) -> &'a [BacktraceFrame] // BacktraceFrame 实现了 Debug，没有方法。
+```
+
+Backtrace::force_capture() 函数不参考上面两个环境变量的值，强制返回 Backtrace。
+
+```rust
+use std::backtrace::Backtrace
+fn main() {
+    let bt  = Backtrace::force_capture();
+    println!("{}", bt); // Backtrace 实现了 Debug 和 Display
+}
 ```
 
 
@@ -1352,8 +1347,7 @@ let value2 = &*box as *const i32;
 
 自定义类型需要先实现 std::hash::Hash trait, 然后才能使用 std::hash::Hasher 来计算他的 hash 值。
 
--   对于任意实现了 Hash 和 Eq 类型， `k1 == k2 -》hash(k1) == hash(k2)` , 也就是如果 Eq 则 Hash 只需要相等，
-    HashMap 和 HashSet 都依赖于这个语义；可以通过 `#[derive(PartialEq, Eq, Hash)]` 来确保这一点。
+-   对于任意实现了 Hash 和 Eq 类型， `k1 == k2 -》hash(k1) == hash(k2)` , 也就是如果 Eq 则 Hash 只需要相等，HashMap 和 HashSet 都依赖于这个语义；可以通过 `#[derive(PartialEq, Eq, Hash)]` 来确保这一点。
 -   Rust 为绝大部分标准类似自动实现了 Hash trait， 如 str/String/Path/PathBuf/Cow 等。
 
 <!--listend-->
@@ -1585,6 +1579,107 @@ std::fmt 定义的常用宏：
 1.  字符串默认是左对齐，数字是右对齐；
 2.  位置参数和命名参数可以混用，但是 println!() 等的命名参数必须位于位置参数后面；命名参数的名称也可以是上下文中的变量名称；
 
+语法：
+
+```text
+format_string := text [ maybe_format text ] *
+maybe_format := '{' '{' | '}' '}' | format
+format := '{' [ argument ] [ ':' format_spec ] [ ws ] * '}'
+argument := integer | identifier
+
+format_spec := [[fill]align][sign]['#']['0'][width]['.' precision]type
+fill := character
+align := '<' | '^' | '>'
+sign := '+' | '-'
+width := count
+precision := count | '*'
+type := '' | '?' | 'x?' | 'X?' | identifier
+count := parameter | integer
+parameter := argument '$'
+```
+
+示例：
+
+```rust
+format!("Hello");                 // => "Hello"
+format!("Hello, {}!", "world");   // => "Hello, world!"
+format!("The number is {}", 1);   // => "The number is 1"
+format!("{:?}", (3, 4));          // => "(3, 4)"
+format!("{value}", value=4);      // => "4"
+let people = "Rustaceans";
+format!("Hello {people}!");       // => "Hello Rustaceans!"
+format!("{} {}", 1, 2);           // => "1 2"
+format!("{:04}", 42);             // => "0042" with leading zeros
+format!("{:#?}", (100, 200));     // => "(
+                                  //       100,
+                                  //       200,
+                                  //     )"
+
+format!("{argument}", argument = "test");   // => "test"
+format!("{name} {}", 1, name = 2);          // => "2 1"
+format!("{a} {c} {b}", a="a", b='b', c=3);  // => "a 3 b"
+
+// width
+// All of these print "Hello x    !"
+println!("Hello {:5}!", "x");
+println!("Hello {:1$}!", "x", 5);
+println!("Hello {1:0$}!", 5, "x");
+println!("Hello {:width$}!", "x", width = 5);
+let width = 5;
+println!("Hello {:width$}!", "x");
+
+// align
+assert_eq!(format!("Hello {:<5}!", "x"),  "Hello x    !");
+assert_eq!(format!("Hello {:-<5}!", "x"), "Hello x----!");
+assert_eq!(format!("Hello {:^5}!", "x"),  "Hello   x  !");
+assert_eq!(format!("Hello {:>5}!", "x"),  "Hello     x!");
+
+// Sign/#/0
+assert_eq!(format!("Hello {:+}!", 5), "Hello +5!");
+assert_eq!(format!("{:#x}!", 27), "0x1b!");
+assert_eq!(format!("Hello {:05}!", 5),  "Hello 00005!");
+assert_eq!(format!("Hello {:05}!", -5), "Hello -0005!");
+assert_eq!(format!("{:#010x}!", 27), "0x0000001b!");
+
+// 精度
+// Hello {arg 0 ("x")} is {arg 1 (0.01) with precision specified inline (5)}
+println!("Hello {0} is {1:.5}", "x", 0.01);
+// Hello {arg 1 ("x")} is {arg 2 (0.01) with precision specified in arg 0 (5)}
+println!("Hello {1} is {2:.0$}", 5, "x", 0.01);
+// Hello {arg 0 ("x")} is {arg 2 (0.01) with precision specified in arg 1 (5)}
+println!("Hello {0} is {2:.1$}", "x", 5, 0.01);
+// Hello {next arg -> arg 0 ("x")} is {second of next two args -> arg 2 (0.01) with precision
+//                          specified in first of next two args -> arg 1 (5)}
+println!("Hello {} is {:.*}",    "x", 5, 0.01);
+// Hello {arg 1 ("x")} is {arg 2 (0.01) with precision
+//                          specified in next arg -> arg 0 (5)}
+println!("Hello {1} is {2:.*}",  5, "x", 0.01);
+// Hello {next arg -> arg 0 ("x")} is {arg 2 (0.01) with precision
+//                          specified in next arg -> arg 1 (5)}
+println!("Hello {} is {2:.*}",   "x", 5, 0.01);
+// Hello {next arg -> arg 0 ("x")} is {arg "number" (0.01) with precision specified
+//                          in arg "prec" (5)}
+println!("Hello {} is {number:.prec$}", "x", prec = 5, number = 0.01);
+
+// 转义
+assert_eq!(format!("Hello {{}}"), "Hello {}");
+assert_eq!(format!("{{ Hello"), "{ Hello");
+```
+
+Fromat trait
+
+-   nothing ⇒ Display
+-   ? ⇒ Debug
+-   x? ⇒ Debug with lower-case hexadecimal integers
+-   X? ⇒ Debug with upper-case hexadecimal integers
+-   o ⇒ Octal
+-   x ⇒ LowerHex
+-   X ⇒ UpperHex
+-   p ⇒ Pointer
+-   b ⇒ Binary
+-   e ⇒ LowerExp
+-   E ⇒ UpperExp
+
 
 ## <span class="section-num">10</span> std::mem {#std-mem}
 
@@ -1593,6 +1688,9 @@ std::mem module 提供了各类型的 size/aligment/take/replace 等操作函数
 -   align_of::&lt;T&gt;()/align_of_val(&amp;v) 返回类型 T 或 v 指向的对象的对齐方式；
 -   drop(T): drop 对象 T, 执行 T 实现的 Drop trait 方法；
 -   forget(T): drop 对象 T, 但是不执行它的 Drop trait 方法；
+
+replace/swap/take 可以用来获取或替换 array/vec 中没有使用实现 Copy trait 的单个元素：
+
 -   replace(&amp;mut T1, T2): 用传入的 T2 值替换 &amp;mut T1 对象，返回旧的 T1 值；
 -   swap(&amp;mut T1, &amp;mut T2): 交换 T1 和 T2 的值；
 -   take(&amp;mut T1): 返回 T1 的值，将原来 &amp;mut T1 的值用 T1 的 Default 值填充；
@@ -1603,14 +1701,12 @@ std::mem module 提供了各类型的 size/aligment/take/replace 等操作函数
 use std::mem;
 
 pub const fn align_of<T>() -> usize
-pub fn align_of_val<T>(val: &T) -> usize where T: ?Sized // 返回 val 执行的 T 类型值的内存对齐要求
+pub fn align_of_val<T>(val: &T) -> usize where T: ?Sized // 返回引用的 T 值类型的内存对齐要求
 assert_eq!(4, mem::align_of::<i32>());
-assert_eq!(4, mem::align_of_val(&5i32));
+assert_eq!(4, mem::align_of_val(&5i32)); // 存入 val 的引用
 
-// 回收 T 值， 其实是获得 T 的所有权后丢弃
+// 回收 T 值（其实是获得 T 的所有权后丢弃）
 pub fn drop<T>(_x: T)
-let v = vec![1, 2, 3];
-drop(v); // explicitly drop the vector
 
 // Takes ownership and “forgets” about the value without running its destructor.
 pub const fn forget<T>(t: T)
@@ -1625,41 +1721,29 @@ let mut v: Vec<i32> = vec![1, 2];
 let old_v = mem::replace(&mut v, vec![3, 4, 5]);
 assert_eq!(vec![1, 2], old_v);
 assert_eq!(vec![3, 4, 5], v);
-
 // replace 的场景场景是替换容器中的元素
-use std::mem;
 impl<T> Buffer<T> {
     fn replace_index(&mut self, i: usize, v: T) -> T {
-        mem::replace(&mut self.buf[i], v) // 可以避免从 &mut self 中转移所有权报错
+        mem::replace(&mut self.buf[i], v) // 可以避免从 &mut self 中转移所有权而报错
     }
 }
-let mut buffer = Buffer { buf: vec![0, 1] };
-assert_eq!(buffer.buf[0], 0);
-assert_eq!(buffer.replace_index(0, 2), 0);
-assert_eq!(buffer.buf[0], 2);
 
 // 返回指定类型 T 的大小
 pub const fn size_of<T>() -> usize
-use std::mem;
 // Some primitives
 assert_eq!(4, mem::size_of::<i32>());
 assert_eq!(8, mem::size_of::<f64>());
 assert_eq!(0, mem::size_of::<()>());
-// Some arrays
 assert_eq!(8, mem::size_of::<[i32; 2]>());
 assert_eq!(12, mem::size_of::<[i32; 3]>());
 assert_eq!(0, mem::size_of::<[i32; 0]>());
-// Pointer size equality
 assert_eq!(mem::size_of::<&i32>(), mem::size_of::<*const i32>());
 assert_eq!(mem::size_of::<&i32>(), mem::size_of::<Box<i32>>());
 assert_eq!(mem::size_of::<&i32>(), mem::size_of::<Option<&i32>>());
 assert_eq!(mem::size_of::<Box<i32>>(), mem::size_of::<Option<Box<i32>>>());
 
-//  返回指向的 T 的大小，和 size_of::<T>() 的区别是该方法也适用于 Thas no statically-known size,
-//  e.g., a slice [T] or a trait object, then size_of_val can be used to get the dynamically-known
-//  size.
-pub fn size_of_val<T>(val: &T) -> usize where T: ?Sized,
-  use std::mem;
+//  返回借用指向的 T 的大小，和 size_of::<T>() 的区别是该方法也适用于动态类型大小，如 [T] 和 trait object
+pub fn size_of_val<T>(val: &T) -> usize where T: ?Sized
 assert_eq!(4, mem::size_of_val(&5i32));
 let x: [u8; 13] = [0; 13];
 let y: &[u8] = &x;
@@ -1667,7 +1751,6 @@ assert_eq!(13, mem::size_of_val(y));
 
 // Swaps the values at two mutable locations, without deinitializing either one.
 pub fn swap<T>(x: &mut T, y: &mut T)
-use std::mem;
 let mut x = 5;
 let mut y = 42;
 mem::swap(&mut x, &mut y);
@@ -1676,29 +1759,24 @@ assert_eq!(5, y);
 
 // Replaces dest with the default value of T, returning the previous dest value.
 pub fn take<T>(dest: &mut T) -> T where T: Default,
-use std::mem;
 let mut v: Vec<i32> = vec![1, 2];
 let old_v = mem::take(&mut v);
 assert_eq!(vec![1, 2], old_v);
 assert!(v.is_empty());
 ```
 
-align_of/align_of_val 以及 size_of/size_of_val 都提供了 \_val 版本，主要的使用场景是获得动态类型对应的实际类型的对齐方式或大小： Thas no statically-known size, _/ e.g., a slice [T] or a trait object, then size_of_val can
-be used to get the dynamically-known /_ size.
+align_of/align_of_val 以及 size_of/size_of_val 都提供了 \_val 版本，主要的使用场景是获得 =动态类型=对应的实际类型的对齐方式或大小： 如 [T] 和 trait object。
 
 std::mem::offset_of!() 返回 struct filed 或 enum variant field 的偏移：
 
 ```rust
 #![feature(offset_of_enum, offset_of_nested)]
-
-use std::mem;
 #[repr(C)]
 struct FieldStruct {
     first: u8,
     second: u16,
     third: u8
 }
-
 assert_eq!(mem::offset_of!(FieldStruct, first), 0);
 assert_eq!(mem::offset_of!(FieldStruct, second), 2);
 assert_eq!(mem::offset_of!(FieldStruct, third), 4);
@@ -1707,10 +1785,8 @@ assert_eq!(mem::offset_of!(FieldStruct, third), 4);
 struct NestedA {
     b: NestedB
 }
-
 #[repr(C)]
 struct NestedB(u8);
-
 assert_eq!(mem::offset_of!(NestedA, b.0), 0);
 
 #[repr(u8)]
@@ -1718,19 +1794,19 @@ enum Enum {
     A(u8, u16),
     B { one: u8, two: u16 },
 }
-
 assert_eq!(mem::offset_of!(Enum, A.0), 1);
 assert_eq!(mem::offset_of!(Enum, B.two), 2);
-
 assert_eq!(mem::offset_of!(Option<&u8>, Some.0), 0);
 ```
 
-std::mem::discriminant() 返回唯一确定 enum variant 的 tag 值：
+std::mem::discriminant() 返回 enum variant 的 tag 值，也可以使用 as 运算符来获取：
 
 ```rust
-use std::mem;
-
-enum Foo { A(&'static str), B(i32), C(i32) }
+enum Foo {
+    A(&'static str),
+    B(i32),
+    C(i32)
+}
 assert_eq!(mem::discriminant(&Foo::A("bar")), mem::discriminant(&Foo::A("baz")));
 assert_eq!(mem::discriminant(&Foo::B(1)), mem::discriminant(&Foo::B(2)));
 assert_ne!(mem::discriminant(&Foo::B(3)), mem::discriminant(&Foo::C(3)));
@@ -1747,27 +1823,16 @@ assert_eq!(2, Enum::Baz as isize);
 
 类型大小：
 
-1.  () = 1； bool = 1； char = 4；The types \*const T, &amp;T, Box&lt;T&gt;, Option&lt;&amp;T&gt;, and Option&lt;Box&lt;T&gt;&gt; all have the
-    same size. If T is Sized, all of those types have the same size as `usize`.
+1.  () = 1； bool = 1； char = 4；The types \*const T, &amp;T, Box&lt;T&gt;, Option&lt;&amp;T&gt;, and Option&lt;Box&lt;T&gt;&gt;
+    all have the same size. If T is Sized, all of those types have the same size as `usize`.
 2.  for any type T and length n, [T; n] has a size of `n * size_of::<T>()`.
 3.  对象类型的大小还受 #[repr(C)], repr(align(N)) 和 #[repr(u16)] 等属性的影响。
-4.  Size of Enums: Enums that carry `no data` other than the discriminant have the same size as C enums on the
-    platform they are compiled for.
+4.  Size of Enums: Enums that carry `no data` other than the discriminant have the same size as C
+    enums on the platform they are compiled for.
 5.  Size of Unions: The size of a union is the size of its largest field.
 
-`std::mem::transmute()` 函数：
-
--   transmute 将以各种 Src 类型的 value 解释为 Dst 类型的 value，这里的解释是 `bit 级别` ：将 Src value bits 级别的 copy 为 Dst 的 value，然后 forget Src value（drop 但不调用它的 Drop trait）；
--   Src 和 Dst 类型必须具有相同长度，否则编译错误；
-
-<!--listend-->
-
-```rust
-let a: i64 = 42;
-let a_ptr: *const i64 = &a as *const i64;
-let a_addr: usize = unsafe {std::mem::transmute(a_ptr)}; // 将 a_ptr 解释为 usize 后，可以对指针值执行算术运算
-println!("a: {} ({:p}...0x{:x})", a, a_ptr, a_addr + 7);
-```
+`std::mem::transmute()` 函数：将以各种 Src 类型的 value 解释为 Dst 类型的 value，这里的解释是 `bit 级别` ，Src 和 Dst类型 `必须具有相同的长度` ，否则编译错误：将 Src value bits 级别的 copy 为 Dst 的
+value，然后 forget Src value（drop 但不调用它的 Drop trait）；
 
 transmute 的两个常用场景：
 
@@ -1778,6 +1843,12 @@ transmute 的两个常用场景：
 
 ```rust
 pub const unsafe extern "rust-intrinsic" fn transmute<Src, Dst>(src: Src ) -> Dst
+
+let a: i64 = 42;
+let a_ptr: *const i64 = &a as *const i64;
+// 将 a_ptr 解释为 usize 后，可以对指针值执行算术运算
+let a_addr: usize = unsafe {std::mem::transmute(a_ptr)};
+println!("a: {} ({:p}...0x{:x})", a, a_ptr, a_addr + 7);
 
 // transmute 的两个常用场景：
 //
@@ -1802,14 +1873,14 @@ unsafe fn shorten_invariant_lifetime<'b, 'c>(r: &'b mut R<'static>) -> &'b mut R
 }
 ```
 
-其它使用 transmute 场景，可以更安全地使用其它 APIs 的例子：
+其它使用 transmute 场景，可以使用其它更安全的 APIs 来代替：
 
 ```rust
+// 将 4 个 u8 解释为 u32
 let raw_bytes = [0x78, 0x56, 0x34, 0x12];
 let num = unsafe {
-    std::mem::transmute::<[u8; 4], u32>(raw_bytes) // 将 4 个 u8 解释为 u32
+    std::mem::transmute::<[u8; 4], u32>(raw_bytes)
 };
-
 // use `u32::from_ne_bytes` instead
 let num = u32::from_ne_bytes(raw_bytes);
 // or use `u32::from_le_bytes` or `u32::from_be_bytes` to specify the endianness
@@ -1819,57 +1890,49 @@ let num = u32::from_be_bytes(raw_bytes);
 assert_eq!(num, 0x78563412);
 
 
+// 将指针转为 usize
 let ptr = &0;
 let ptr_num_transmute = unsafe {
-    std::mem::transmute::<&i32, usize>(ptr) // 将指针专为 usize
+    std::mem::transmute::<&i32, usize>(ptr)
 };
-// Use an `as` cast instead
 let ptr_num_cast = ptr as *const i32 as usize; // 使用更安全的 as 转换
 
 
+// 将 *mut T 转换为 &mut T
 let ptr: *mut i32 = &mut 0;
 let ref_transmuted = unsafe {
-    std::mem::transmute::<*mut i32, &mut i32>(ptr) // 将 *mut T 转换为 &mut T
+    std::mem::transmute::<*mut i32, &mut i32>(ptr)
 };
 // Use a reborrow instead
 let ref_casted = unsafe { &mut *ptr };
 
-
+// 将 &mut T 转换为 &mut U:
 let ptr = &mut 0;
 let val_transmuted = unsafe {
-    std::mem::transmute::<&mut i32, &mut u32>(ptr) // &mut T into an &mut U:
+    std::mem::transmute::<&mut i32, &mut u32>(ptr)
 };
-// Now, put together `as` and reborrowing - note the chaining of `as`
-// `as` is not transitive
+// Now, put together `as` and reborrowing - note the chaining of `as` `as` is not transitive
 let val_casts = unsafe { &mut *(ptr as *mut i32 as *mut u32) };
 
-
-// this is not a good way to do this.
-let slice = unsafe { std::mem::transmute::<&str, &[u8]>("Rust") }; // 将 &str 转换为 &[u8]
+// 将 &str 转换为 &[u8]
+let slice = unsafe { std::mem::transmute::<&str, &[u8]>("Rust") };
 assert_eq!(slice, &[82, 117, 115, 116]);
-// You could use `str::as_bytes`
 let slice = "Rust".as_bytes();
 assert_eq!(slice, &[82, 117, 115, 116]);
-// Or, just use a byte string, if you have control over the string literal
 assert_eq!(b"Rust", &[82, 117, 115, 116]);
 ```
 
-std::mem::transmute_copy
+`pub const unsafe fn transmute_copy<Src, Dst>(src: &Src) -> Dst` ： `Interprets src as having type
+&Dst, and then reads src without moving the contained value.`
 
-```text
-pub const unsafe fn transmute_copy<Src, Dst>(src: &Src) -> Dst
-```
+This function will unsafely assume the pointer src is valid for size_of::&lt;Dst&gt; bytes by
+transmuting &amp;Src to &amp;Dst and then reading the &amp;Dst (except that this is done in a way that is
+correct even when &amp;Dst has stricter alignment requirements than &amp;Src). It will also unsafely
+create a copy of the contained value instead of moving out of src.
 
-`Interprets src as having type &Dst, and then reads src without moving the contained value.`
-
-This function will unsafely assume the pointer src is valid for size_of::&lt;Dst&gt; bytes by transmuting &amp;Src to
-&amp;Dst and then reading the &amp;Dst (except that this is done in a way that is correct even when &amp;Dst has stricter
-alignment requirements than &amp;Src). It will also unsafely create a copy of the contained value instead of
-moving out of src.
-
-It is not a compile-time error if Src and Dst have different sizes, but it is highly encouraged to only invoke
-this function where Src and Dst have the same size. This function triggers undefined behavior if Dst is larger
-than Src.
+It is not a compile-time error if Src and Dst have different sizes, but it is highly encouraged to
+only invoke this function where Src and Dst have the same size. This function triggers undefined
+behavior if Dst is larger than Src.
 
 ```rust
 use std::mem;
@@ -1895,9 +1958,8 @@ unsafe {
 assert_eq!(foo_array, [10]);
 ```
 
-`std::mem::zeroed: pub const unsafe fn zeroed<T>() -> T`
-
-Returns the value of type T represented by the all-zero byte-pattern.
+`std::mem::zeroed: pub const unsafe fn zeroed<T>() -> T` ：Returns the value of type T represented
+by the all-zero byte-pattern.
 
 ```rust
 use std::mem;
@@ -1905,23 +1967,38 @@ let x: i32 = unsafe { mem::zeroed() };
 assert_eq!(0, x);
 
 // 错误的用法
-use std::mem;
 let _x: &i32 = unsafe { mem::zeroed() }; // Undefined behavior!
 let _y: fn() = unsafe { mem::zeroed() }; // And again!
 ```
 
-`Struct std::mem::ManuallyDrop<T>` 将 T 对象封装，可以阻止编译器自动调用 T 的解构器，而是在需要时手动
-drop 对象：
+`Struct std::mem::ManuallyDrop<T>` 获得 T 对象所有权，阻止编译器自动调用 T 的 Drop，而是在需要时手动
+Drop 对象：
 
 ```rust
-use std::mem::ManuallyDrop;
-let mut x = ManuallyDrop::new(String::from("Hello World!"));
-x.truncate(5); // You can still safely operate on the value
+let mut x = std::mem::ManuallyDrop::new(String::from("Hello World!"));
+x.truncate(5);
 assert_eq!(*x, "Hello");
 // But `Drop` will not be run here
 ```
 
-Union std::mem::MaybeUninit：A wrapper type to construct uninitialized instances of T.
+
+## <span class="section-num">11</span> Union std::mem::MaybeUninit {#union-std-mem-maybeuninit}
+
+一般情况下，Rust 编译器在创建对象时为其分配内存后会自动进行初始化，然后才能借用对象，否则就是
+undefined behavior。比如在创建一个 bool 类型时，必须设置内存数据为 true 或 false，如果未初始化则UB。对于未初始化的内存区域，每次 read 的结果可能不一致，所以是 UB；
+
+```rust
+let x: &i32 = unsafe { mem::zeroed() }; // undefined behavior! ⚠
+// The equivalent code with `MaybeUninit<&i32>`:
+let x: &i32 = unsafe { MaybeUninit::zeroed().assume_init() }; // undefined behavior! ⚠
+
+let b: bool = unsafe { mem::uninitialized() }; // undefined behavior! ⚠
+// The equivalent code with `MaybeUninit<bool>`:
+let b: bool = unsafe { MaybeUninit::uninit().assume_init() }; // undefined behavior! ⚠
+```
+
+std::mem::MaybeUninit：使用 unsafe 代码来使用未初始化内存区域。编译器不会对 MaybeUninit&lt;T&gt; 进行
+runtime tracking 和 safety check；
 
 ```rust
 pub union MaybeUninit<T> {
@@ -1929,91 +2006,60 @@ pub union MaybeUninit<T> {
 }
 ```
 
-C 很常见的情况是, 传递一个指针, 然后让函数内的逻辑来修改指针指向的内容. Rust 提供了 `std::mem::MaybeUninit<T>`
-类型, 他告诉编译器为 T 分配足够的内存, 但是不做任何处理, 直到后续明确告诉他可以安全地操作这一块内存区域.
-MaybeUninit&lt;T&gt; 拥有这一块内存区域, 这样编译器就不会做一些优化和操作,从而避免非预期的行为.
+`MaybeUninit<T>` 为 T 分配未初始化的内存，拥有该内存区域, 但不做任何优化和操作：
 
--   MaybeUninit.as_mut_ptr() 返回这个内存区域的 \*mut T 指针, 可以将他传递给 FFI 函数使用;
--   然后调用 MaybeUninit.assume_init() 来将内存区域标记为已初始化;
-
-MaybeUninit&lt;T&gt; 可以在 unsafe code 中使用 uninitialized data，他用于告诉编译器这一部分数据没有初始化：
-
--   编译器根据 T 来分配合适大小的未初始化内存区域，后续一般是先使用 as_ptr()/as_mut_ptr() 转换为 raw pointer，然后使用他的 read/write() 来对未初始化内存区域进行读写。
--   编译器不会对 MaybeUninit&lt;T&gt; 进行 runtime tracking 和 safety check；
+-   先使用 as_ptr()/as_mut_ptr() 转换为 raw pointer，将它传递给 FFI 函数使用；
+    -   C 很常见的情况是：给函数传递一个内存指针, 让函数内的逻辑来修改指针指向的内容。
+-   或者使用 MaybeUninit::write() 或者 raw pointer 的 read/write() 来对未初始化内存区域进行读写；
+-   然后调用 `MaybeUninit.assume_init()` 来将内存区域标记为已初始化，返回类型 T 的值；
 
 <!--listend-->
 
 ```rust
-use std::mem::MaybeUninit;
+let mut x = MaybeUninit::<&i32>::uninit(); // 为 &i32 分配内存，但是不初始化
+x.write(&0); // 使用 MaybeUninit 类型的 write() 方法写入数据
+let x = unsafe { x.assume_init() };  // 提取数据，只有当对 x 做过初始化处理后才有意义
 
-// Create an explicitly uninitialized reference. The compiler knows that data inside a
-// `MaybeUninit<T>` may be invalid, and hence this is not UB:
-let mut x = MaybeUninit::<&i32>::uninit(); //
-// Set it to a valid value.
-x.write(&0);
-// Extract the initialized data -- this is only allowed *after* properly initializing `x`!
-let x = unsafe { x.assume_init() };
-```
+// undefined behavior 的情况：x 未被初始化，assume_init() 返回的 x 值是 UB 的。
+let x = MaybeUninit::<Vec<u32>>::uninit();
+let x_init = unsafe { x.assume_init() };
 
-out-pointers：use MaybeUninit&lt;T&gt; to implement “out-pointers”: instead of returning data from a
-function, pass it a pointer to some (uninitialized) memory to put the result into.
 
-```rust
-use std::mem::MaybeUninit;
-
-unsafe fn make_vec(out: *mut Vec<i32>) { // 传入指针，然后使用 write 来填充内存区域的值
+// 传入未初始化内存区域的 raw pointer，然后使用它的 write() 方法来填充内存区域的值
+unsafe fn make_vec(out: *mut Vec<i32>) {
     // `write` does not drop the old contents, which is important.
     out.write(vec![1, 2, 3]);
 }
-
-let mut v = MaybeUninit::uninit(); // 未指定类型，由编译器自动推导
+// 未指定类型，由编译器自动推导。
+let mut v = MaybeUninit::uninit();
 unsafe { make_vec(v.as_mut_ptr()); }
-// Now we know `v` is initialized! This also makes sure the vector gets
-// properly dropped.
 let v = unsafe { v.assume_init() };
 assert_eq!(&v, &[1, 2, 3]);
-```
 
-Initializing an array element-by-element： MaybeUninit&lt;T&gt; can be used to initialize a large array
-element-by-element:
 
-```rust
-use std::mem::{self, MaybeUninit};
-
+// 使用 MaybeUninit 来初始化 array elem：
 let data = {
-    // Create an uninitialized array of `MaybeUninit`. The `assume_init` is safe because the type we
-    // are claiming to have initialized here is a bunch of `MaybeUninit`s, which do not require
+    // Create an uninitialized array of `MaybeUninit`. The `assume_init` is safe because the type
+    // we are claiming to have initialized here is a bunch of `MaybeUninit`s, which do not require
     // initialization.
     let mut data: [MaybeUninit<Vec<u32>>; 1000] = unsafe {
         MaybeUninit::uninit().assume_init()
     };
-
-    // Dropping a `MaybeUninit` does nothing, so if there is a panic during this loop, we have a
-    // memory leak, but there is no memory safety issue.
     for elem in &mut data[..] {
         elem.write(vec![42]);
     }
-
     // Everything is initialized. Transmute the array to the initialized type.
     unsafe { mem::transmute::<_, [Vec<u32>; 1000]>(data) }
 };
-
 assert_eq!(&data[0], &[42]);
-```
 
-Initializing a struct field-by-field： You can use MaybeUninit&lt;T&gt;, and the std::ptr::addr_of_mut macro, to
-initialize structs field by field:
 
-```rust
-use std::mem::MaybeUninit;
-use std::ptr::addr_of_mut;
-
+// 使用 MaybeUninit 来初始化 struct field
 #[derive(Debug, PartialEq)]
 pub struct Foo {
     name: String,
     list: Vec<u8>,
 }
-
 let foo = {
     let mut uninit: MaybeUninit<Foo> = MaybeUninit::uninit();
     let ptr = uninit.as_mut_ptr();
@@ -2021,40 +2067,45 @@ let foo = {
     // Initializing the `name` field
     // Using `write` instead of assignment via `=` to not call `drop` on the
     // old, uninitialized value.
-    unsafe { addr_of_mut!((*ptr).name).write("Bob".to_string()); }
+    unsafe { std::ptr::addr_of_mut!((*ptr).name).write("Bob".to_string()); }
 
     // Initializing the `list` field
     // If there is a panic here, then the `String` in the `name` field leaks.
-    unsafe { addr_of_mut!((*ptr).list).write(vec![0, 1, 2]); }
-
-    // All the fields are initialized, so we call `assume_init` to get an initialized Foo.
+    unsafe { std::ptr::addr_of_mut!((*ptr).list).write(vec![0, 1, 2]); }
     unsafe { uninit.assume_init() }
 };
-
-assert_eq!(
-    foo,
-    Foo {
-        name: "Bob".to_string(),
-        list: vec![0, 1, 2]
-    }
-);
+assert_eq!( foo, Foo { name: "Bob".to_string(), list: vec![0, 1, 2]});
 ```
 
-MaybeUninit&lt;T&gt; is guaranteed to have the same size, alignment, and ABI as T:
+MaybeUninit&lt;T&gt;: 保证和 T 同样的大小、对齐和 ABI：
 
 ```rust
 use std::mem::{MaybeUninit, size_of, align_of};
+
 assert_eq!(size_of::<MaybeUninit<u64>>(), size_of::<u64>());
 assert_eq!(align_of::<MaybeUninit<u64>>(), align_of::<u64>());
+assert_eq!(size_of::<Option<bool>>(), 1);
+assert_eq!(size_of::<Option<MaybeUninit<bool>>>(), 2);
 ```
 
 MaybeUninit&lt;T&gt; 实现的方法：
 
+-   new(T)：使用传入的 T 值来初始化内存；
+-   uninit(): 为 T 类型分配一块未初始化内存；
+-   uninit_array&lt;const N: usize&gt;()：返回一个 N 个元素的未初始化数组内存，再将它转换为 slice 来使用；
+-   write(value): 使用 value 设置 MaybeUninit&lt;T&gt; 内存数据，不 Drop 内存地址的数据（所有多次重复调用时可能导致内存泄露），返回 &amp;mut T;
+-   as_ptr/as_mut_ptr(): 转换为 raw pointer，可以使用它的 read/write 等方法来读写内存；
+-   assume_init(self) -&gt; T：返回内存保存的 T 类型值（复用内存区域）；
+-   assume_init_read(&amp;self) -&gt; T：从内存区域读取各 bitwise copy（不管 T 类型是否实现 Copy）来构建一个 T 类型值（内部实现调用的是 std::ptr::read() 函数实现的 `浅拷贝` ，共享同一个内存区域 ）。由于多次调用 assume_init_read() 返回的 T 共享同一个内存区域，当各 T 被Drop 时会导致 `多次内存释放的错误`
+    ，所以建议使用 assume_init() 来返回 T，从而避免多次释放。
+
+<!--listend-->
+
 ```rust
 impl<T> MaybeUninit<T>
 
-// Creates a new MaybeUninit<T> initialized with the given value. It is safe to call assume_init on
-// the return value of this function.
+// Creates a new MaybeUninit<T> initialized with the given value. It is safe to call assume_init
+// on the return value of this function.
 
 // Note that dropping a MaybeUninit<T> will never call T’s drop code. It is your responsibility to
 // make sure T gets dropped if it got initialized.
@@ -2087,15 +2138,12 @@ let data = read(&mut buf);
 // Creates a new MaybeUninit<T> in an uninitialized state, with the memory being filled with 0
 // bytes.
 pub const fn zeroed() -> MaybeUninit<T>
-use std::mem::MaybeUninit;
 let x = MaybeUninit::<(u8, bool)>::zeroed();
 let x = unsafe { x.assume_init() };
 assert_eq!(x, (0, false));
 
 
-
 pub fn write(&mut self, val: T) -> &mut T
-use std::mem::MaybeUninit;
 let mut x = MaybeUninit::<Vec<u8>>::uninit();
 {
     let hello = x.write((&b"Hello, world!").to_vec());
@@ -2111,6 +2159,7 @@ assert_eq!(b"hello", s.as_slice());
 // Gets a pointer to the contained value. Reading from this pointer or turning it into a reference
 // is undefined behavior unless the MaybeUninit<T> is initialized.
 pub const fn as_ptr(&self) -> *const T
+pub fn as_mut_ptr(&mut self) -> *mut T
 use std::mem::MaybeUninit;
 let mut x = MaybeUninit::<Vec<u32>>::uninit();
 x.write(vec![0, 1, 2]);
@@ -2118,31 +2167,27 @@ x.write(vec![0, 1, 2]);
 let x_vec = unsafe { &*x.as_ptr() };
 assert_eq!(x_vec.len(), 3);
 
-
-pub fn as_mut_ptr(&mut self) -> *mut T
-
-
-// Extracts the value from the MaybeUninit<T> container. This is a great way to ensure that the data will get dropped, because the resulting T is subject to the usual drop handling.
-pub const unsafe fn assume_init(self) -> T
-use std::mem::MaybeUninit;
+// Extracts the value from the MaybeUninit<T> container. This is a great way to ensure that the
+// data will get dropped, because the resulting T is subject to the usual drop handling.
+pub const unsafe fn assume_init(self) -> T // 转移所有权，返回 T
+pub const unsafe fn assume_init_read(&self) -> T
+pub unsafe fn assume_init_drop(&mut self) // in-place Drop 包含的值
+pub const unsafe fn assume_init_ref(&self) -> &T // 返回 &T，不转移所有权
+pub unsafe fn assume_init_mut(&mut self) -> &mut T // 返回 &mut T
+pub unsafe fn array_assume_init<const N: usize>( array: [MaybeUninit<T>; N] ) -> [T; N] // 返回 array
+pub unsafe fn slice_assume_init_ref(slice: &[MaybeUninit<T>]) -> &[T] // 返回 slice: &[T]
+pub unsafe fn slice_assume_init_mut(slice: &mut [MaybeUninit<T>]) -> &mut [T] // 返回 mut slice: &mut [T]
 let mut x = MaybeUninit::<bool>::uninit();
 x.write(true);
 let x_init = unsafe { x.assume_init() };
 assert_eq!(x_init, true);
 
-pub const unsafe fn assume_init_read(&self) -> T
-pub unsafe fn assume_init_drop(&mut self)
-pub const unsafe fn assume_init_ref(&self) -> &T
-pub unsafe fn assume_init_mut(&mut self) -> &mut T
 
-pub unsafe fn array_assume_init<const N: usize>( array: [MaybeUninit<T>; N] ) -> [T; N]
-pub unsafe fn slice_assume_init_ref(slice: &[MaybeUninit<T>]) -> &[T]
-pub unsafe fn slice_assume_init_mut(slice: &mut [MaybeUninit<T>]) -> &mut [T]
 pub fn slice_as_ptr(this: &[MaybeUninit<T>]) -> *const T
 pub fn slice_as_mut_ptr(this: &mut [MaybeUninit<T>]) -> *mut T
 
-pub fn write_slice<'a>(this: &'a mut [MaybeUninit<T>], src: &[T]) -> &'a mut [T] where T: Copy,
-pub fn write_slice_cloned<'a>( this: &'a mut [MaybeUninit<T>], src: &[T] ) -> &'a mut [T] where T: Clone,
+pub fn write_slice<'a>(this: &'a mut [MaybeUninit<T>], src: &[T]) -> &'a mut [T] where T: Copy
+pub fn write_slice_cloned<'a>( this: &'a mut [MaybeUninit<T>], src: &[T] ) -> &'a mut [T] where T: Clone
 
 pub fn as_bytes(&self) -> &[MaybeUninit<u8>]
 pub fn as_bytes_mut(&mut self) -> &mut [MaybeUninit<u8>]
@@ -2151,23 +2196,18 @@ pub fn slice_as_bytes_mut(this: &mut [MaybeUninit<T>]) -> &mut [MaybeUninit<u8>]
 ```
 
 
-## <span class="section-num">11</span> std::ptr {#std-ptr}
+## <span class="section-num">12</span> std::ptr {#std-ptr}
 
 <https://doc.rust-lang.org/std/ptr/index.html>
 
-本 module 提供了一些操作 raw pointer 的 module 级别函数。
+本 module 提供了一些操作 raw pointer 的 module 级别函数。raw pointer 类型 \*const T 或 \*mut T 本身也提供一些方法，也可以用来操作 raw pointer。
 
--   raw pointer 类型 \*const T 或 \*mut T 本身也提供一些方法，可以用来操作 raw pointer；
-
-这个 module 中通过 raw pointer 如 \*mut T 或 \*const T 来存取一个值，这个值的大小如果没有特殊说明，对应的是
-std::mem::size_of::&lt;T&gt;() bytes。
+这个 module 中通过 raw pointer 如 \*mut T 或 \*const T 来存取一个值，这个值的大小如果没有特殊说明，对应的是std::mem::size_of::&lt;T&gt;() bytes。
 
 使用 std::ptr::addr_of!() 和 std::ptr::addr_of_mut!() 来返回参数 express 的 raw pointer：
 
--   packed struct：默认情况下，struct 对象的 field 会通过 pading 来对齐。通过添加 packed attr，可以关闭 struct
-    field padding 对齐机制，这样 struct 的某个 field 可能是未对齐的。
--   对于未对齐的 filed，是不能创建引用的，但是通过 addr_of!() 和 addr_of_mut!() 宏是可以创建 `未对齐的 raw
-        pointer` 。
+-   packed struct：默认情况下，struct 对象的 field 会通过 pading 来对齐。通过添加 packed attr，可以关闭 struct field padding 对齐机制，这样 struct 的某个 field 可能是未对齐的。
+-   对于未对齐的 filed，是不能创建引用的，但是通过 addr_of!() 和 addr_of_mut!() 宏是可以创建 `未对齐的 raw pointer` 。
 
 <!--listend-->
 
@@ -2187,11 +2227,10 @@ Rust 的 raw pointer 和引用都是指针，包括两部分：
 1.  data pointer：指向 value 内存地址的指针；
 2.  可选的 metadata 指针；
 
-对于编译时可知的固定大小类型（实现了 Sized trait）或 extern 类型的指针，是 `thin 指针` ，它的 metadata 是
-zero-sized 的 () 类型，所以 thin 指针是只占用一个机器字 usize 的变量。
+对于编译时可知的固定大小类型（实现了 Sized trait）或 extern 类型的指针，是 `thin 指针` ，它的
+metadata 是zero-sized 的 () 类型，所以 thin 指针是只占用一个机器字 usize 的变量。
 
-对于动态大小类型（DST），它的指针是 `fat 指针` ，它的 metadata 是非空的。fat 指针占用两个 usize 大小（data
-pointer + metadata pointer），如 \*const [u8] 或 \*mut dyn std::io::Write：
+对于动态大小类型（DST），它的指针是 `fat 指针` ，它的 metadata 是非空的。fat 指针占用两个 usize 大小（data pointer + metadata pointer），如 \*const [u8] 或 \*mut dyn std::io::Write：
 
 -   For structs whose last field is a DST, metadata is `the metadata for the last field`
 -   For the str type, metadata is `the length in bytes` as usize
@@ -2229,17 +2268,17 @@ pub fn to_raw_parts(self) -> (*const (), <T as Pointee>::Metadata)
 pub fn from_raw_parts<T>(data_pointer: *const (), metadata: <T as Pointee>::Metadata) -> *const T where T: ?Sized,
 ```
 
-Struct std::ptr::DynMetadata 是 trait object 的 metadata，It is a pointer to a `vtable (virtual call table)`
-that represents all the necessary information to `manipulate the concrete type` stored inside a trait
-object. The vtable notably it contains:
+`Struct std::ptr::DynMetadata` 是 trait object 的 metadata，It is a pointer to a `vtable (virtual
+call table)` that represents all the necessary information to `manipulate the concrete type` stored
+inside a trait object. The vtable notably it contains:
 
 -   type size
 -   type alignment
 -   a pointer to the `type’s drop_in_place impl` (may be a no-op for plain-old-data)
 -   pointers to `all the methods` for the type’s implementation of the trait
 
-Rust 的 type coercion 为引用和 raw pointer 提供了隐式自动转换(也可以使用 as 运算符来对 type coercion 显式转换):
-<https://doc.rust-lang.org/stable/reference/type-coercions.html>
+Rust 的 type coercion 为引用和 raw pointer 提供了隐式自动转换(也可以使用 as 运算符来对 type
+coercion 显式转换): <https://doc.rust-lang.org/stable/reference/type-coercions.html>
 
 1.  &amp;mut T to &amp;T  &lt;- 可变引用可以转换为不可变引用
 2.  \*mut T to \*const T &lt;-- 可变 raw pointer 可以转换为不可变 raw pointer
@@ -2298,55 +2337,47 @@ std::ptr module 提供的函数列表（大部分函数也是 \*const T 或 \*mu
 -   invalid_mutExperimental    Creates an invalid mutable pointer with the given address.
 -   metadataExperimental    Extract the metadata component of a pointer.
 
-std::ptr::write
+read()/write() 函数：
 
-```text
-pub unsafe fn write<T>(dst: *mut T, src: T)
-```
+1.  std::ptr::read： `pub const unsafe fn read<T>(src: *const T) -> T` ，创建 T 的一个 bitwise copy
+    值（ `浅拷贝` ，底层共享同一个内存区域 ），而不管 T 是否实现了 Copy，不影响和移动 src 内存中的内容。
+2.  std::ptr::write： `pub unsafe fn write<T>(dst: *mut T, src: T)` ，write() can be used to
+    overwrite data without causing it to be dropped. 不会 Drop dst 和 src 中的内容。
 
-Overwrites a memory location with the given value `without reading or dropping the old value.` write `does not
-drop the contents of dst`. This is safe, but it could leak allocations or resources, so care should be taken
-not to overwrite an object that should be dropped. Additionally, `it does not drop src`. Semantically, src is
-`moved into` the location pointed to by dst. This is appropriate for initializing uninitialized memory, or
-overwriting memory that has previously been read from.
+<!--listend-->
 
 ```rust
-let mut x = 0;
-let y = &mut x as *mut i32;
-let z = 12;
+let x = 12;
+let y = &x as *const i32;
 unsafe {
-    std::ptr::write(y, z);
     assert_eq!(std::ptr::read(y), 12);
 }
 
-// Manually implement mem::swap
+
 use std::ptr;
 fn swap<T>(a: &mut T, b: &mut T) {
     unsafe {
-        // let tmp = *a; // 如果 a T 没有实现 Copy trait，则会报错，不能从借用中 move 对象！
-
         // Create a bitwise copy of the value at `a` in `tmp`.
-        let tmp = ptr::read(a); // 从 a 浅复制生成一个 tmp 对象，a 并没有被 move！
+        let tmp = ptr::read(a);
 
-        // Exiting at this point (either by explicitly returning or by calling a function which panics) would
-        // cause the value in `tmp` to be dropped while the same value is still referenced by `a`. This could
-        // trigger undefined behavior if `T` is not `Copy`.
+        // Exiting at this point (either by explicitly returning or by calling a function which
+        // panics) would cause the value in `tmp` to be dropped while the same value is still
+        // referenced by `a`. This could trigger undefined behavior if `T` is not `Copy`.
 
-        // Create a bitwise copy of the value at `b` in `a`.  This is safe because mutable references cannot
-        // alias.
+        // Create a bitwise copy of the value at `b` in `a`.  This is safe because mutable
+        // references cannot alias.
         ptr::copy_nonoverlapping(b, a, 1);
 
-        // As above, exiting here could trigger undefined behavior because the same value is referenced by `a`
-        // and `b`.
+        // As above, exiting here could trigger undefined behavior because the same value is
+        // referenced by `a` and `b`.
 
         // Move `tmp` into `b`.
         ptr::write(b, tmp);
 
-        // `tmp` has been moved (`write` takes ownership of its second argument), so nothing is dropped
-        // implicitly here.
+        // `tmp` has been moved (`write` takes ownership of its second argument), so nothing is
+        // dropped implicitly here.
     }
 }
-
 let mut foo = "foo".to_owned();
 let mut bar = "bar".to_owned();
 swap(&mut foo, &mut bar);
@@ -2354,8 +2385,38 @@ assert_eq!(foo, "bar");
 assert_eq!(bar, "foo");
 ```
 
+\*src = value; 会 Drop src 处的值，而 std::ptr::write() 可以在重写值的同时不 Drop 原来的值。
 
-## <span class="section-num">12</span> std::cell {#std-cell}
+```rust
+use std::ptr;
+
+let mut s = String::from("foo");
+unsafe {
+    // s2 和 s 共享相同的内存区域
+    let mut s2: String = ptr::read(&s);
+    assert_eq!(s2, "foo");
+
+    // 向 s2 赋值时，会 Drop 对应内存区域的原始值，所以 s 不能再使用（因其内存已经被释放）
+    s2 = String::default();
+    assert_eq!(s2, "");
+
+    // Assigning to `s` would cause the old value to be dropped again, resulting in undefined behavior.
+    // s = String::from("bar"); // ERROR
+
+    // ptr::write() 覆盖 s 中的值但不 Drop 它，所以 OK。
+    ptr::write(&mut s, String::from("bar"));
+}
+assert_eq!(s, "bar");
+```
+
+Overwrites a memory location with the given value `without reading or dropping the old value.` write
+`does not drop the contents of dst`. This is safe, but it could leak allocations or resources, so
+care should be taken not to overwrite an object that should be dropped. Additionally, `it does not
+drop src`. Semantically, src is `moved into` the location pointed to by dst. This is appropriate for
+initializing uninitialized memory, or overwriting memory that has previously been read from.
+
+
+## <span class="section-num">13</span> std::cell {#std-cell}
 
 std::cell module 提供了多种的可共享的内部可变性类型。
 
@@ -2370,7 +2431,7 @@ std::cell module 提供了多种的可共享的内部可变性类型。
 这些 Cell 对象可以通过共享引用 &amp;T 来进行修改。
 
 
-## <span class="section-num">13</span> std::any {#std-any}
+## <span class="section-num">14</span> std::any {#std-any}
 
 两个函数:
 
@@ -2390,16 +2451,15 @@ assert!(type_name_of_val(&s).contains("str"));
 assert!(type_name_of_val(&x).contains("i32"));
 assert!(type_name_of_val(&y).contains("f32"));
 
-// std::any::type_name_of_val() 返回传入的引用值的类型
-// 参数类型是 &val, 返回 val 的类型。如果传入的是引用类型值 val，则返回的是 *val 的类型。
+// std::any::type_name_of_val() 返回传入的引用值的类型，参数类型是 &val, 返回 val 的类型。如果传入
+// 的是引用类型值 val，则返回的是 *val 的类型。
 println!("type name: {}", std::any::type_name_of_val(&val)); // type name: &dyn core::any::Any
 ```
 
 std::any::Any trait：一般将借用转换为 &amp;dyn Any 或对象转换为 Box&lt;dyn Any&gt;，然后可以使用
 downcast&lt;T&gt;() 方法来进行类型判断和处理。
 
-Rust 为绝大部分类型实现 Any，所以对象借用可以转换为 &amp;dyn Any，对象自身可以转换为 Box&lt;dyn
-Any&gt;.
+Rust 为绝大部分类型实现 Any，所以对象借用可以转换为 &amp;dyn Any，对象自身可以转换为 Box&lt;dyn Any&gt;.
 
 -   但是对于引用类型，如果不是 `'static` 类型则没有实现 Any trait。
 
@@ -2411,8 +2471,7 @@ pub trait Any: 'static {
 }
 
 use std::any::{Any, TypeId};
-
-fn is_string(s: &dyn Any) -> bool { // 传入的是 'static 引用，他们都自动实现了 Any trait
+fn is_string(s: &dyn Any) -> bool { // 传入的是 'static 引用，自动实现了 Any trait
     TypeId::of::<String>() == s.type_id()
 }
 assert_eq!(is_string(&0), false);
@@ -2439,13 +2498,10 @@ fn modify_if_u32(s: &mut dyn Any) {
         *num = 42;
     }
 }
-
 let mut x = 10u32;
 let mut s = "starlord".to_string();
-
 modify_if_u32(&mut x);
 modify_if_u32(&mut s);
-
 assert_eq!(x, 42);
 assert_eq!(&s, "starlord");
 ```
@@ -2485,7 +2541,7 @@ unsafe {
 ```
 
 
-## <span class="section-num">14</span> std::process {#std-process}
+## <span class="section-num">15</span> std::process {#std-process}
 
 std::process module 提供的函数:
 
@@ -2804,7 +2860,7 @@ assert!(output.stdout.is_empty());
 ```
 
 
-## <span class="section-num">15</span> std::io {#std-io}
+## <span class="section-num">16</span> std::io {#std-io}
 
 std::io module 的读写返回通用错误 std::io::Result&lt;T&gt; 它是 std::io::Result&lt;T,
 std::io::Error&gt; 的别名.
@@ -2913,7 +2969,7 @@ Type Aliases
 -   RawOsErrorExperimental	The type of raw OS error codes returned by Error::raw_os_error.
 
 
-### <span class="section-num">15.1</span> Read {#read}
+### <span class="section-num">16.1</span> Read {#read}
 
 必须实现的方法：最多读取 buf.len() 的数据，所以传入的 buf 类型是 slice，而非动态大小的
 Vec/String
@@ -3006,7 +3062,7 @@ fn main() -> io::Result<()> {
 ```
 
 
-### <span class="section-num">15.2</span> BufRead {#bufread}
+### <span class="section-num">16.2</span> BufRead {#bufread}
 
 BufRead  是内部包含一个 buffer 的 Reader，它是 Read 的子类型，它提供了几个好用的方法：
 
@@ -3048,7 +3104,7 @@ impl<T: BufRead, U: BufRead> BufRead for Chain<T, U>
 ```
 
 
-### <span class="section-num">15.3</span> Write {#write}
+### <span class="section-num">16.3</span> Write {#write}
 
 Write 是面向 byte 的输出：
 
@@ -3149,7 +3205,7 @@ fn main() -> std::io::Result<()> {
 ```
 
 
-### <span class="section-num">15.4</span> Cursor {#cursor}
+### <span class="section-num">16.4</span> Cursor {#cursor}
 
 ```text
 pub struct Cursor<T> { /* private fields */ }
@@ -3219,7 +3275,7 @@ fn test_writes_bytes() {
 ```
 
 
-### <span class="section-num">15.5</span> Empty {#empty}
+### <span class="section-num">16.5</span> Empty {#empty}
 
 使用 std::io:empty() 函数返回 Empty 对象。Empty 类型实现了 BufRead/Read/Write/Seek trait：
 
@@ -3241,7 +3297,7 @@ assert!(buffer.is_empty());
 ```
 
 
-### <span class="section-num">15.6</span> Repeat {#repeat}
+### <span class="section-num">16.6</span> Repeat {#repeat}
 
 调用 std::io::repeat(byte: u8) 函数产生一个 Repeat 对象， 它实现了 Read trait，一直返回该byte：
 
@@ -3254,7 +3310,7 @@ assert_eq!(buffer, [0b101, 0b101, 0b101]);
 ```
 
 
-### <span class="section-num">15.7</span> Stdin/StdinLock/Stdout/StdoutLock/Stderr {#stdin-stdinlock-stdout-stdoutlock-stderr}
+### <span class="section-num">16.7</span> Stdin/StdinLock/Stdout/StdoutLock/Stderr {#stdin-stdinlock-stdout-stdoutlock-stderr}
 
 std::io::stdin()/stdout()/stderr() 分别返回上面三种类型：
 
@@ -3367,7 +3423,7 @@ assert_eq!(num_bytes, 5);
 ```
 
 
-## <span class="section-num">16</span> std::env {#std-env}
+## <span class="section-num">17</span> std::env {#std-env}
 
 std::env module 提供了一些管理进程参数、环境变量、工作目录和临时目录的函数：
 
@@ -3472,7 +3528,7 @@ match env::var(key) {
 ```
 
 
-## <span class="section-num">17</span> std::path {#std-path}
+## <span class="section-num">18</span> std::path {#std-path}
 
 `Cross-platform path manipulation.`
 
@@ -3607,7 +3663,7 @@ PathBuf 的方法：
 PathBuf 实现了 Deref&lt;Target=Path&gt;，所以 PathBuf 可以使用 Path 的所有方法，并且 &amp;PathBuf 可以当作 &amp;Path 使用。
 
 
-## <span class="section-num">18</span> std::fs {#std-fs}
+## <span class="section-num">19</span> std::fs {#std-fs}
 
 Path 是 unsized 对象，一般需要使用 &amp;Path。PathBuf 是 &amp;Path 的 ownerd 对象，类似于 String
 是 &amp;str 的 owner 对象。类似的情况还有：OsString -》&amp;OsStr，CString -》CStr。
@@ -3827,7 +3883,7 @@ fn main() {
 ```
 
 
-## <span class="section-num">19</span> std::time {#std-time}
+## <span class="section-num">20</span> std::time {#std-time}
 
 主要提供了如下类型:
 
@@ -3835,10 +3891,10 @@ Duration
 : 代表时间间隔;
 
 Instant
-: 代表某一时刻, 可用于计算执行耗时;
+: 代表某一时刻, 可用于计算执行耗时;（一般用于记录进程时间）
 
 SystemTime
-: 代表某一个时刻, 但和 Instant 不同的是，他不能确保是单调递增的。
+: 代表某一个时刻, 和 Instant 不同的是，它不能确保是单调递增的（一般用于保存文件时间）。
 
 <!--listend-->
 
@@ -3851,7 +3907,6 @@ let ten_seconds = Duration::from_secs(10);
 let seven_nanos = Duration::from_nanos(7);
 let total = ten_seconds + seven_nanos;
 assert_eq!(total, Duration::new(10, 7));
-
 
 let now = Instant::now();
 slow_function();
@@ -3965,14 +4020,14 @@ pub fn checked_sub(&self, duration: Duration) -> Option<Instant>
 ```
 
 
-## <span class="section-num">20</span> std::thread/sync {#std-thread-sync}
+## <span class="section-num">21</span> std::thread/sync {#std-thread-sync}
 
 并发编程（concurrent programming）与并行编程（parallel programming）这两种概念随着计算机设备的多核心化而变得越来越重要。前者允许程序中的不同部分相互独立地运行，而后者则允许程序中的不同部分同时执行。
 
 由于绿色线程的 M:N 模型需要一个较大的运行时来管理线程，所以 Rust 标准库只提供了 1:1 线程模型的实现。
 
-Rust thread 使用 thread::spawn() 来运行一个 thread，它的参数是一个无输入/输出的函数，一般通过 FnOnce
-closure 来实现 move ownership 所需的外围环境中的对象。
+Rust thread 使用 thread::spawn() 来运行一个 thread，它的参数是一个无输入/输出的函数，一般通过
+FnOnce closure 来实现 move ownership 所需的外围环境中的对象。
 
 ```rust
 use std::thread;
@@ -4019,7 +4074,8 @@ use std::thread;
 fn main() {
     let v = vec![1, 2, 3];
 
-    let handle = thread::spawn(move || { // move 指示 closure 中捕获的外部对象都是 ownership 接管而非引用的方式
+    let handle = thread::spawn(move || { // move 指示 closure 中捕获的外部对象都是 ownership 接管
+                                         // 而非引用的方式
         println!("Here's a vector: {:?}", v);
     });
 
@@ -4052,7 +4108,8 @@ use std::thread;
 fn main() {
     let v = vec![1, 2, 3];
 
-    let handle = thread::spawn(move || { // move 指示 closure 中捕获的外部对象都是 ownership 接管而非引用的方式
+    let handle = thread::spawn(move || { // move 指示 closure 中捕获的外部对象都是 ownership 接管
+                                         // 而非引用的方式
         println!("Here's a vector: {:?}", v);
     });
 
@@ -4101,7 +4158,7 @@ async 通过创建大量异步 task，然后使用一个 thread pool 来执行�
 2.  executor 可以在 task 阻塞时调度其它 task 到 thread 运行，从而执行效率和并发高；
 
 
-### <span class="section-num">20.1</span> mpsc {#mpsc}
+### <span class="section-num">21.1</span> mpsc {#mpsc}
 
 let (tx, rx) = mpsc::channel();
 
@@ -4150,7 +4207,7 @@ for received in rx { // 所有权转移给接收者。
 ```
 
 
-### <span class="section-num">20.2</span> mutex {#mutex}
+### <span class="section-num">21.2</span> mutex {#mutex}
 
 Mutex 可以作为全局 static 对象，用 Arc 包裹后可以在多线程环境中使用。
 
@@ -4186,7 +4243,7 @@ fn main() {
 ```
 
 
-### <span class="section-num">20.3</span> condvar {#condvar}
+### <span class="section-num">21.3</span> condvar {#condvar}
 
 Condvar 需要和 Mutex 一块使用.
 
@@ -4214,7 +4271,7 @@ while !*started { // MutxtGuard 实现了 Deref, 所以 *started 返回内部的
 ```
 
 
-### <span class="section-num">20.4</span> atomic {#atomic}
+### <span class="section-num">21.4</span> atomic {#atomic}
 
 各种 atomic 类型如 AtomicBool, AtomicIsize, AtomicUsize, AtomicI8, AtomicU16 支持跨线程的原子更新,
 主要实现无锁并发:
@@ -4304,7 +4361,7 @@ pub enum Ordering {
 -   SeqCst: 最严格的模式;
 
 
-### <span class="section-num">20.5</span> thread {#thread}
+### <span class="section-num">21.5</span> thread {#thread}
 
 1.  闭包一般使用 move 语法，除非没有捕获任何外围对象;
 2.  闭包的返回值可以通过 JoinHandler.join() 来获取, JoinHandler.join() 返回的是 std::thread::Result,
@@ -4398,7 +4455,7 @@ parked_thread.join().unwrap();
 ```
 
 
-### <span class="section-num">20.6</span> scope thread {#scope-thread}
+### <span class="section-num">21.6</span> scope thread {#scope-thread}
 
 在标准库提供 thread scope 之前, 社区的 crossbeam crate 已经提供了 thread scope 能力.
 
@@ -4488,7 +4545,7 @@ fn main() {
 ```
 
 
-### <span class="section-num">20.7</span> thread local storage {#thread-local-storage}
+### <span class="section-num">21.7</span> thread local storage {#thread-local-storage}
 
 Thread Local storage
 
@@ -4544,7 +4601,7 @@ X.with_borrow(|v| assert_eq!(*v, vec![1]));
 对于异步任务，Rust 提供了异步任务的本地存储。
 
 
-### <span class="section-num">20.8</span> fork-join 三方库 rayon {#fork-join-三方库-rayon}
+### <span class="section-num">21.8</span> fork-join 三方库 rayon {#fork-join-三方库-rayon}
 
 标准库 thread 可以实现 fork-join 模式, 比如:
 
@@ -4642,7 +4699,7 @@ FWIW, I've had a much better experience with `rayon::scope` 34 (and more general
 It's a larger dependency for sure.
 
 
-### <span class="section-num">20.9</span> How I learned to stop worrying and love the global state {#how-i-learned-to-stop-worrying-and-love-the-global-state}
+### <span class="section-num">21.9</span> How I learned to stop worrying and love the global state {#how-i-learned-to-stop-worrying-and-love-the-global-state}
 
 <https://symbolica.io/posts/global_state/>
 
@@ -5148,7 +5205,7 @@ I hope that the design techniques described in this blog are also useful outside
 Symbolica. Please let me know in the comments!
 
 
-### <span class="section-num">20.10</span> Once&amp;OnceLock {#once-and-oncelock}
+### <span class="section-num">21.10</span> Once&amp;OnceLock {#once-and-oncelock}
 
 Once 是一个用于只进行一次全局初始化的类型，特别适用于 FFI 等场景。
 
@@ -5303,7 +5360,7 @@ assert_eq!(
 ```
 
 
-## <span class="section-num">21</span> std::net {#std-net}
+## <span class="section-num">22</span> std::net {#std-net}
 
 Rust 的 std::net::ToSocketAddrs trait 用于实现域名解析，可以使用 to_socket_addrs() 方法返回解析后的 IP：
 
