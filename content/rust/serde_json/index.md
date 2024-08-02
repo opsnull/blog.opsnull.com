@@ -1,7 +1,7 @@
 ---
 title: "serde_json"
 author: ["zhangjun"]
-lastmod: 2024-07-25T10:07:04+08:00
+lastmod: 2024-07-29T10:56:06+08:00
 draft: false
 series: ["rust crate"]
 series_order: 17

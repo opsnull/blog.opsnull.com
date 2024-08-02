@@ -1,7 +1,7 @@
 ---
 title: "hyper"
 author: ["zhangjun"]
-lastmod: 2024-07-25T10:07:05+08:00
+lastmod: 2024-07-29T10:56:07+08:00
 tags: ["rust"]
 categories: ["rust"]
 draft: false
