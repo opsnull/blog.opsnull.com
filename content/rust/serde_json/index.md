@@ -1,7 +1,7 @@
 ---
 title: "serde_json"
 author: ["zhangjun"]
-lastmod: 2024-07-29T10:56:06+08:00
+lastmod: 2024-08-04T17:09:16+08:00
 draft: false
 series: ["rust crate"]
 series_order: 17
@@ -19,10 +19,10 @@ serde_json crate 解析。
 </div>
 </details>
 
-serde_json 提供了 `serde_josn::Value` 类型, 可以用于反序列化无类型的 JSON 字符串, 后续可以对 Value 使用 map
-index 操作来获得成员(类型是 &amp;Value):
+serde_json 提供了 `serde_json::Value` 类型, 可以用于反序列化无类型的 JSON 字符串, 后续可以对 Value
+使用 map index 操作来获得成员(类型是 &amp;Value):
 
--   可以使用 string 来获得 map 类型值, 可以使用整型 index 来获得数组成员;
+-   可以使用 &amp;str 字符串来获得 map 类型值, 可以使用整型 index 来获得数组成员;
 -   如果 index 的 map key 或 array index 不存在, 则返回 `Value::Null`;
 -   打印 Value 时, 返回 quota string. 如果不显示字符串 quota 双引号, 则可以调用 Value::as_str() 返回的字符串;
 
@@ -51,9 +51,7 @@ fn untyped_example() -> Result<()> {
                 "+44 2345678"
             ]
         }"#;
-    // Parse the string of data into serde_json::Value.
     let v: Value = serde_json::from_str(data)?;
-    // Access parts of the data by indexing with square brackets.
     println!("Please call {} at the number {}", v["name"], v["phones"][0]); // 返回值类型是 &Value
     Ok(())
 }
@@ -84,8 +82,8 @@ fn typed_example() -> Result<()> {
             ]
         }"#;
 
-    // Parse the string of data into a Person object. This is exactly the same function as the one that
-    // produced serde_json::Value above, but now we are asking it for a Person as output.
+    // Parse the string of data into a Person object. This is exactly the same function as the one
+    // that produced serde_json::Value above, but now we are asking it for a Person as output.
     let p: Person = serde_json::from_str(data)?;
 
     // Do things just like with any other Rust data structure.
@@ -124,14 +122,14 @@ fn print_an_address() -> Result<()> {
 }
 ```
 
-json!() macro 从字符串创建 serde_json::Value 对象，它支持变量和表达式插值, 也可以调用其它宏 如 format!();
+json!() 宏从字符串创建 serde_json::Value 对象，它支持变量和表达式插值, 也可以调用其它宏 如
+format!();
 
 ```rust
 use serde_json::json;
 
 fn main() {
-    // The type of `john` is `serde_json::Value`
-    let john = json!({
+    let john: serde_json::Value = json!({
         "name": "John Doe",
         "age": 43,
         "phones": [
@@ -139,17 +137,13 @@ fn main() {
             "+44 2345678"
         ]
     });
-
     println!("first phone number: {}", john["phones"][0]);
-
-    // Convert to a string of JSON and print it out
     println!("{}", john.to_string());
 }
 
 
 let full_name = "John Doe";
 let age_last_year = 42;
-// The type of `john` is `serde_json::Value`
 let john = json!({
     "name": full_name,
     "age": age_last_year + 1,
@@ -159,7 +153,42 @@ let john = json!({
 });
 ```
 
-Deseralize 方法:
+serde_json 提供了 `Error` 和 `Result` 类型, 用于在 Serialize 或 Deserialize 出错时返回:
+
+```rust
+use serde_json::Value;
+use std::io::{self, ErrorKind, Read};
+use std::process;
+
+struct ReaderThatWillTimeOut<'a>(&'a [u8]);
+
+impl<'a> Read for ReaderThatWillTimeOut<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if self.0.is_empty() {
+            Err(io::Error::new(ErrorKind::TimedOut, "timed out"))
+        } else {
+            self.0.read(buf)
+        }
+    }
+}
+
+fn main() {
+    let reader = ReaderThatWillTimeOut(br#" {"k": "#);
+    let _: Value = match serde_json::from_reader(reader) {
+        Ok(value) => value,
+        Err(error) => {
+            if error.io_error_kind() == Some(ErrorKind::TimedOut) {
+                // Maybe this application needs to retry certain kinds of errors.
+            } else {
+                eprintln!("error: {}", error);
+                process::exit(1);
+            }
+        }
+    };
+}
+```
+
+serde_json module 提供的反序列化函数：
 
 from_reader
 : Deserialize an instance of type T from an I/O stream of JSON.
@@ -179,25 +208,13 @@ from_value
 // 下面返回的 Result 是 serde_json::Result, 它的 Err 为 serde_json::Error 类型
 
 // 从实现 std::io::Read trait 的 reader 读取
-pub fn from_reader<R, T>(rdr: R) -> Result<T>
-where
-    R: Read,
-    T: DeserializeOwned,
-
+pub fn from_reader<R, T>(rdr: R) -> Result<T> where R: Read, T: DeserializeOwned
 // 从 &[u8] 读取
-pub fn from_slice<'a, T>(v: &'a [u8]) -> Result<T>
-where
-    T: Deserialize<'a>,
-
+pub fn from_slice<'a, T>(v: &'a [u8]) -> Result<T> where T: Deserialize<'a>
 // 从 &str 读取
-pub fn from_str<'a, T>(s: &'a str) -> Result<T>
-where
-    T: Deserialize<'a>,
-
+pub fn from_str<'a, T>(s: &'a str) -> Result<T> where T: Deserialize<'a>
 // 从 serde_json::Value 读取
-pub fn from_value<T>(value: Value) -> Result<T, Error>
-where
-    T: DeserializeOwned,
+pub fn from_value<T>(value: Value) -> Result<T, Error> where T: DeserializeOwned
 
 
 // 示例
@@ -213,14 +230,9 @@ struct User {
     location: String,
 }
 fn read_user_from_file<P: AsRef<Path>>(path: P) -> Result<User, Box<dyn Error>> {
-    // Open the file in read-only mode with buffer.
     let file = File::open(path)?;
     let reader = BufReader::new(file);
-
-    // Read the JSON contents of the file as an instance of `User`.
     let u = serde_json::from_reader(reader)?;
-
-    // Return the `User`.
     Ok(u)
 }
 fn main() {
@@ -228,53 +240,14 @@ fn main() {
     println!("{:#?}", u);
 }
 
-
-#[derive(Deserialize, Debug)]
-struct User {
-    fingerprint: String,
-    location: String,
-}
-fn main() {
-    // The type of `j` is `&[u8]`
-    let j = b"
-        {
-            \"fingerprint\": \"0xF9BA143B95FF6D82\",
-            \"location\": \"Menlo Park, CA\"
-        }";
-
-    let u: User = serde_json::from_slice(j).unwrap();
-    println!("{:#?}", u);
-}
-
-
-#[derive(Deserialize, Debug)]
-struct User {
-    fingerprint: String,
-    location: String,
-}
-
-fn main() {
-    // The type of `j` is `&str`
-    let j = "
-        {
-            \"fingerprint\": \"0xF9BA143B95FF6D82\",
-            \"location\": \"Menlo Park, CA\"
-        }";
-
-    let u: User = serde_json::from_str(j).unwrap();
-    println!("{:#?}", u);
-}
-
-
 use serde::Deserialize;
-use serde_json::json; // 导入 json!() 宏
+use serde_json::json;
 #[derive(Deserialize, Debug)]
 struct User {
     fingerprint: String,
     location: String,
 }
 fn main() {
-    // The type of `j` is `serde_json::Value`
     let j = json!({
         "fingerprint": "0xF9BA143B95FF6D82",
         "location": "Menlo Park, CA"
@@ -285,7 +258,7 @@ fn main() {
 }
 ```
 
-Serialize 方法:
+serde_json module 提供的序列化函数：
 
 to_string
 : Serialize the given data structure as a String of JSON.
@@ -313,17 +286,17 @@ to_writer_pretty
 ```rust
 // 下面返回的 Result 是 serde_json::Result, 它的 Err 为 serde_json::Error 类型
 
-pub fn to_string<T>(value: &T) -> Result<String> where T: ?Sized + Serialize,
-// 美化输出
-pub fn to_string_pretty<T>(value: &T) -> Result<String> where T: ?Sized + Serialize,
-
 pub fn to_value<T>(value: T) -> Result<Value, Error> where T: Serialize,
 
-// 将对象序列化为 Vec<u8>
+// 序列化为 String
+pub fn to_string<T>(value: &T) -> Result<String> where T: ?Sized + Serialize,
+pub fn to_string_pretty<T>(value: &T) -> Result<String> where T: ?Sized + Serialize,
+
+// 序列化为 Vec<u8>
 pub fn to_vec<T>(value: &T) -> Result<Vec<u8>> where T: ?Sized + Serialize,
 pub fn to_vec_pretty<T>(value: &T) -> Result<Vec<u8>> where T: ?Sized + Serialize,
 
-// 将对象序列化为 UTF-8 字节流, 然后写入 writer
+// 序列化为 UTF-8 字节流, 然后写入 writer
 pub fn to_writer<W, T>(writer: W, value: &T) -> Result<()> where W: Write, T: ?Sized + Serialize,
 pub fn to_writer_pretty<W, T>(writer: W, value: &T) -> Result<()> where W: Write, T: ?Sized + Serialize,
 
@@ -343,53 +316,13 @@ fn compare_json_values() -> Result<(), Box<dyn Error>> {
         fingerprint: "0xF9BA143B95FF6D82".to_owned(),
         location: "Menlo Park, CA".to_owned(),
     };
-
-    // The type of `expected` is `serde_json::Value`
-    let expected = json!({
+    let expected: serde_json::Value = json!({
         "fingerprint": "0xF9BA143B95FF6D82",
         "location": "Menlo Park, CA",
     });
 
     let v = serde_json::to_value(u).unwrap();
     assert_eq!(v, expected);
-
     Ok(())
-}
-```
-
-serde_json 提供了 `Error` 和 `Result` 类型, 用于在 Serialize 或 Deserialize 出错时返回:
-
-```rust
-use serde_json::Value;
-use std::io::{self, ErrorKind, Read};
-use std::process;
-
-struct ReaderThatWillTimeOut<'a>(&'a [u8]);
-
-impl<'a> Read for ReaderThatWillTimeOut<'a> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if self.0.is_empty() {
-            Err(io::Error::new(ErrorKind::TimedOut, "timed out"))
-        } else {
-            self.0.read(buf)
-        }
-    }
-}
-
-fn main() {
-    let reader = ReaderThatWillTimeOut(br#" {"k": "#);
-
-    let _: Value = match serde_json::from_reader(reader) {
-        Ok(value) => value,
-        Err(error) => {
-            if error.io_error_kind() == Some(ErrorKind::TimedOut) {
-                // Maybe this application needs to retry certain kinds of errors.
-
-            } else {
-                eprintln!("error: {}", error);
-                process::exit(1);
-            }
-        }
-    };
 }
 ```

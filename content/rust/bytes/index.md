@@ -1,7 +1,7 @@
 ---
 title: "bytes"
 author: ["zhangjun"]
-lastmod: 2024-07-29T10:56:07+08:00
+lastmod: 2024-08-04T17:09:16+08:00
 tags: ["bytes", "rust"]
 categories: ["rust"]
 draft: false

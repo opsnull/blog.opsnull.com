@@ -1,31 +1,33 @@
 ---
 title: "diesel"
 author: ["zhangjun"]
-lastmod: 2024-08-03T18:27:30+08:00
+lastmod: 2024-08-04T17:09:18+08:00
+tags: ["rust"]
+categories: ["rust"]
 draft: false
 series: ["rust crate"]
 series_order: 18
 ---
 
-## <span class="section-num">1</span> 安装 diesel_cli {#安装-diesel-cli}
+## <span class="section-num">1</span> 安装 postgresql 和 diesel_cli {#安装-postgresql-和-diesel-cli}
 
 ```shell
-brew install mysql-client sqlite postgresql
-
-zj@a:~/work/code/learn-by-doing$ ls -l /opt/homebrew/opt/mysql-client/lib
+$ brew install mysql-client sqlite postgresql
+$ ls -l /opt/homebrew/opt/mysql-client/lib
 total 14M
 -rw-r--r-- 1 alizj 6.6M  8  1 13:44 libmysqlclient.23.dylib
 -r--r--r-- 1 alizj 7.1M 12 14  2023 libmysqlclient.a
 lrwxr-xr-x 1 alizj   23 12 14  2023 libmysqlclient.dylib -> libmysqlclient.23.dylib
 drwxr-xr-x 3 alizj   96  8  1 13:44 pkgconfig/
 
-export MYSQLCLIENT_LIB_DIR=/opt/homebrew/opt/mysql-client/lib MYSQLCLIENT_VERSION=23
-cargo install diesel_cli
+$ export MYSQLCLIENT_LIB_DIR=/opt/homebrew/opt/mysql-client/lib MYSQLCLIENT_VERSION=23
+$ cargo install diesel_cli
 
-# 启动 postgresql
-brew services start postgresql@14
+# 开启启动 postgresql
+$ brew services start postgresql@14
 
-zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ brew services list
+# 确认启动成功
+$ brew services list
 Name          Status  User  File
 bind          none
 dbus          none
@@ -33,28 +35,21 @@ emacs-plus@30 none
 postgresql@14 started alizj ~/Library/LaunchAgents/homebrew.mxcl.postgresql@14.plist
 unbound       none
 
-zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ lsof -i tcp:5432
+$ lsof -i tcp:5432
 COMMAND    PID  USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
 postgres 64220 alizj    7u  IPv6 0x5297ba1d8b4e0e13      0t0  TCP localhost:postgresql (LISTEN)
 postgres 64220 alizj    8u  IPv4 0x5297ba271f55c663      0t0  TCP localhost:postgresql (LISTEN)
 
-zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ psql -d postgres
+# 连接 postgresql，设置账号密码
+$ psql -d postgres
 psql (14.12 (Homebrew))
 Type "help" for help.
-
-postgres=# help
-You are using psql, the command-line interface to PostgreSQL.
-Type:  \copyright for distribution terms
-       \h for help with SQL commands
-       \? for help with psql commands
-       \g or terminate with semicolon to execute query
-       \q to quit
 postgres=# CREATE ROLE zj WITH LOGIN PASSWORD '1234';
 CREATE ROLE
 postgres=# ALTER ROLE zj CREATEDB;
 ALTER ROLE
 
-zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ psql -l
+$ psql -l
                          List of databases
    Name    | Owner | Encoding | Collate | Ctype | Access privileges
 -----------+-------+----------+---------+-------+-------------------
@@ -72,9 +67,6 @@ Creating migrations directory at: /Users/alizj/work/code/learn-by-doing/rust/die
 Creating database: diesel_demo
 
 zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ cat diesel.toml
-# For documentation on how to configure this file,
-# see https://diesel.rs/guides/configuring-diesel-cli
-
 [print_schema]
 file = "src/schema.rs"
 custom_type_derives = ["diesel::query_builder::QueryId", "Clone"]
@@ -100,53 +92,6 @@ zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ psql -l
  template1   | alizj | UTF8     | C       | C     | =c/alizj         +
              |       |          |         |       | alizj=CTc/alizj
 (4 rows)
-
-zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ cat migrations/00000000000000_diesel_initial_setup/up.sql
--- This file was automatically created by Diesel to setup helper functions
--- and other internal bookkeeping. This file is safe to edit, any future
--- changes will be added to existing projects as new migrations.
-
-
-
-
--- Sets up a trigger for the given table to automatically set a column called
--- `updated_at` whenever the row is modified (unless `updated_at` was included
--- in the modified columns)
---
--- # Example
---
--- ```sql
--- CREATE TABLE users (id SERIAL PRIMARY KEY, updated_at TIMESTAMP NOT NULL DEFAULT NOW());
---
--- SELECT diesel_manage_updated_at('users');
--- ```
-CREATE OR REPLACE FUNCTION diesel_manage_updated_at(_tbl regclass) RETURNS VOID AS $$
-BEGIN
-    EXECUTE format('CREATE TRIGGER set_updated_at BEFORE UPDATE ON %s
-                    FOR EACH ROW EXECUTE PROCEDURE diesel_set_updated_at()', _tbl);
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION diesel_set_updated_at() RETURNS trigger AS $$
-BEGIN
-    IF (
-        NEW IS DISTINCT FROM OLD AND
-        NEW.updated_at IS NOT DISTINCT FROM OLD.updated_at
-    ) THEN
-        NEW.updated_at := current_timestamp;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-zj@a:~/work/code/learn-by-doing/rust/diesel_demo$
-
-zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ cat migrations/00000000000000_diesel_initial_setup/down.sql
--- This file was automatically created by Diesel to setup helper functions
--- and other internal bookkeeping. This file is safe to edit, any future
--- changes will be added to existing projects as new migrations.
-
-DROP FUNCTION IF EXISTS diesel_manage_updated_at(_tbl regclass);
-DROP FUNCTION IF EXISTS diesel_set_updated_at();
 
 
 zj@a:~/work/code/learn-by-doing/rust/diesel_demo$ diesel migration generate create_posts
@@ -193,74 +138,6 @@ diesel::table! {
 }
 ```
 
-Sql 语句入口： Module diesel::dsl module，该 module 提供了如下函数：
-
-avg
-: Represents a SQL AVG function. This function can only take types which are Foldable.
-
-case_when
-: Creates a SQL CASE WHEN ... END expression
-
-`copy_from`
-: Creates a COPY FROM statement
-
-`copy_to`
-: Creates a COPY TO statement
-
-count
-: Creates a SQL COUNT expression
-
-count_distinct
-: Creates a SQL COUNT(DISTINCT ...) expression
-
-count_star
-: Creates a SQL COUNT(\*) expression
-
-date
-: Represents the SQL DATE function. The argument should be a Timestamp expression, and the
-    return value will be an expression of type Date.
-
-`delete`
-: Creates a DELETE statement.
-
-exists
-: Creates a SQL EXISTS expression.
-
-`insert_into`
-: Creates an INSERT statement for the target table.
-
-`insert_or_ignore_into`
-: Creates an INSERT [OR] IGNORE statement.
-
-max
-: Represents a SQL MAX function. This function can only take types which are ordered.
-
-min
-: Represents a SQL MIN function. This function can only take types which are ordered.
-
-not
-: Creates a SQL NOT expression
-
-`replace_into`
-: Creates a REPLACE statement.
-
-`select`
-: Creates a bare select statement, with no from clause. Primarily used for testing
-    diesel itself, but likely useful for third party crates as well. The given expressions must be
-    selectable from anywhere.
-
-sql
-: Use literal SQL in the query builder.
-
-`sql_query`
-: Construct a full SQL query using raw SQL.
-
-sum
-: Represents a SQL SUM function. This function can only take types which are Foldable.
-
-`update`
-: Creates an UPDATE statement.
-
 
 ## <span class="section-num">2</span> sql type {#sql-type}
 
@@ -300,6 +177,8 @@ AsChangeset
 
 Associations
 : Implement required traits for the associations API
+    -   用于在关联表场景，在 child 表（含有外键的表）上定义。同时使用的还有
+        \#[diesel(belongs_to(Book, foreign_key = book_id))] 来指定关联表和外键字段。
 
 
 Identifiable
@@ -342,18 +221,17 @@ Selectable
 use diesel::prelude::*;
 
 #[derive(Queryable, Selectable)]
-// table_name 是 Selectable 所必须的。
-// check_for_backend 用于编译时静态检查，即检查 struct 成员类型和数据库表定义是否完全一致
+// table_name 是 Selectable 所需要的，默认为 struct 全小写名称加 s。
+// check_for_backend 用于编译时静态检查，即检查 struct 成员类型和数据库表定义是否完全一致。
 #[diesel(table_name = crate::schema::posts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Post {
-    pub id: i32,
+    pub id: i32, // 默认表的 PK 是 id 字段。
     pub title: String,
     pub body: String,
     pub published: bool,
 }
 
-use crate::schema::posts;
 // 用于 diesel::insert_into(table).values() 的参数，需要实现 Insertable
 #[derive(Insertable)]
 #[diesel(table_name = posts)]
@@ -367,14 +245,12 @@ diesel::insert_into(posts::table)
     .values(&new_post)
     .returning(Post::as_returning()) // Selectable 可以作为 returning() 的参数
     .get_result(conn)
-    .expect("Error saving new post")
-
-   let post = posts
-        .find(post_id)
-        .select(Post::as_select()) // Selectable 可以作为 select() 的参数
-        .first(connection)
-        .optional(); // This allows for returning an Option<Post>, otherwise it will throw an error
-
+    .expect("Error saving new post");
+let post = posts
+    .find(post_id)
+    .select(Post::as_select()) // Selectable 可以作为 select() 的参数
+    .first(connection)
+    .optional(); // This allows for returning an Option<Post>, otherwise it will throw an error
 
 use schema::{users, posts};
 #[derive(Debug, PartialEq, Queryable, Selectable)]
@@ -427,8 +303,8 @@ let expected_user_post = UserPost {
 };
 assert_eq!(expected_user_post, first_user_post);
 
-// 示例: Identifiable 可以作为 update() 的参数, AsChangeset 可以作为 set() 的参数.
-// Identifiable 需要有作为 PK 的 id 字段.
+// 示例: Identifiable 可以作为 update() 的参数, AsChangeset 可以作为 set() 的参数.  Identifiable
+// 需要有作为 PK 的 id 字段.
 #[derive(Queryable, Identifiable, AsChangeset)]
 #[diesel(table_name = posts)]
 pub struct Post {
@@ -448,6 +324,23 @@ update(post)
 update(posts.find(post.id))
 // 或
 update(posts.filter(id.eq(post.id))).
+
+// Associations 关联表
+#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)]
+#[diesel(table_name = books)]
+pub struct Book {
+    pub id: i32,
+    pub title: String,
+}
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug, PartialEq)]
+#[diesel(belongs_to(Book, foreign_key = book_id))] // foreign_key 默认为 {table}_id 字段
+#[diesel(table_name = pages)]
+pub struct Page {
+    pub id: i32,
+    pub page_number: i32,
+    pub content: String,
+    pub book_id: i32,
+}
 ```
 
 
@@ -1059,8 +952,8 @@ let post = posts
 
 ## <span class="section-num">6</span> debug_query {#debug-query}
 
-Function diesel::debug_query: Takes a query QueryFragment expression as an argument and returns a
-type that implements fmt::Display and fmt::Debug to show the query.
+函数 diesel::debug_query 用于将 QueryFragment 查询表达式打印出来（实现了 fmt::Display 和
+fmt::Debug）, 常用于显示 diesel 语句调试。
 
 ```rust
 pub fn debug_query<DB, T>(query: &T) -> DebugQuery<'_, T, DB>
@@ -1104,7 +997,8 @@ SelectStatement/SqlQuery/Alias/SqlLiteral/Table/DeleteStatement/InsertStatement/
 
 -   execute/load() 返回实际影响的计数条数;
 -   get_result/get_results/first() 返回插入/更新后的值, 如果没有调用 returning() 方法, 则返回表的所有字段.
--   get_result() 返回 0 个记录是表示出错, 如果要返回 0 或 1 个记录, 需要使用 get_result(...).optional();
+-   get_result() 返回 0 个记录是表示出错, 如果要返回 0 或 1 个记录, 需要使用
+    get_result(...).optional();
 
 <!--listend-->
 
@@ -1171,7 +1065,6 @@ pub struct Organization {
     pub products: Vec<Product>,
 }
 
-
 use schema::{users, posts};
 #[derive(Debug, PartialEq, Queryable, Selectable)]
 struct User {
@@ -1203,7 +1096,7 @@ diesel::update(&foo).set(&foo).get_result(&conn).
 ```
 
 
-## <span class="section-num">8</span> Bare functions {#bare-functions}
+## <span class="section-num">8</span> bare functions {#bare-functions}
 
 “Bare functions” : 对于非 select query 类型, 不是直接在 table 对象上调用, diesel 在 Module
 diesel::dsl 中提供了相应函数:
@@ -2017,4 +1910,439 @@ let expected_users = vec![
     User { id: 3, name: "Jim".into() },
 ];
 assert_eq!(Ok(expected_users), users);
+```
+
+
+## <span class="section-num">13</span> associations/join {#associations-join}
+
+
+### <span class="section-num">13.1</span> diesel::associations {#diesel-associations}
+
+module diesel::associations 提供了表之间 1-N 的关联关系宏和函数.
+
+Associations in Diesel are always child-to-parent.
+
+在 child 表上使用 #[derive(Associations)] 和 #[diesel(belongs_to(Parent))] 来定义与 Parent 之间的关联关系:
+
+-   Foreigin Key 惯例: table_name_id, 如果不是这样, 需要明确指定: #[diesel(belongs_to(Foo,
+    foreign_key = mykey))].
+
+<!--listend-->
+
+```rust
+use schema::{posts, users};
+
+#[derive(Identifiable, Queryable, PartialEq, Debug)]
+#[diesel(table_name = users)]
+pub struct User {
+    id: i32,
+    name: String,
+}
+
+#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
+#[diesel(belongs_to(User))]
+#[diesel(table_name = posts)]
+pub struct Post {
+    id: i32,
+    user_id: i32, // Foreigin Key 惯例: table_name_id
+    title: String,
+}
+
+let user = users.find(2).get_result::<User>(connection)?;
+let users_post = Post::belonging_to(&user)
+    .first(connection)?;
+let expected = Post { id: 3, user_id: 2, title: "My first post too".into() };
+assert_eq!(expected, users_post);
+```
+
+使用 child 的 belonging_to() 方法来查询一个或多个 parent 的 child 记录：
+
+```rust
+let sean = users.filter(name.eq("Sean")).first::<User>(connection)?;
+let tess = users.filter(name.eq("Tess")).first::<User>(connection)?;
+
+let seans_posts = Post::belonging_to(&sean)
+    .select(title)
+    .load::<String>(connection)?;
+assert_eq!(vec!["My first post", "About Rust"], seans_posts);
+
+// A vec or slice can be passed as well
+let more_posts = Post::belonging_to(&vec![sean, tess])
+    .select(title)
+    .load::<String>(connection)?;
+assert_eq!(vec!["My first post", "About Rust", "My first post too"], more_posts);
+```
+
+可以对查询结果 Vec&lt;Child&gt; 使用 grouped_by() 来进行聚合，参数是 &amp;[Parent], 返回的是按 Parent 聚合后的Vec&lt;Vec&lt;Child&gt;&gt;：
+
+```rust
+let users = users::table.load::<User>(connection)?;
+let posts = Post::belonging_to(&users)
+    .load::<Post>(connection)?
+    .grouped_by(&users);
+let data = users.into_iter().zip(posts).collect::<Vec<_>>();
+
+let expected_data = vec![
+    (
+        User { id: 1, name: "Sean".into() },
+        vec![
+            Post { id: 1, user_id: 1, title: "My first post".into() },
+            Post { id: 2, user_id: 1, title: "About Rust".into() },
+        ],
+    ),
+    (
+        User { id: 2, name: "Tess".into() },
+        vec![
+            Post { id: 3, user_id: 2, title: "My first post too".into() },
+        ],
+    ),
+];
+
+assert_eq!(expected_data, data);
+```
+
+
+### <span class="section-num">13.2</span> 1-N {#1-n}
+
+1-N 即 belong to 关系，module diesel::associations 提供了支撑。
+
+创建两个表的 migration:
+
+```shell
+diesel migration generate create_books
+diesel migration generate create_pages
+```
+
+up 语句:
+
+```sql
+CREATE TABLE books (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR NOT NULL
+);
+
+CREATE TABLE pages (
+  id SERIAL PRIMARY KEY,
+  page_number INT NOT NULL,
+  content TEXT NOT NULL,
+  book_id INTEGER NOT NULL REFERENCES books(id)
+);
+```
+
+执行 migration:
+
+```shell
+diesel migration run
+```
+
+生成的 schema.rs:
+
+-   diesel::joinable!() 宏的输入参数为: child_table -&gt; parent_table (foreign_key), 只能适用于一个
+    foreign_key 的情况, 对于其它情况(如 composite foreign key) 在查询时需要通过 ON clause 来指定;
+
+<!--listend-->
+
+```rust
+// @generated automatically by Diesel CLI.
+
+diesel::table! {
+    books (id) {
+        id -> Int4,
+        title -> Varchar,
+    }
+}
+
+diesel::table! {
+    pages (id) {
+        id -> Int4,
+        page_number -> Int4,
+        content -> Text,
+        book_id -> Int4,
+    }
+}
+
+diesel::joinable!(pages -> books (book_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
+    books,
+    pages,
+);
+```
+
+diesel::joinable!() 宏可以消除在关联查询时使用 ON cluase 的情况:
+
+```rust
+use schema::*;
+
+// Child table: posts
+// Parent table: users
+// Foreign key: user_id (in child table: posts)
+joinable!(posts -> users (user_id));
+allow_tables_to_appear_in_same_query!(posts, users);
+
+// 消除 ON clause
+let implicit_on_clause = users::table.inner_join(posts::table);
+let implicit_on_clause_sql = diesel::debug_query::<DB, _>(&implicit_on_clause).to_string();
+
+// 显式使用 ON clause
+let explicit_on_clause = users::table
+    .inner_join(posts::table.on(posts::user_id.eq(users::id)));
+let explicit_on_clause_sql = diesel::debug_query::<DB, _>(&explicit_on_clause).to_string();
+
+// 两者是等价的
+assert_eq!(implicit_on_clause_sql, explicit_on_clause_sql);
+
+// posts JOIN users ON posts.user_id = users.id
+```
+
+数据模型 src/model.rs:
+
+```rust
+use diesel::prelude::*;
+
+use crate::schema::{books, pages};
+
+#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)]
+#[diesel(table_name = books)]
+pub struct Book {
+    pub id: i32,
+    pub title: String,
+}
+
+// Child 表添加 Associations
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug, PartialEq)]
+// belongs_to 指定 Parent table, 如果是约定的 {Parent}_id 作为 FK, 则可以不指定
+#[diesel(belongs_to(Book, foreign_key = book_id))]
+#[diesel(table_name = pages)]
+pub struct Page {
+    pub id: i32,
+    pub page_number: i32,
+    pub content: String,
+    pub book_id: i32,
+}
+```
+
+读数据:
+
+```rust
+let momo = books::table
+    .filter(books::title.eq("Momo"))
+    .select(Book::as_select())
+    .get_result(conn)?;
+
+// belonging_to() 是 1-N 关联查询, 传入的可以是单个 Parent 或多个 Parent.
+let pages = Page::belonging_to(&momo)
+    .select(Page::as_select())
+    .load(conn)?; // 使用 load() 而非 execute()/get_results(), 故可以添加额外的 clause
+//指定的语句: SELECT * FROM pages WHERE book_id IN(…)
+println!("Pages for \"Momo\": \n {pages:?}\n");
+
+
+// 查询所有的 books
+let all_books = books::table.select(Book::as_select()).load(conn)?;
+// get all pages for all books
+let pages = Page::belonging_to(&all_books) // bool slice
+    .select(Page::as_select())
+    .load(conn)?; // 不实际查询, 可以添加额外的 clause
+// group the pages per book
+let pages_per_book = pages
+    .grouped_by(&all_books)
+    .into_iter()
+    .zip(all_books)
+    .map(|(pages, book)| (book, pages)) // 返回一个 tuple
+    .collect::<Vec<(Book, Vec<Page>)>>();
+println!("Pages per book: \n {pages_per_book:?}\n");
+```
+
+反序列化结果到自定义类型:
+
+```rust
+// [{
+//     "id": 1,
+//     "title": "Momo",
+//     "pages": […],
+// }]
+
+#[derive(Serialize)] // serde 提供的 Serialize macro
+struct BookWithPages {
+    #[serde(flatten)] // 将 book 字段内容打平到结果类型中(默认是位于 book 字段中)
+    book: Book,
+    pages: Vec<Page>,
+}
+
+// group the pages per book
+let pages_per_book = pages
+    .grouped_by(&all_books)
+    .into_iter()
+    .zip(all_books)
+    .map(|(pages, book)| BookWithPages { book, pages })
+    .collect::<Vec<BookWithPages>>();
+```
+
+
+### <span class="section-num">13.3</span> join {#join}
+
+对于非 1-N 的关联关系，diesel 需要使用 SQL JOIN 来解决。diesel 提供了两种类型 join：INNER JOIN 和
+LEFT JOIN。
+
+QueryDsl::inner_join() 用于构建 INNER JOIN 语句：
+
+-   如果没有使用 select(), 则默认返回一个 tuple，包含双方的所有默认字段；select() 的参数可以是 tuple
+    或实现了 Queryable 的类型；
+
+<!--listend-->
+
+```rust
+let page_with_book = pages::table
+    .inner_join(books::table)
+    .filter(books::title.eq("Momo"))
+    .select((Page::as_select(), Book::as_select()))
+    .load::<(Page, Book)>(conn)?;
+println!("Page-Book pairs: {page_with_book:?}");
+
+// 两种不同的 inner_join() 类型：
+users::table.inner_join(posts::table.inner_join(comments::table));
+// Results in the following SQL
+// SELECT * FROM users
+// INNER JOIN posts ON users.id = posts.user_id
+// INNER JOIN comments ON post.id = comments.post_id
+
+users::table.inner_join(posts::table).inner_join(comments::table);
+// Results in the following SQL
+// SELECT * FROM users
+// INNER JOIN posts ON users.id = posts.user_id
+// INNER JOIN comments ON users.id = comments.user_id
+```
+
+left_join():
+
+-   返回的结果类型是：(Book, Option&lt;Page&gt;)
+
+<!--listend-->
+
+```rust
+let book_without_pages = books::table
+    .left_join(pages::table)
+    .select((Book::as_select(), Option::<Page>::as_select()))
+    .load::<(Book, Option<Page>)>(conn)?;
+println!("Book-Page pairs (including empty books): {book_without_pages:?}");
+```
+
+默认使用 joinable!() 来隐式构建 ON 语句，也可以使用 JoinOnDsl::on() 来指定自定义 join 规则：
+
+```rust
+pub trait JoinOnDsl: Sized {
+    // Provided method
+    fn on<On>(self, on: On) -> On<Self, On> { ... }
+}
+
+let data = users::table
+    .left_join(posts::table.on(
+        users::id.eq(posts::user_id).and(
+            posts::title.eq("My first post"))
+    ))
+    .select((users::name, posts::title.nullable()))
+    .load(connection);
+let expected = vec![
+    ("Sean".to_string(), Some("My first post".to_string())),
+    ("Tess".to_string(), None),
+];
+assert_eq!(Ok(expected), data);
+```
+
+
+### <span class="section-num">13.4</span> M-N {#m-n}
+
+Many-to-Many 需要使用 Join Table 来实现，它 belongs_to 所有关联的 table。
+
+创建 migration：
+
+```shell
+diesel migration generate create_authors
+diesel migration generate create_books_authors // 创建 join table
+```
+
+join table 的定义中要使用 FK 来引用关联的表记录：
+
+```sql
+CREATE TABLE authors (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR NOT NULL
+);
+
+CREATE TABLE books_authors (
+  book_id INTEGER REFERENCES books(id),
+  author_id INTEGER REFERENCES authors(id),
+  PRIMARY KEY(book_id, author_id)
+);
+```
+
+执行迁移：diesel migration run
+
+创建 model：
+
+-   核心是 join table 要 belongs_to 到所有的关联的表；
+
+<!--listend-->
+
+```rust
+use diesel::prelude::*;
+
+use crate::schema::{books, pages, authors, books_authors};
+
+#[derive(Queryable, Selectable, Identifiable, PartialEq, Debug)]
+#[diesel(table_name = authors)]
+pub struct Author {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Identifiable, Selectable, Queryable, Associations, Debug)]
+#[diesel(belongs_to(Book))]
+#[diesel(belongs_to(Author))]
+#[diesel(table_name = books_authors)]
+#[diesel(primary_key(book_id, author_id))]
+pub struct BookAuthor {
+    pub book_id: i32,
+    pub author_id: i32,
+}
+```
+
+读数据：
+
+-   先使用 belonging_to() 来进行 1-N join，然后再使用 inner_join();
+
+<!--listend-->
+
+```rust
+let astrid_lindgren = authors::table
+    .filter(authors::name.eq("Astrid Lindgren"))
+    .select(Author::as_select())
+    .get_result(conn)?;
+
+// get all of Astrid Lindgren's books
+let books = BookAuthor::belonging_to(&astrid_lindgren)
+    .inner_join(books::table)
+    .select(Book::as_select())
+    .load(conn)?;
+println!("Books by Astrid Lindgren: {books:?}");
+
+// 更复杂的例子
+let all_authors = authors::table
+    .select(Author::as_select())
+    .load(conn)?;
+
+let books = BookAuthor::belonging_to(&authors)
+    .inner_join(books::table)
+    .select((BookAuthor::as_select(), Book::as_select()))
+    .load(conn)?;
+
+let books_per_author: Vec<(Author, Vec<Book>)> = books
+    .grouped_by(&all_authors)
+    .into_iter()
+    .zip(authors)
+    .map(|(b, author)| (author, b.into_iter().map(|(_, book)| book).collect()))
+    .collect();
+
+println!("All authors including their books: {books_per_author:?}");
 ```
